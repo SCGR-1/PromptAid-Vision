@@ -1,0 +1,25 @@
+# ─── Node / React ───────────────────────────────
+node_modules/
+dist/
+build/
+.cache/
+.vite/
+
+# Local env & secrets
+.env*
+!.env.example
+
+# ─── Go backend (we’ll add later) ───────────────
+/backend/bin/
+/backend/coverage.out
+
+# ─── Docker ─────────────────────────────────────
+*.log
+docker-compose.override.yml
+
+# ─── OS / editor cruft ─────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
