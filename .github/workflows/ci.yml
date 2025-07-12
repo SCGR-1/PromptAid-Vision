@@ -1,0 +1,27 @@
+name: CI   
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Front-end: React ---
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - run: |
+          cd frontend
+          npm ci            # 3) install deps
+          npm run build     # 4) make sure it builds
+
+      # --- Back-end: Go ---
+      - uses: actions/setup-go@v5
+        with: { go-version: 1.22 }
+
+      - run: |
+          cd backend
+          go test ./...     # 6) run Go tests
