@@ -5,8 +5,6 @@ import {
   PageContainer,
   Heading,
   Button,
-  RawFileInput,   // thin wrapper around <input type="file">
-  Container,
 } from '@ifrc-go/ui';
 import {
   UploadCloudLineIcon,

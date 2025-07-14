@@ -1,5 +1,4 @@
 import { NavLink } from "react-router-dom";
-import { IconButton } from "@ifrc-go/ui";
 import {
   UploadCloudLineIcon,
   AnalysisIcon,
