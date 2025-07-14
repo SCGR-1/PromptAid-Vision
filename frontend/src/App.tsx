@@ -1,11 +1,24 @@
-import { Button } from "@ifrc-go/ui";
+/* src/App.tsx */
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import RootLayout from './layouts/RootLayout';
+import UploadPage from './pages/UploadPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import ExplorePage from './pages/ExplorePage';
+import HelpPage from './pages/HelpPage';
 
-function App() {
-  return (
-    <main className="flex flex-col items-center gap-6 p-8">
-      <h1 className="text-3xl font-bold text-ifrcRed">PromptAid Vision</h1>
-      <Button name="ifrc-button" size={2} variant="primary">IFRC Button</Button>
-    </main>
-  );
+const router = createBrowserRouter([
+  {
+    element: <RootLayout />,   // header sticks here
+    children: [
+      { path: '/',          element: <UploadPage /> },
+      { path: '/upload',    element: <UploadPage /> },
+      { path: '/analytics', element: <AnalyticsPage /> },
+      { path: '/explore',   element: <ExplorePage /> },
+      { path: '/help',      element: <HelpPage /> },
+    ],
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
 }
-export default App;
