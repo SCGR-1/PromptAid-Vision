@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: promptaid
+      POSTGRES_PASSWORD: promptaid
+      POSTGRES_DB: promptaid
+    ports:
+      - "5432:5432"   # host → container
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
