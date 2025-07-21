@@ -6,20 +6,20 @@ import (
     "database/sql"
     "encoding/hex"
     "io"
-    "mime/multipart"
     "net/http"
     "time"
 
     "github.com/gin-gonic/gin"
     "github.com/google/uuid"
-    "github.com/minio/minio-go/v7"
-	"github.com/lib/pq"
+    "github.com/lib/pq"
+    "github.com/SCGR-1/promptaid-backend/internal/storage"
 )
+
 
 // wire this in main.go: r.POST("/maps", deps.UploadMap)
 type UploadDeps struct {
     DB       *sql.DB
-    Storage  *minio.Client
+    Storage  storage.ObjectStore
     Bucket   string
     RegionOK map[string]bool // in‑memory lookup, seeded at start
     // same for SourceOK, CategoryOK, CountryOK
@@ -53,7 +53,12 @@ func (d *UploadDeps) UploadMap(c *gin.Context) {
     // repeat for source / category / countries…
 
     // ---- 3. Read file + hash it ----------------------------------------
-    buf, _ := io.ReadAll(file)
+    var buf []byte
+	buf, err = io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "read failed"})
+		return
+	}
     sha := sha256.Sum256(buf)
     shaHex := hex.EncodeToString(sha[:])
 
@@ -61,15 +66,16 @@ func (d *UploadDeps) UploadMap(c *gin.Context) {
     objKey := "maps/" + time.Now().Format("2006/01/02/") + shaHex + ".png"
 
     // ---- 4. Upload to object storage -----------------------------------
-    _, err = d.Storage.PutObject(
-        c, d.Bucket, objKey,
-        bytes.NewReader(buf), int64(len(buf)),
-        minio.PutObjectOptions{ContentType: fileHdr.Header.Get("Content-Type")},
-    )
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "storage failed"})
-        return
-    }
+	ctx := c.Request.Context()
+	if err := d.Storage.Put(
+		ctx, objKey,
+		bytes.NewReader(buf), int64(len(buf)),
+		fileHdr.Header.Get("Content-Type"),
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "storage failed"})
+		return
+	}
+
 
     // ---- 5. Insert into maps -------------------------------------------
     mapID := uuid.New()
