@@ -10,6 +10,7 @@ import (
 
 	"github.com/SCGR-1/promptaid-backend/internal/storage"
     "github.com/SCGR-1/promptaid-backend/handlers"
+    "github.com/SCGR-1/promptaid-backend/internal/captioner"
 )
 
 type Config struct {
@@ -26,12 +27,17 @@ func loadConfig() Config {
 
 
 func main() {
-	
-    cfg := loadConfig()
 
     // ---- 1. connect DB  ----
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil { log.Fatal(err) }
+	dsn := os.Getenv("DATABASE_URL")
+    if dsn == "" {
+        dsn = "postgres://promptaid:promptaid@localhost:5432/promptaid?sslmode=disable"
+    }
+    db, err := sql.Open("postgres", dsn)
+    if err != nil {
+        log.Fatal(err)
+    }
+
 
 	// ---- 2. choose storage driver ----
 	var store storage.ObjectStore
@@ -54,8 +60,9 @@ func main() {
     uploadDeps := handlers.UploadDeps{
         DB:       db,
         Storage:  store,
-        Bucket:   cfg.S3Bucket,
+        Bucket:   os.Getenv("S3_BUCKET"),
         RegionOK: make(map[string]bool),
+		Cap:      captioner.Stub{},
     }
 
 	// ---- 3. build server ----
@@ -65,7 +72,17 @@ func main() {
 		r.Static("/static", l.Root()) // add Root() getter or hardcode "./uploads"
 	}
 
-    r.POST("/maps", uploadDeps.UploadMap)
+	api := r.Group("/api")
+
+	api.POST("/maps",              uploadDeps.UploadMap)
+	api.POST("/maps/:id/caption",  uploadDeps.CreateCaption)
+	api.PUT ("/maps/:id/metadata", uploadDeps.UpdateMapMetadata)
+	api.GET ("/captions/:id",      uploadDeps.GetCaption)
+
+	uploadDeps.RegionOK = map[string]bool{
+		"_TBD_REGION": true,
+		"AFR": true, "AMR": true, "APA": true, "EUR": true, "MENA": true,
+	}
 
 	log.Fatal(r.Run(":8080"))
 }

@@ -6,6 +6,7 @@ import (
     "database/sql"
     "encoding/hex"
     "io"
+    "log"
     "net/http"
     "time"
 
@@ -13,6 +14,7 @@ import (
     "github.com/google/uuid"
     "github.com/lib/pq"
     "github.com/SCGR-1/promptaid-backend/internal/storage"
+	"github.com/SCGR-1/promptaid-backend/internal/captioner"
 )
 
 
@@ -21,8 +23,8 @@ type UploadDeps struct {
     DB       *sql.DB
     Storage  storage.ObjectStore
     Bucket   string
-    RegionOK map[string]bool // in‑memory lookup, seeded at start
-    // same for SourceOK, CategoryOK, CountryOK
+    RegionOK map[string]bool
+    Cap      captioner.Captioner
 }
 
 func (d *UploadDeps) UploadMap(c *gin.Context) {
@@ -79,22 +81,25 @@ func (d *UploadDeps) UploadMap(c *gin.Context) {
 
     // ---- 5. Insert into maps -------------------------------------------
     mapID := uuid.New()
-    _, err = d.DB.Exec(`
+    res, err := d.DB.Exec(`
         INSERT INTO maps
-          (id, file_key, sha256, source, region, category, created_at)
+          (map_id, file_key, sha256, source, region, category, created_at)
         VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
         mapID, objKey, shaHex,
         params.Source, params.Region, params.Category,
     )
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "db insert failed"})
+        log.Printf("🔴 maps INSERT error: %v", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
+    rows, _ := res.RowsAffected()
+    log.Printf("🟢 maps INSERT succeeded, rows affected: %d", rows)
 
     // ---- 6. Insert any countries ---------------------------------------
     if len(params.Countries) > 0 {
         _, err = d.DB.Exec(`
-            INSERT INTO map_countries (map_id, country_code)
+            INSERT INTO map_countries (map_id, c_code)
             SELECT $1, UNNEST($2::char(2)[])
             ON CONFLICT DO NOTHING`,
             mapID, pq.Array(params.Countries),
