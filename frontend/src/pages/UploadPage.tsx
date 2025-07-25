@@ -20,8 +20,6 @@ export default function UploadPage() {
   const PH_REGION   = "_TBD_REGION";
   const PH_CATEGORY = "_TBD_CATEGORY";
 
-  const [mapId, setMapId] = useState<string | null>(null);
-
   const [file, setFile] = useState<File | null>(null);
   //const [source,    setSource]    = useState('');
   //const [region,    setRegion]    = useState('');
@@ -95,7 +93,7 @@ export default function UploadPage() {
 
       const mapIdVal = mapJson.map_id;
       if (!mapIdVal) throw new Error('Upload failed: map_id not found');
-      setMapId(mapIdVal);
+      // setMapId(mapIdVal);
     
       /* 2) caption */
       const capRes = await fetch(
