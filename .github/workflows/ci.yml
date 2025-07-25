@@ -6,7 +6,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # start postgres & minio for the Python backend
     services:
       postgres:
         image: postgres:16
@@ -29,11 +28,12 @@ jobs:
           MINIO_ROOT_PASSWORD: promptaid
         ports:
           - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        # remove the failing health check:
+        # options:
+        #   --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+        #   --health-interval 10s
+        #   --health-timeout 5s
+        #   --health-retries 5
 
     steps:
       - name: Check out code
@@ -67,6 +67,18 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      # ← optional but recommended: wait for MinIO to actually respond
+      - name: Wait for MinIO
+        run: |
+          for i in {1..20}; do
+            if curl -s http://localhost:9000/minio/health/live; then
+              echo "MinIO is up"
+              break
+            fi
+            echo "Waiting for MinIO..."
+            sleep 1
+          done
+
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://promptaid:promptaid@localhost:5433/promptaid
@@ -84,4 +96,3 @@ jobs:
           cd py_backend
           source .venv/bin/activate
           pytest
-
