@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg2-binary
+boto3
+python-dotenv
+pydantic<2.0.0
+openai  # or other VLM client

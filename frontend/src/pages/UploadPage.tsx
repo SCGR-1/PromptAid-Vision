@@ -9,17 +9,18 @@ import {
   UploadCloudLineIcon,
   ArrowRightLineIcon,
 } from '@ifrc-go/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function UploadPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [preview, setPreview] = useState<string | null>(null);
   /* ---------------- local state ----------------- */
-  const navigate = useNavigate();
 
   const PH_SOURCE   = "_TBD_SOURCE";
   const PH_REGION   = "_TBD_REGION";
   const PH_CATEGORY = "_TBD_CATEGORY";
+
+  const [mapId, setMapId] = useState<string | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
   //const [source,    setSource]    = useState('');
@@ -29,7 +30,6 @@ export default function UploadPage() {
   const [region,   setRegion]   = useState(PH_REGION);
   const [category, setCategory] = useState(PH_CATEGORY);
   const [countries, setCountries] = useState<string[]>([]);
-  const [captionId, setCaptionId] = useState<string | null>(null);
 
   // Wrapper functions to handle OptionKey to string conversion
   const handleSourceChange = (value: any) => setSource(String(value));
@@ -89,20 +89,23 @@ export default function UploadPage() {
 
     try {
       /* 1) upload */
-      const mapRes  = await fetch('/api/maps', { method: 'POST', body: fd });
+      const mapRes = await fetch('/api/maps/', { method: 'POST', body: fd });
       const mapJson = await readJsonSafely(mapRes);
       if (!mapRes.ok) throw new Error(mapJson.error || 'Upload failed');
+
+      const mapIdVal = mapJson.map_id;
+      if (!mapIdVal) throw new Error('Upload failed: map_id not found');
+      setMapId(mapIdVal);
     
       /* 2) caption */
       const capRes = await fetch(
-        `/api/maps/${mapJson.mapId}/caption`, 
+        `/api/maps/${mapIdVal}/caption/`, 
         { method: 'POST' },
       );
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
     
       /* 3) continue workflow */
-      setCaptionId(capJson.captionId);
       setDraft(capJson.generated);
       setStep(2);
     } catch (err) {

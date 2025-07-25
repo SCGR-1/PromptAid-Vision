@@ -1,15 +1,44 @@
+version: "3.8"
+
 services:
-  db:
+  postgres:
     image: postgres:16
-    restart: unless-stopped
+    restart: always
     environment:
       POSTGRES_USER: promptaid
       POSTGRES_PASSWORD: promptaid
       POSTGRES_DB: promptaid
     ports:
-      - "5432:5432"   # host → container
+      - "5433:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  minio:
+    image: minio/minio
+    restart: always
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: promptaid
+      MINIO_ROOT_PASSWORD: promptaid
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    depends_on:
+      - postgres
 
 volumes:
-  db_data:
+  pgdata:
+  minio_data:

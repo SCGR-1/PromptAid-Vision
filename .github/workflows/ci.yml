@@ -1,4 +1,4 @@
-name: CI   
+name: CI
 
 on: [push, pull_request]
 
@@ -6,22 +6,82 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    # start postgres & minio for the Python backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: promptaid
+          POSTGRES_PASSWORD: promptaid
+          POSTGRES_DB: promptaid
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U promptaid -d promptaid"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      minio:
+        image: minio/minio
+        env:
+          MINIO_ROOT_USER: promptaid
+          MINIO_ROOT_PASSWORD: promptaid
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out code
+        uses: actions/checkout@v4
 
       # --- Front-end: React ---
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-      - run: |
+      - name: Install & build front-end
+        run: |
           cd frontend
-          npm ci            # 3) install deps
-          npm run build     # 4) make sure it builds
+          npm ci
+          npm run build
+        env:
+          CI: true
 
-      # --- Back-end: Go ---
-      - uses: actions/setup-go@v5
-        with: { go-version: 1.22 }
+      # --- Back-end: Python/FastAPI ---
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
 
-      - run: |
-          cd backend
-          go test ./...     # 6) run Go tests
+      - name: Install Python dependencies
+        run: |
+          cd py_backend
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://promptaid:promptaid@localhost:5433/promptaid
+          S3_ENDPOINT:    http://localhost:9000
+          S3_ACCESS_KEY:  promptaid
+          S3_SECRET_KEY:  promptaid
+          S3_BUCKET:      promptaid
+        run: |
+          cd py_backend
+          source .venv/bin/activate
+          alembic upgrade head
+
+      - name: Run back-end tests
+        run: |
+          cd py_backend
+          source .venv/bin/activate
+          pytest
+
