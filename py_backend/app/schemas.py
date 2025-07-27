@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conint
 from typing import List, Optional
 from uuid import UUID
 
@@ -16,6 +16,7 @@ class MapOut(BaseModel):
     source: str
     region: str
     category: str
+    image_url:  str
 
     class Config:
         orm_mode = True
@@ -37,6 +38,6 @@ class CaptionOut(BaseModel):
 
 class CaptionUpdate(BaseModel):
     edited: str
-    accuracy: int = Field(..., ge=0, le=100)
-    context:  int = Field(..., ge=0, le=100)
-    usability:int = Field(..., ge=0, le=100)
+    accuracy: conint(ge=0, le=100) = None
+    context:  conint(ge=0, le=100) = None
+    usability: conint(ge=0, le=100) = None

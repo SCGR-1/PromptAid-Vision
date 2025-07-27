@@ -9,10 +9,11 @@ import {
   UploadCloudLineIcon,
   ArrowRightLineIcon,
 } from '@ifrc-go/icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function UploadPage() {
-  const [step, setStep] = useState<1 | 2>(1);
+  const navigate = useNavigate();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [preview, setPreview] = useState<string | null>(null);
   /* ---------------- local state ----------------- */
 
@@ -35,7 +36,36 @@ export default function UploadPage() {
   const handleCategoryChange = (value: any) => setCategory(String(value));
   const handleCountriesChange = (value: any) => setCountries(Array.isArray(value) ? value.map(String) : []);
 
-  const [draft, setDraft] = useState(''); 
+  const [captionId, setCaptionId] = useState<string | null>(null);
+
+  const [imageUrl, setImageUrl] = useState<string|null>(null);
+
+  const [draft, setDraft] = useState('');
+
+  // Handle navigation with confirmation
+  const handleNavigation = () => {
+    if (step === 2) {
+      if (confirm("Changes will not be saved")) {
+        setStep(1);
+        setFile(null);
+        setPreview(null);
+        setImageUrl(null);
+        setCaptionId(null);
+        setDraft('');
+        setScores({ accuracy: 50, context: 50, usability: 50 });
+      }
+    }
+  };
+
+  const resetToStep1 = () => {
+    setStep(1);
+    setFile(null);
+    setPreview(null);
+    setImageUrl(null);
+    setCaptionId(null);
+    setDraft('');
+    setScores({ accuracy: 50, context: 50, usability: 50 });
+  }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
     context:  50,
@@ -90,6 +120,7 @@ export default function UploadPage() {
       const mapRes = await fetch('/api/maps/', { method: 'POST', body: fd });
       const mapJson = await readJsonSafely(mapRes);
       if (!mapRes.ok) throw new Error(mapJson.error || 'Upload failed');
+      setImageUrl(mapJson.image_url);
 
       const mapIdVal = mapJson.map_id;
       if (!mapIdVal) throw new Error('Upload failed: map_id not found');
@@ -97,12 +128,14 @@ export default function UploadPage() {
     
       /* 2) caption */
       const capRes = await fetch(
-        `/api/maps/${mapIdVal}/caption/`, 
+        `/api/maps/${mapIdVal}/caption`, 
         { method: 'POST' },
       );
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
-    
+      setCaptionId(capJson.cap_id);
+      console.log(capJson);
+
       /* 3) continue workflow */
       setDraft(capJson.generated);
       setStep(2);
@@ -114,7 +147,7 @@ export default function UploadPage() {
   /* ------------------------------------------------------------------- */
   return (
     <PageContainer>
-      <div className="mx-auto max-w-3xl text-center px-4 py-10">
+      <div className="mx-auto max-w-3xl text-center px-4 py-10" data-step={step}>
         {/* Title & intro copy */}
         {step === 1 && <>
           <Heading level={2}>Upload Your Crisis Map</Heading>
@@ -134,16 +167,7 @@ export default function UploadPage() {
           </div>
         </>}
 
-        {/* Show uploaded image in step 2 */}
-        {step === 2 && preview &&(
-          <div className="mt-6 flex justify-center">
-            <img
-              src={preview}
-              alt="Uploaded map preview"
-              className="max-h-80 rounded shadow"
-            />
-          </div>
-        )}
+
 
         {/* Drop-zone */}
         {step === 1 && (
@@ -186,6 +210,17 @@ export default function UploadPage() {
           </Button>
         )}
 
+{step === 2 && imageUrl && (
+  <div className="mt-6 flex justify-center">
+    <div className="w-full max-w-3xl max-h-80 overflow-hidden bg-red-50">
+             <img
+         src={preview || undefined}
+         alt="Uploaded map preview"
+         className="w-full h-full object-contain rounded shadow"
+       />
+    </div>
+  </div>
+)}
 
 {step === 2 && (
   <div className="space-y-10">
@@ -286,17 +321,46 @@ export default function UploadPage() {
     <Button
       name="submit"
       className="mt-10"
-      onClick={() =>
-        alert('Stub saved – wire PUT /api/captions/:id later')
-      }
+      onClick={async () => {
+        if (!captionId) return alert("No caption to submit");
+        const body = {
+          edited: draft,
+          accuracy: scores.accuracy,
+          context:  scores.context,
+          usability: scores.usability,
+        };
+        const res = await fetch(`/api/captions/${captionId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await readJsonSafely(res);
+        if (!res.ok) return alert(json.error || "Save failed");
+        setStep(3);
+      }}
     >
       Submit
     </Button>
-  </div>
-)}
-        
-        
-      </div>
-    </PageContainer>
-  );
+          </div>
+      )}
+
+      {/* Success page */}
+      {step === 3 && (
+        <div className="text-center space-y-6">
+          <Heading level={2}>Saved!</Heading>
+          <p className="text-gray-700">Your caption has been successfully saved.</p>
+          <Button
+            name="upload-another"
+            onClick={resetToStep1}
+            className="mt-6"
+          >
+            Upload Another
+          </Button>
+        </div>
+      )}
+      
+      
+    </div>
+  </PageContainer>
+);
 }

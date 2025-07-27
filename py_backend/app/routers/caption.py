@@ -48,3 +48,10 @@ def get_caption(cap_id: str, db: Session = Depends(get_db)):
     if not c:
         raise HTTPException(404, "caption not found")
     return c
+
+@router.put("/captions/{cap_id}", response_model=schemas.CaptionOut)
+def update_caption(cap_id: str, update: schemas.CaptionUpdate, db: Session = Depends(get_db)):
+    c = crud.update_caption(db, cap_id, **update.dict())
+    if not c:
+        raise HTTPException(404, "caption not found")
+    return c

@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   UploadCloudLineIcon,
   AnalysisIcon,
@@ -20,12 +20,26 @@ const navItems = [
 ];
 
 export default function HeaderNav() {
+  const location = useLocation();
+  
+  const handleNavigation = (e: React.MouseEvent, to: string) => {
+    if (location.pathname === "/upload") {
+      const uploadPage = document.querySelector('[data-step="2"]');
+      if (uploadPage) {
+        e.preventDefault();
+        if (confirm("Changes will not be saved")) {
+          window.location.href = to;
+        }
+      }
+    }
+  };
+
   return (
     <header className="bg-white border-b border-ifrcRed/40">
       <div className="flex items-center justify-between px-6 py-3">
 
         {/* ── Logo + title ─────────────────────────── */}
-        <NavLink to="/" className="flex items-center gap-2">
+        <NavLink to="/" className="flex items-center gap-2" onClick={(e) => handleNavigation(e, "/")}>
           <img src="/ifrc-logo.svg" alt="IFRC logo" className="h-6" />
           <span className="font-semibold">PromptAid Vision</span>
         </NavLink>
@@ -33,7 +47,7 @@ export default function HeaderNav() {
         {/* ── Centre nav links ─────────────────────── */}
         <nav className="flex gap-6">
           {navItems.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} className={navLink}>
+            <NavLink key={to} to={to} className={navLink} onClick={(e) => handleNavigation(e, to)}>
               <Icon className="w-4 h-4" /> {label}
             </NavLink>
           ))}
