@@ -8,3 +8,4 @@ python-dotenv
 pydantic<2.0.0
 openai  # or other VLM client
 pytest
+httpx

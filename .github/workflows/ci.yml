@@ -49,6 +49,7 @@ jobs:
         run: |
           cd frontend
           npm ci
+          npm run lint
           npm run build
         env:
           CI: true
@@ -79,6 +80,15 @@ jobs:
             sleep 1
           done
 
+      - name: Setup MinIO bucket
+        env:
+          S3_ENDPOINT:    http://localhost:9000
+          S3_ACCESS_KEY:  promptaid
+          S3_SECRET_KEY:  promptaid
+        run: |
+          pip install boto3
+          python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:9000', aws_access_key_id='promptaid', aws_secret_access_key='promptaid'); s3.create_bucket(Bucket='promptaid'); print('Bucket created')"
+
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://promptaid:promptaid@localhost:5433/promptaid
@@ -92,6 +102,12 @@ jobs:
           alembic upgrade head
 
       - name: Run back-end tests
+        env:
+          DATABASE_URL: postgresql://promptaid:promptaid@localhost:5433/promptaid
+          S3_ENDPOINT:    http://localhost:9000
+          S3_ACCESS_KEY:  promptaid
+          S3_SECRET_KEY:  promptaid
+          S3_BUCKET:      promptaid
         run: |
           cd py_backend
           source .venv/bin/activate
