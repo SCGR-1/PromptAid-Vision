@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
 from .. import crud, database, schemas, storage
 import io
@@ -22,25 +22,44 @@ class CaptionerStub:
 
 cap = CaptionerStub()
 
-@router.post("/maps/{map_id}/caption", response_model=schemas.CaptionOut)
-def create_caption(map_id: str, db: Session = Depends(get_db)):
-    m = crud.get_map(db, map_id)
-    if not m:
-        raise HTTPException(404, "map not found")
+@router.post("/images/{image_id}/caption", response_model=schemas.CaptionOut)
+def create_caption(
+    image_id: str, 
+    title: str = Form(...), 
+    prompt: str = Form(...), 
+    db: Session = Depends(get_db)
+):
+    img = crud.get_image(db, image_id)
+    if not img:
+        raise HTTPException(404, "image not found")
 
-    # fetch image bytes from S3
-    url = storage.generate_presigned_url(m.file_key)
-    # (in real code, you might stream from S3 directly)
-    import requests
-    resp = requests.get(url)
-    img_bytes = resp.content
+    try:
+        # fetch image bytes from S3
+        url = storage.generate_presigned_url(img.file_key)
+        
+        # Try requests first, fallback to httpx
+        try:
+            import requests
+            resp = requests.get(url)
+            resp.raise_for_status()
+            img_bytes = resp.content
+        except ImportError:
+            # Fallback to httpx if requests is not available
+            import httpx
+            with httpx.Client() as client:
+                resp = client.get(url)
+                resp.raise_for_status()
+                img_bytes = resp.content
 
-    # generate caption
-    text, model, raw = cap.generate(img_bytes)
+        # generate caption
+        text, model, raw = cap.generate(img_bytes)
 
-    # insert into DB
-    c = crud.create_caption(db, map_id, model, raw, text)
-    return c
+        # insert into DB
+        c = crud.create_caption(db, image_id, title, prompt, model, raw, text)
+        return c
+        
+    except Exception as e:
+        raise HTTPException(500, f"Failed to generate caption: {str(e)}")
 
 @router.get("/captions/{cap_id}", response_model=schemas.CaptionOut)
 def get_caption(cap_id: str, db: Session = Depends(get_db)):

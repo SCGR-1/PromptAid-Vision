@@ -1,10 +1,10 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import RootLayout from './layouts/RootLayout';
 import UploadPage from './pages/UploadPage';
-import ReviewPage from './pages/ReviewPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ExplorePage from './pages/ExplorePage';
 import HelpPage from './pages/HelpPage';
+import MapDetailPage from './pages/MapDetailPage';
 
 const router = createBrowserRouter([
   {
@@ -12,10 +12,10 @@ const router = createBrowserRouter([
     children: [
       { path: '/',          element: <UploadPage /> },
       { path: '/upload',    element: <UploadPage /> },
-      { path: '/review/:id',   element: <ReviewPage /> },
       { path: '/analytics', element: <AnalyticsPage /> },
       { path: '/explore',   element: <ExplorePage /> },
       { path: '/help',      element: <HelpPage /> },
+      { path: '/map/:mapId', element: <MapDetailPage /> },
     ],
   },
 ]);

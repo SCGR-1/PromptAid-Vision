@@ -5,7 +5,11 @@ alembic
 psycopg2-binary
 boto3
 python-dotenv
-pydantic<2.0.0
+pydantic>=2.7.0
+pydantic-settings>=0.2
 openai  # or other VLM client
 pytest
 httpx
+requests
+pycountry>=22.3.5
+pycountry-convert>=0.7.2

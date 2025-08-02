@@ -9,38 +9,96 @@ import {
   UploadCloudLineIcon,
   ArrowRightLineIcon,
 } from '@ifrc-go/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function UploadPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [preview, setPreview] = useState<string | null>(null);
   /* ---------------- local state ----------------- */
 
-  const PH_SOURCE   = "_TBD_SOURCE";
-  const PH_REGION   = "_TBD_REGION";
-  const PH_CATEGORY = "_TBD_CATEGORY";
+  const PH_SOURCE   = "OTHER";
+  const PH_TYPE = "OTHER";
+  const PH_EPSG     = "OTHER";
+  const PH_IMAGE_TYPE = "crisis_map";
 
   const [file, setFile] = useState<File | null>(null);
   //const [source,    setSource]    = useState('');
-  //const [region,    setRegion]    = useState('');
-  //const [category,  setCategory]  = useState('');
+  //const [type,  setType]  = useState('');
   const [source,   setSource]   = useState(PH_SOURCE);
-  const [region,   setRegion]   = useState(PH_REGION);
-  const [category, setCategory] = useState(PH_CATEGORY);
+  const [type, setType] = useState(PH_TYPE);
+  const [epsg, setEpsg] = useState(PH_EPSG);
+  const [imageType, setImageType] = useState(PH_IMAGE_TYPE);
   const [countries, setCountries] = useState<string[]>([]);
+
+  // Metadata options from database
+  const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
+  const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
+  const [spatialReferences, setSpatialReferences] = useState<{epsg: string, srid: string, proj4: string, wkt: string}[]>([]);
+  const [imageTypes, setImageTypes] = useState<{image_type: string, label: string}[]>([]);
 
   // Wrapper functions to handle OptionKey to string conversion
   const handleSourceChange = (value: any) => setSource(String(value));
-  const handleRegionChange = (value: any) => setRegion(String(value));
-  const handleCategoryChange = (value: any) => setCategory(String(value));
+  const handleTypeChange = (value: any) => setType(String(value));
+  const handleEpsgChange = (value: any) => setEpsg(String(value));
+  const handleImageTypeChange = (value: any) => setImageType(String(value));
   const handleCountriesChange = (value: any) => setCountries(Array.isArray(value) ? value.map(String) : []);
+
+  // Fetch metadata options on component mount
+  useEffect(() => {
+    fetch('/api/sources').then(r => r.json()).then(setSources);
+    fetch('/api/types').then(r => r.json()).then(setTypes);
+    fetch('/api/spatial-references').then(r => r.json()).then(setSpatialReferences);
+    fetch('/api/image-types').then(r => r.json()).then(setImageTypes);
+  }, []);
 
   const [captionId, setCaptionId] = useState<string | null>(null);
 
   const [imageUrl, setImageUrl] = useState<string|null>(null);
 
   const [draft, setDraft] = useState('');
+
+  // Handle URL parameters for direct step 2 navigation
+  useEffect(() => {
+    const mapId = searchParams.get('mapId');
+    const stepParam = searchParams.get('step');
+    
+    if (mapId && stepParam === '2') {
+      // Load the map data and start at step 2
+      fetch(`/api/images/${mapId}`)
+        .then(response => response.json())
+        .then(mapData => {
+          setImageUrl(mapData.image_url);
+          setSource(mapData.source);
+          setType(mapData.type);
+          setEpsg(mapData.epsg);
+          setImageType(mapData.image_type);
+          
+          // Generate caption for the existing map
+          return fetch(`/api/images/${mapId}/caption`, { 
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              title: 'Generated Caption',
+              prompt: 'Describe this crisis map in detail'
+            })
+          });
+        })
+        .then(capResponse => capResponse.json())
+        .then(capData => {
+          setCaptionId(capData.cap_id);
+          setDraft(capData.generated);
+          setStep(2);
+        })
+        .catch(err => {
+          console.error('Failed to load map data:', err);
+          alert('Failed to load map data. Please try again.');
+        });
+    }
+  }, [searchParams]);
 
   // Handle navigation with confirmation
   const handleNavigation = () => {
@@ -111,25 +169,35 @@ export default function UploadPage() {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('source', source);
-    fd.append('region', region);
-    fd.append('category', category);
+    fd.append('type', type);
+    fd.append('epsg', epsg);
+    fd.append('image_type', imageType);
     countries.forEach((c) => fd.append('countries', c));
 
     try {
       /* 1) upload */
-      const mapRes = await fetch('/api/maps/', { method: 'POST', body: fd });
+      const mapRes = await fetch('/api/images/', { method: 'POST', body: fd });
       const mapJson = await readJsonSafely(mapRes);
       if (!mapRes.ok) throw new Error(mapJson.error || 'Upload failed');
       setImageUrl(mapJson.image_url);
 
-      const mapIdVal = mapJson.map_id;
-      if (!mapIdVal) throw new Error('Upload failed: map_id not found');
+      const mapIdVal = mapJson.image_id;
+      if (!mapIdVal) throw new Error('Upload failed: image_id not found');
       // setMapId(mapIdVal);
     
       /* 2) caption */
       const capRes = await fetch(
-        `/api/maps/${mapIdVal}/caption`, 
-        { method: 'POST' },
+        `/api/images/${mapIdVal}/caption`, 
+        { 
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            title: 'Generated Caption',
+            prompt: 'Describe this crisis map in detail'
+          })
+        },
       );
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
@@ -147,7 +215,10 @@ export default function UploadPage() {
   /* ------------------------------------------------------------------- */
   return (
     <PageContainer>
-      <div className="mx-auto max-w-3xl text-center px-4 py-10" data-step={step}>
+      <div
+        className="mx-auto max-w-screen-lg text-center px-2 sm:px-4 py-6 sm:py-10 overflow-x-hidden"
+        data-step={step}
+      >
         {/* Title & intro copy */}
         {step === 1 && <>
           <Heading level={2}>Upload Your Crisis Map</Heading>
@@ -157,7 +228,7 @@ export default function UploadPage() {
             description, then review and rate the result based on your expertise.
           </p>
           {/* “More »” link  */}
-          <div className="mt-2">
+          <div className="mt-2 flex justify-center">
             <Link
               to="/help"
               className="text-ifrcRed text-xs hover:underline flex items-center gap-1"
@@ -172,7 +243,7 @@ export default function UploadPage() {
         {/* Drop-zone */}
         {step === 1 && (
           <div
-            className="mt-10 border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl p-10 flex flex-col items-center gap-4 hover:bg-gray-100 transition-colors"
+            className="mt-6 sm:mt-10 border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl py-12 px-8 flex flex-col items-center gap-6 hover:bg-gray-100 transition-colors max-w-md mx-auto min-h-[300px] justify-center"
             onDragOver={(e) => e.preventDefault()}
             onDrop={onDrop}
           >
@@ -183,36 +254,44 @@ export default function UploadPage() {
                 Selected file: {file.name}
               </p>
             ) : (
-              <>
-                <p className="text-sm text-gray-600">Drag &amp; Drop a file here</p>
-                <p className="text-xs text-gray-500">or</p>
-
-                {/* File-picker button */}
-                <RawFileInput name="file" accept="image/*" onChange={onFileChange}>
-                  <Button name="upload" size={1}>
-                    Upload
-                  </Button>
-                </RawFileInput>
-              </>
+              <p className="text-sm text-gray-600">Drag &amp; Drop a file here</p>
             )}
+            
+            {/* File-picker button - always visible */}
+            <label className="inline-block cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={e => onFileChange(e.target.files?.[0], "file")}
+              />
+              <Button 
+                name="upload" 
+                size={1}
+                onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+              >
+                {file ? 'Change File' : 'Upload'}
+              </Button>
+            </label>
           </div>
         )}
 
         {/* Generate button */}
         {step === 1 && (
-          <Button
-            name="generate"
-            className="mt-8"
-            disabled={!file}
-            onClick={handleGenerate}
-          >
-            Generate
-          </Button>
+          <div className="flex justify-center mt-12">
+            <Button
+              name="generate"
+              disabled={!file}
+              onClick={handleGenerate}
+            >
+              Generate
+            </Button>
+          </div>
         )}
 
 {step === 2 && imageUrl && (
   <div className="mt-6 flex justify-center">
-    <div className="w-full max-w-3xl max-h-80 overflow-hidden bg-red-50">
+    <div className="w-full max-w-screen-lg max-h-80 overflow-hidden bg-red-50">
              <img
          src={preview || undefined}
          alt="Uploaded map preview"
@@ -225,47 +304,44 @@ export default function UploadPage() {
 {step === 2 && (
   <div className="space-y-10">
     {/* ────── METADATA FORM ────── */}
-    <div className="grid gap-4 text-left sm:grid-cols-2">
+    <div className="grid gap-4 text-left grid-cols-1 lg:grid-cols-2">
       <SelectInput
         label="Source"
         name="source"
         value={source}
         onChange={handleSourceChange}
-        options={[
-          { value: 'UNOSAT', label: 'UNOSAT' },
-          { value: 'FIELD',  label: 'Field HQ' },
-        ]}
-        keySelector={(o) => o.value}
+        options={sources}
+        keySelector={(o) => o.s_code}
         labelSelector={(o) => o.label}
         required
       />
       <SelectInput
-        label="Region"
-        name="region"
-        value={region}
-        onChange={handleRegionChange}
-        options={[
-          { value: 'AFR',  label: 'Africa' },
-          { value: 'AMR',  label: 'Americas' },
-          { value: 'APA',  label: 'Asia‑Pacific' },
-          { value: 'EUR',  label: 'Europe' },
-          { value: 'MENA', label: 'Middle East & N Africa' },
-        ]}
-        keySelector={(o) => o.value}
+        label="Type"
+        name="type"
+        value={type}
+        onChange={handleTypeChange}
+        options={types}
+        keySelector={(o) => o.t_code}
         labelSelector={(o) => o.label}
         required
       />
       <SelectInput
-        label="Category"
-        name="category"
-        value={category}
-        onChange={handleCategoryChange}
-        options={[
-          { value: 'FLOOD',      label: 'Flood' },
-          { value: 'WILDFIRE',   label: 'Wildfire' },
-          { value: 'EARTHQUAKE', label: 'Earthquake' },
-        ]}
-        keySelector={(o) => o.value}
+        label="EPSG"
+        name="epsg"
+        value={epsg}
+        onChange={handleEpsgChange}
+        options={spatialReferences}
+        keySelector={(o) => o.epsg}
+        labelSelector={(o) => `${o.srid} (EPSG:${o.epsg})`}
+        required
+      />
+      <SelectInput
+        label="Image Type"
+        name="image_type"
+        value={imageType}
+        onChange={handleImageTypeChange}
+        options={imageTypes}
+        keySelector={(o) => o.image_type}
         labelSelector={(o) => o.label}
         required
       />
@@ -289,8 +365,8 @@ export default function UploadPage() {
     <div className="text-left">
       <Heading level={3}>How well did the AI perform on the task?</Heading>
       {(['accuracy', 'context', 'usability'] as const).map((k) => (
-        <div key={k} className="mt-6 flex items-center gap-4">
-          <label className="block text-sm font-medium capitalize w-28">{k}</label>
+        <div key={k} className="mt-6 flex items-center gap-2 sm:gap-4">
+          <label className="block text-sm font-medium capitalize w-20 sm:w-28 flex-shrink-0">{k}</label>
           <input
             type="range"
             min={0}
@@ -301,7 +377,7 @@ export default function UploadPage() {
             }
             className="w-full accent-ifrcRed"
           />
-          <span className="ml-2 w-10 text-right tabular-nums">{scores[k]}</span>
+          <span className="ml-2 w-8 sm:w-10 text-right tabular-nums flex-shrink-0">{scores[k]}</span>
         </div>
       ))}
     </div>
@@ -310,7 +386,7 @@ export default function UploadPage() {
     <div className="text-left">
       <Heading level={3}>AI‑Generated Caption</Heading>
       <textarea
-        className="w-full border rounded p-3 font-mono mt-2"
+        className="w-full border rounded p-2 sm:p-3 font-mono mt-2"
         rows={5}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -318,29 +394,30 @@ export default function UploadPage() {
     </div>
 
     {/* ────── SUBMIT BUTTON ────── */}
-    <Button
-      name="submit"
-      className="mt-10"
-      onClick={async () => {
-        if (!captionId) return alert("No caption to submit");
-        const body = {
-          edited: draft,
-          accuracy: scores.accuracy,
-          context:  scores.context,
-          usability: scores.usability,
-        };
-        const res = await fetch(`/api/captions/${captionId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const json = await readJsonSafely(res);
-        if (!res.ok) return alert(json.error || "Save failed");
-        setStep(3);
-      }}
-    >
-      Submit
-    </Button>
+    <div className="flex justify-center mt-10">
+      <Button
+        name="submit"
+        onClick={async () => {
+          if (!captionId) return alert("No caption to submit");
+          const body = {
+            edited: draft,
+            accuracy: scores.accuracy,
+            context:  scores.context,
+            usability: scores.usability,
+          };
+          const res = await fetch(`/api/captions/${captionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const json = await readJsonSafely(res);
+          if (!res.ok) return alert(json.error || "Save failed");
+          setStep(3);
+        }}
+      >
+        Submit
+      </Button>
+    </div>
           </div>
       )}
 
@@ -349,13 +426,14 @@ export default function UploadPage() {
         <div className="text-center space-y-6">
           <Heading level={2}>Saved!</Heading>
           <p className="text-gray-700">Your caption has been successfully saved.</p>
-          <Button
-            name="upload-another"
-            onClick={resetToStep1}
-            className="mt-6"
-          >
-            Upload Another
-          </Button>
+          <div className="flex justify-center mt-6">
+            <Button
+              name="upload-another"
+              onClick={resetToStep1}
+            >
+              Upload Another
+            </Button>
+          </div>
         </div>
       )}
       

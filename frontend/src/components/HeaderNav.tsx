@@ -4,13 +4,13 @@ import {
   AnalysisIcon,
   SearchLineIcon,
   QuestionLineIcon,
+  GoMainIcon,
 } from "@ifrc-go/icons";
 
 /* Style helper for active vs. inactive nav links */
 const navLink = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-1 px-3 py-2 text-sm transition-colors ${
-    isActive ? "text-ifrcRed font-semibold" : "text-gray-600 hover:text-ifrcRed"
-  }`;
+  `flex items-center gap-1 px-4 sm:px-6 py-2 text-xs sm:text-sm transition-colors whitespace-nowrap mx-4 sm:mx-6
+  ${isActive ? "text-ifrcRed font-semibold" : "text-gray-600 hover:text-ifrcRed"}`;
 
 /* Put page info in one list so it’s easy to extend */
 const navItems = [
@@ -36,19 +36,19 @@ export default function HeaderNav() {
 
   return (
     <header className="bg-white border-b border-ifrcRed/40">
-      <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex items-center justify-between px-2 sm:px-4 py-3 max-w-full overflow-hidden">
 
         {/* ── Logo + title ─────────────────────────── */}
-        <NavLink to="/" className="flex items-center gap-2" onClick={(e) => handleNavigation(e, "/")}>
-          <img src="/ifrc-logo.svg" alt="IFRC logo" className="h-6" />
-          <span className="font-semibold">PromptAid Vision</span>
+        <NavLink to="/" className="flex items-center gap-2 min-w-0" onClick={(e) => handleNavigation(e, "/")}>
+          <GoMainIcon className="h-6 w-6 flex-shrink-0 text-ifrcRed" />
+          <span className="font-semibold text-sm sm:text-base truncate">PromptAid Vision</span>
         </NavLink>
 
         {/* ── Centre nav links ─────────────────────── */}
-        <nav className="flex gap-6">
+        <nav className="flex flex-wrap justify-center gap-6">
           {navItems.map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} className={navLink} onClick={(e) => handleNavigation(e, to)}>
-              <Icon className="w-4 h-4" /> {label}
+              <Icon className="w-4 h-4" /> <span className="inline">{label}</span>
             </NavLink>
           ))}
         </nav>

@@ -12,12 +12,50 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/", response_model=schemas.MapOut)
-async def upload_map(
+
+@router.get("/", response_model=list[schemas.ImageOut])
+def list_images(db: Session = Depends(get_db)):
+    images = crud.get_images(db)
+    return [
+        schemas.ImageOut(
+            image_id=img.image_id,
+            file_key=img.file_key,
+            sha256=img.sha256,
+            source=img.source,
+            type=img.type,
+            epsg=img.epsg,
+            image_type=img.image_type,
+            caption=img.caption,
+            image_url=storage.generate_presigned_url(img.file_key, expires_in=3600)
+        ) for img in images
+    ]
+
+@router.get("/{image_id}", response_model=schemas.ImageOut)
+def get_image(image_id: str, db: Session = Depends(get_db)):
+    img = crud.get_image(db, image_id)
+    if not img:
+        raise HTTPException(404, "image not found")
+    
+    return schemas.ImageOut(
+        image_id=img.image_id,
+        file_key=img.file_key,
+        sha256=img.sha256,
+        source=img.source,
+        type=img.type,
+        epsg=img.epsg,
+        image_type=img.image_type,
+        caption=img.caption,
+        image_url=storage.generate_presigned_url(img.file_key, expires_in=3600)
+    )
+
+
+@router.post("/", response_model=schemas.ImageOut)
+async def upload_image(
     source: str        = Form(...),
-    region: str        = Form(...),
-    category: str      = Form(...),
+    type: str          = Form(...),
     countries: list[str] = Form([]),
+    epsg: str          = Form(...),
+    image_type: str    = Form(...),
     file: UploadFile   = Form(...),
     db: Session        = Depends(get_db)
 ):
@@ -29,26 +67,25 @@ async def upload_map(
     key = storage.upload_fileobj(io.BytesIO(content), file.filename)
 
     # 3) persist the DB record
-    m = crud.create_map(db, source, region, category, key, sha, countries)
+    img = crud.create_image(db, source, type, key, sha, countries, epsg, image_type)
 
     # 4) generate a URL for your front‑end
     #
     # If you have an S3/MinIO client in storage:
     try:
-        url = storage.get_presigned_url(key, expires_in=3600)
+        url = storage.generate_presigned_url(key, expires_in=3600)
     except AttributeError:
-        # fallback: if you’re serving via StaticFiles("/uploads")
+        # fallback: if you're serving via StaticFiles("/uploads")
         url = f"/uploads/{key}"
 
-    # 5) return the Map plus that URL
-    return schemas.MapOut(
-        map_id    = m.map_id,
-        file_key  = m.file_key,
-        sha256    = m.sha256,
-        source    = m.source,
-        region    = m.region,
-        category  = m.category,
-        countries = [c.c_code for c in m.countries],  # or however you model it
-        created_at = m.created_at,
+    # 5) return the Image plus that URL
+    return schemas.ImageOut(
+        image_id    = img.image_id,
+        file_key  = img.file_key,
+        sha256    = img.sha256,
+        source    = img.source,
+        type      = img.type,
+        epsg      = img.epsg,
+        image_type = img.image_type,
         image_url = url,
     )

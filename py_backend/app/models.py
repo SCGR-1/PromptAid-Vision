@@ -1,16 +1,25 @@
 from sqlalchemy import (
-    Column, String, DateTime, JSON, SmallInteger, Table, ForeignKey
+    Column, String, DateTime, JSON, SmallInteger, Table, ForeignKey, Boolean
 )
 from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP, CHAR
 from sqlalchemy.orm import relationship
 import datetime, uuid
 from .database import Base
 
-# association table maps ↔ countries
-map_countries = Table(
-    "map_countries", Base.metadata,
-    Column("map_id", UUID(as_uuid=True), ForeignKey("maps.map_id", ondelete="CASCADE")),
-    Column("c_code", CHAR(2), ForeignKey("country.c_code")),
+image_countries = Table(
+    "image_countries", Base.metadata,
+    Column(
+      "image_id",
+      UUID(as_uuid=True),
+      ForeignKey("images.image_id", ondelete="CASCADE"),
+      primary_key=True,
+    ),
+    Column(
+      "c_code",
+      CHAR(2),
+      ForeignKey("countries.c_code"),
+      primary_key=True,
+    ),
 )
 
 class Source(Base):
@@ -19,50 +28,67 @@ class Source(Base):
     label  = Column(String, nullable=False)
 
 class Region(Base):
-    __tablename__ = "region"
+    __tablename__ = "regions"
     r_code = Column(String, primary_key=True)
     label  = Column(String, nullable=False)
 
-class Category(Base):
-    __tablename__ = "category"
-    cat_code = Column(String, primary_key=True)
+class Type(Base):
+    __tablename__ = "types"
+    t_code = Column(String, primary_key=True)
     label    = Column(String, nullable=False)
 
 class Country(Base):
-    __tablename__ = "country"
+    __tablename__ = "countries"
     c_code = Column(CHAR(2), primary_key=True)
     label  = Column(String, nullable=False)
+    r_code = Column(String, ForeignKey("regions.r_code"), nullable=False)
 
-class ModelLookup(Base):
-    __tablename__ = "model"
+class SpatialReference(Base):
+    __tablename__ = "spatial_references"
+    epsg = Column(String, primary_key=True)
+    srid = Column(String, nullable=False)
+    proj4 = Column(String, nullable=False)
+    wkt = Column(String, nullable=False)
+
+class ImageTypes(Base):
+    __tablename__ = "image_types"
+    image_type = Column(String, primary_key=True)
+    label = Column(String, nullable=False)
+
+class Models(Base):
+    __tablename__ = "models"
     m_code = Column(String, primary_key=True)
     label  = Column(String, nullable=False)
 
-class Map(Base):
-    __tablename__ = "maps"
-    map_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+class Images(Base):
+    __tablename__ = "images"
+    image_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     file_key   = Column(String, nullable=False)
     sha256     = Column(String, nullable=False)
     source     = Column(String, ForeignKey("sources.s_code"), nullable=False)
-    region     = Column(String, ForeignKey("region.r_code"), nullable=False)
-    category   = Column(String, ForeignKey("category.cat_code"), nullable=False)
+    type   = Column(String, ForeignKey("types.t_code"), nullable=False)
+    epsg = Column(String, ForeignKey("spatial_references.epsg"), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
+    image_type = Column(String, ForeignKey("image_types.image_type"), nullable=False)
 
-    countries = relationship("Country", secondary=map_countries)
-    caption   = relationship("Caption", uselist=False, back_populates="map")
+    countries = relationship("Country", secondary=image_countries, backref="images")
+    caption   = relationship("Captions", uselist=False, back_populates="image")
 
-class Caption(Base):
+class Captions(Base):
     __tablename__ = "captions"
     cap_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    map_id     = Column(UUID(as_uuid=True), ForeignKey("maps.map_id", ondelete="CASCADE"), unique=True)
-    model      = Column(String, ForeignKey("model.m_code"), nullable=False)
+    image_id     = Column(UUID(as_uuid=True), ForeignKey("images.image_id", ondelete="CASCADE"), unique=True)
+    title      = Column(String, nullable=False)
+    prompt     = Column(String, nullable=False)
+    model      = Column(String, ForeignKey("models.m_code"), nullable=False)
     raw_json   = Column(JSON, nullable=False)
     generated  = Column(String, nullable=False)
     edited     = Column(String)
     accuracy   = Column(SmallInteger)
     context    = Column(SmallInteger)
     usability  = Column(SmallInteger)
+    starred    = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
     updated_at = Column(TIMESTAMP(timezone=True), onupdate=datetime.datetime.utcnow)
 
-    map = relationship("Map", back_populates="caption")
+    image = relationship("Images", back_populates="caption")

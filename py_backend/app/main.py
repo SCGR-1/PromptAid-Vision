@@ -21,7 +21,7 @@ app.add_middleware(
 )
 
 # Mount routers
-app.include_router(upload.router,   prefix="/api/maps", tags=["maps"])
+app.include_router(upload.router,   prefix="/api/images", tags=["images"])
 app.include_router(caption.router,  prefix="/api",      tags=["captions"])
 app.include_router(metadata.router, prefix="/api",      tags=["metadata"])
 
