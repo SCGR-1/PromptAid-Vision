@@ -25,6 +25,7 @@ class ImageOut(BaseModel):
     epsg: str
     image_type: str
     image_url: str
+    countries: List["CountryOut"] = []
     caption: Optional["CaptionOut"] = None
 
     class Config:

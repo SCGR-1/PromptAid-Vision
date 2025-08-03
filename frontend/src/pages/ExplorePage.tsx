@@ -46,6 +46,15 @@ export default function ExplorePage() {
         if (Array.isArray(data)) {
           setMaps(data);
           console.log(`Loaded ${data.length} maps`);
+          if (data.length > 0) {
+            console.log('Sample map data:', {
+              image_id: data[0].image_id,
+              source: data[0].source,
+              type: data[0].type,
+              countries: data[0].countries?.length || 0,
+              caption: data[0].caption ? 'has caption' : 'no caption'
+            });
+          }
         } else {
           console.error('Expected array from /api/images/, got:', data);
           setMaps([]);
@@ -80,65 +89,49 @@ export default function ExplorePage() {
 
   useEffect(() => {
     // Fetch lookup data
-    fetch('/api/sources')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setSources(data);
-        } else {
-          console.error('Expected array from /api/sources, got:', data);
-          setSources([]);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch sources:', err);
+    Promise.all([
+      fetch('/api/sources').then(r => r.json()),
+      fetch('/api/types').then(r => r.json()),
+      fetch('/api/regions').then(r => r.json()),
+      fetch('/api/countries').then(r => r.json())
+    ]).then(([sourcesData, typesData, regionsData, countriesData]) => {
+      console.log('Fetched filter data:', {
+        sources: sourcesData.length,
+        types: typesData.length,
+        regions: regionsData.length,
+        countries: countriesData.length
+      });
+      
+      if (Array.isArray(sourcesData)) {
+        setSources(sourcesData);
+      } else {
+        console.error('Expected array from /api/sources, got:', sourcesData);
         setSources([]);
-      });
-    
-    fetch('/api/types')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setTypes(data);
-        } else {
-          console.error('Expected array from /api/types, got:', data);
-          setTypes([]);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch types:', err);
+      }
+      
+      if (Array.isArray(typesData)) {
+        setTypes(typesData);
+      } else {
+        console.error('Expected array from /api/types, got:', typesData);
         setTypes([]);
-      });
-
-    fetch('/api/regions')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setRegions(data);
-        } else {
-          console.error('Expected array from /api/regions, got:', data);
-          setRegions([]);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch regions:', err);
+      }
+      
+      if (Array.isArray(regionsData)) {
+        setRegions(regionsData);
+      } else {
+        console.error('Expected array from /api/regions, got:', regionsData);
         setRegions([]);
-      });
-
-    fetch('/api/countries')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setCountries(data);
-        } else {
-          console.error('Expected array from /api/countries, got:', data);
-          setCountries([]);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch countries:', err);
+      }
+      
+      if (Array.isArray(countriesData)) {
+        setCountries(countriesData);
+      } else {
+        console.error('Expected array from /api/countries, got:', countriesData);
         setCountries([]);
-      });
+      }
+    }).catch(err => {
+      console.error('Failed to fetch filter data:', err);
+    });
   }, []);
 
   // Add refresh function
@@ -154,20 +147,32 @@ export default function ExplorePage() {
     }
     
     return maps.filter(m => {
-      return (
-        m.file_key.toLowerCase().includes(search.toLowerCase()) &&
-        (!srcFilter || m.source === srcFilter) &&
-        (!catFilter || m.type === catFilter) &&
-        (!regionFilter || m.countries?.some(c => c.r_code === regionFilter)) &&
-        (!countryFilter || m.countries?.some(c => c.c_code === countryFilter))
-      );
+      // Search in filename, source, type, and caption
+      const searchLower = search.toLowerCase();
+      const searchMatch = !search || 
+        m.file_key.toLowerCase().includes(searchLower) ||
+        m.source.toLowerCase().includes(searchLower) ||
+        m.type.toLowerCase().includes(searchLower) ||
+        (m.caption?.edited && m.caption.edited.toLowerCase().includes(searchLower)) ||
+        (m.caption?.generated && m.caption.generated.toLowerCase().includes(searchLower));
+      
+      // Filter by source
+      const sourceMatch = !srcFilter || m.source === srcFilter;
+      
+      // Filter by type
+      const typeMatch = !catFilter || m.type === catFilter;
+      
+      // Filter by region (check if any country in the image belongs to the selected region)
+      const regionMatch = !regionFilter || (m.countries && m.countries.some(c => c.r_code === regionFilter));
+      
+      // Filter by country (check if any country in the image matches the selected country)
+      const countryMatch = !countryFilter || (m.countries && m.countries.some(c => c.c_code === countryFilter));
+      
+      return searchMatch && sourceMatch && typeMatch && regionMatch && countryMatch;
     });
   }, [maps, search, srcFilter, catFilter, regionFilter, countryFilter]);
 
-  const sourceOptions   = sources.map(s => ({ value: s.s_code, label: s.label }));
-  const typeOptions = types.map(t => ({ value: t.t_code, label: t.label }));
-  const regionOptions = regions.map(r => ({ value: r.r_code, label: r.label }));
-  const countryOptions = countries.map(c => ({ value: c.c_code, label: c.label }));
+
 
   return (
     <PageContainer>
@@ -195,10 +200,10 @@ export default function ExplorePage() {
         <SearchSelectInput
           name="source"
           placeholder="All Sources"
-          options={sourceOptions}
+          options={sources}
           value={srcFilter || null}
           onChange={(v) => setSrcFilter(v as string || '')}
-          keySelector={(o) => o.value}
+          keySelector={(o) => o.s_code}
           labelSelector={(o) => o.label}
           selectedOnTop={false}
         />
@@ -206,10 +211,10 @@ export default function ExplorePage() {
         <SearchMultiSelectInput
           name="type"
           placeholder="All Types"
-          options={typeOptions}
+          options={types}
           value={catFilter ? [catFilter] : []}
           onChange={(v) => setCatFilter((v as string[])[0] || '')}
-          keySelector={(o) => o.value}
+          keySelector={(o) => o.t_code}
           labelSelector={(o) => o.label}
           selectedOnTop={false}
         />
@@ -217,10 +222,10 @@ export default function ExplorePage() {
         <SearchSelectInput
           name="region"
           placeholder="All Regions"
-          options={regionOptions}
+          options={regions}
           value={regionFilter || null}
           onChange={(v) => setRegionFilter(v as string || '')}
-          keySelector={(o) => o.value}
+          keySelector={(o) => o.r_code}
           labelSelector={(o) => o.label}
           selectedOnTop={false}
         />
@@ -228,10 +233,10 @@ export default function ExplorePage() {
         <SearchSelectInput
           name="country"
           placeholder="All Countries"
-          options={countryOptions}
+          options={countries}
           value={countryFilter || null}
           onChange={(v) => setCountryFilter(v as string || '')}
-          keySelector={(o) => o.value}
+          keySelector={(o) => o.c_code}
           labelSelector={(o) => o.label}
           selectedOnTop={false}
         />

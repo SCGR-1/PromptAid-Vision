@@ -1,108 +1,92 @@
 #!/usr/bin/env python3
-"""Test runner for all backend tests"""
+"""Run all tests for the PromptAid Vision application"""
 
+import subprocess
 import sys
 import os
-import subprocess
 import time
 
-# Add the parent directory to the path so we can import app modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-def run_test(test_name, test_file):
-    """Run a specific test file"""
+def run_test(test_file, description):
+    """Run a single test file and report results"""
     print(f"\n{'='*60}")
-    print(f"Running {test_name}")
+    print(f"Running: {description}")
+    print(f"File: {test_file}")
     print(f"{'='*60}")
     
     try:
-        result = subprocess.run([
-            sys.executable, 
-            os.path.join(os.path.dirname(__file__), test_file)
-        ], capture_output=True, text=True, timeout=60)
+        # Change to the parent directory (py_backend) to run the test
+        os.chdir(os.path.dirname(os.path.dirname(__file__)))
+        
+        # Run the test
+        result = subprocess.run([sys.executable, f"tests/{test_file}"], 
+                              capture_output=True, text=True, timeout=60)
         
         if result.returncode == 0:
-            print("✓ Test completed successfully")
-            print(result.stdout)
+            print("✅ PASSED")
+            if result.stdout:
+                print("Output:")
+                print(result.stdout)
         else:
-            print("✗ Test failed")
-            print(result.stdout)
-            print(result.stderr)
-            
+            print("❌ FAILED")
+            if result.stdout:
+                print("Output:")
+                print(result.stdout)
+            if result.stderr:
+                print("Errors:")
+                print(result.stderr)
+                
         return result.returncode == 0
         
     except subprocess.TimeoutExpired:
-        print("✗ Test timed out")
+        print("⏰ TIMEOUT - Test took too long")
         return False
     except Exception as e:
-        print(f"✗ Error running test: {e}")
-        return False
-
-def check_server_running():
-    """Check if the FastAPI server is running"""
-    try:
-        import requests
-        response = requests.get("http://localhost:8000/docs", timeout=5)
-        return response.status_code == 200
-    except:
+        print(f"💥 ERROR - {e}")
         return False
 
 def main():
     """Run all tests"""
-    print("Starting Backend Test Suite")
-    print("="*60)
+    print("🚀 Starting PromptAid Vision Test Suite")
+    print(f"Python: {sys.executable}")
+    print(f"Working Directory: {os.getcwd()}")
     
-    # Check if server is running
-    print("Checking if FastAPI server is running...")
-    if not check_server_running():
-        print("⚠ FastAPI server is not running on http://localhost:8000")
-        print("  Some tests may fail. Start the server with:")
-        print("  uvicorn app.main:app --reload --host 0.0.0.0 --port 8000")
-        print()
-    
-    # Define test files and their descriptions
+    # Define tests to run
     tests = [
-        ("Database Connection Test", "test_upload.py"),
-        ("Storage Configuration Test", "test_storage.py"),
-        ("Direct Upload Test", "test_direct_upload.py"),
-        ("Full Upload Flow Test", "test_full_upload.py"),
-        ("Upload Flow Debug Test", "test_upload_flow.py"),
-        ("Explore Page Test", "test_explore_page.py"),
+        ("test_basic.py", "Basic Application Health Check"),
+        ("test_api_endpoints.py", "API Endpoints Test"),
+        ("test_upload_flow.py", "Complete Upload Flow Test"),
+        ("test_database_operations.py", "Database Operations Test"),
+        ("test_explore_page.py", "Explore Page Functionality Test")
     ]
-    
-    results = []
-    
-    for test_name, test_file in tests:
-        success = run_test(test_name, test_file)
-        results.append((test_name, success))
-    
-    # Print summary
-    print(f"\n{'='*60}")
-    print("TEST SUMMARY")
-    print(f"{'='*60}")
     
     passed = 0
     failed = 0
     
-    for test_name, success in results:
-        status = "✓ PASS" if success else "✗ FAIL"
-        print(f"{status}: {test_name}")
-        if success:
+    start_time = time.time()
+    
+    for test_file, description in tests:
+        if run_test(test_file, description):
             passed += 1
         else:
             failed += 1
     
-    print(f"\nTotal: {len(results)} tests")
+    end_time = time.time()
+    duration = end_time - start_time
+    
+    print(f"\n{'='*60}")
+    print("📊 TEST SUMMARY")
+    print(f"{'='*60}")
+    print(f"Total Tests: {len(tests)}")
     print(f"Passed: {passed}")
     print(f"Failed: {failed}")
+    print(f"Duration: {duration:.2f} seconds")
     
     if failed == 0:
         print("\n🎉 All tests passed!")
         return 0
     else:
-        print(f"\n❌ {failed} test(s) failed")
+        print(f"\n⚠️  {failed} test(s) failed!")
         return 1
 
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code) 
+    sys.exit(main()) 
