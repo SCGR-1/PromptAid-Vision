@@ -48,3 +48,8 @@ def get_spatial_references(db: Session = Depends(get_db)):
 def get_image_types(db: Session = Depends(get_db)):
     """Get all image types for lookup"""
     return crud.get_image_types(db)
+
+@router.get("/countries", response_model=List[schemas.CountryOut])
+def get_countries(db: Session = Depends(get_db)):
+    """Get all countries for lookup"""
+    return crud.get_countries(db)

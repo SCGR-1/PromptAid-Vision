@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import type { DragEvent } from 'react';
 import {
   PageContainer, Heading, Button,
@@ -15,21 +15,18 @@ export default function UploadPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const stepRef = useRef(step);
+  const uploadedImageIdRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   /* ---------------- local state ----------------- */
-
-  const PH_SOURCE   = "OTHER";
-  const PH_TYPE = "OTHER";
-  const PH_EPSG     = "OTHER";
-  const PH_IMAGE_TYPE = "crisis_map";
 
   const [file, setFile] = useState<File | null>(null);
   //const [source,    setSource]    = useState('');
   //const [type,  setType]  = useState('');
-  const [source,   setSource]   = useState(PH_SOURCE);
-  const [type, setType] = useState(PH_TYPE);
-  const [epsg, setEpsg] = useState(PH_EPSG);
-  const [imageType, setImageType] = useState(PH_IMAGE_TYPE);
+  const [source,   setSource]   = useState('');
+  const [type, setType] = useState('');
+  const [epsg, setEpsg] = useState('');
+  const [imageType, setImageType] = useState('');
   const [countries, setCountries] = useState<string[]>([]);
 
   // Metadata options from database
@@ -37,6 +34,15 @@ export default function UploadPage() {
   const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
   const [spatialReferences, setSpatialReferences] = useState<{epsg: string, srid: string, proj4: string, wkt: string}[]>([]);
   const [imageTypes, setImageTypes] = useState<{image_type: string, label: string}[]>([]);
+  const [countriesOptions, setCountriesOptions] = useState<{c_code: string, label: string, r_code: string}[]>([]);
+
+  // Track uploaded image data for potential deletion
+  const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
+  const [uploadedCaptionId, setUploadedCaptionId] = useState<string | null>(null);
+  
+  // Keep refs updated with current values
+  stepRef.current = step;
+  uploadedImageIdRef.current = uploadedImageId;
 
   // Wrapper functions to handle OptionKey to string conversion
   const handleSourceChange = (value: any) => setSource(String(value));
@@ -47,18 +53,51 @@ export default function UploadPage() {
 
   // Fetch metadata options on component mount
   useEffect(() => {
-    fetch('/api/sources').then(r => r.json()).then(setSources);
-    fetch('/api/types').then(r => r.json()).then(setTypes);
-    fetch('/api/spatial-references').then(r => r.json()).then(setSpatialReferences);
-    fetch('/api/image-types').then(r => r.json()).then(setImageTypes);
+    Promise.all([
+      fetch('/api/sources').then(r => r.json()),
+      fetch('/api/types').then(r => r.json()),
+      fetch('/api/spatial-references').then(r => r.json()),
+      fetch('/api/image-types').then(r => r.json()),
+      fetch('/api/countries').then(r => r.json())
+    ]).then(([sourcesData, typesData, spatialData, imageTypesData, countriesData]) => {
+      setSources(sourcesData);
+      setTypes(typesData);
+      setSpatialReferences(spatialData);
+      setImageTypes(imageTypesData);
+      setCountriesOptions(countriesData);
+      
+      // Set default values from the first available options
+      if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
+      if (typesData.length > 0) setType(typesData[0].t_code);
+      if (spatialData.length > 0) setEpsg(spatialData[0].epsg);
+      if (imageTypesData.length > 0) setImageType(imageTypesData[0].image_type);
+    });
   }, []);
 
+  // Cleanup effect for navigation away - delete if user hasn't submitted yet
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Delete if user is in step 1 or 2 (hasn't submitted yet)
+      // Only preserve if user has successfully submitted (step 3)
+      if (uploadedImageIdRef.current && stepRef.current !== 3) {
+        fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Only cleanup on component unmount if user hasn't submitted yet
+      if (uploadedImageIdRef.current && stepRef.current !== 3) {
+        fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
+      }
+    };
+  }, []); // No dependencies - handler will always use current ref values
+
   const [captionId, setCaptionId] = useState<string | null>(null);
-
   const [imageUrl, setImageUrl] = useState<string|null>(null);
-
   const [draft, setDraft] = useState('');
-
+  
   // Handle URL parameters for direct step 2 navigation
   useEffect(() => {
     const mapId = searchParams.get('mapId');
@@ -90,7 +129,7 @@ export default function UploadPage() {
         .then(capResponse => capResponse.json())
         .then(capData => {
           setCaptionId(capData.cap_id);
-          setDraft(capData.generated);
+          setDraft(capData.edited || capData.generated);
           setStep(2);
         })
         .catch(err => {
@@ -103,14 +142,12 @@ export default function UploadPage() {
   // Handle navigation with confirmation
   const handleNavigation = () => {
     if (step === 2) {
-      if (confirm("Changes will not be saved")) {
-        setStep(1);
-        setFile(null);
-        setPreview(null);
-        setImageUrl(null);
-        setCaptionId(null);
-        setDraft('');
-        setScores({ accuracy: 50, context: 50, usability: 50 });
+      if (confirm("Changes will not be saved. Do you want to delete the uploaded image?")) {
+        // Delete the uploaded image if user confirms
+        if (uploadedImageId) {
+          fetch(`/api/images/${uploadedImageId}`, { method: "DELETE" }).catch(console.error);
+        }
+        resetToStep1();
       }
     }
   };
@@ -123,6 +160,8 @@ export default function UploadPage() {
     setCaptionId(null);
     setDraft('');
     setScores({ accuracy: 50, context: 50, usability: 50 });
+    setUploadedImageId(null);
+    setUploadedCaptionId(null);
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
@@ -162,6 +201,12 @@ export default function UploadPage() {
     }
   }
 
+  function handleApiError(err: any, operation: string) {
+    console.error(`${operation} failed:`, err);
+    const message = err.message || `Failed to ${operation.toLowerCase()}`;
+    alert(message);
+  }
+
   /* ---- generate handler --------------------------------------------- */
   async function handleGenerate() {
     if (!file) return;
@@ -183,7 +228,7 @@ export default function UploadPage() {
 
       const mapIdVal = mapJson.image_id;
       if (!mapIdVal) throw new Error('Upload failed: image_id not found');
-      // setMapId(mapIdVal);
+      setUploadedImageId(mapIdVal);
     
       /* 2) caption */
       const capRes = await fetch(
@@ -202,13 +247,83 @@ export default function UploadPage() {
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
       setCaptionId(capJson.cap_id);
+      setUploadedCaptionId(capJson.cap_id);
       console.log(capJson);
 
       /* 3) continue workflow */
       setDraft(capJson.generated);
       setStep(2);
     } catch (err) {
-      alert((err as Error).message);
+      handleApiError(err, 'Upload');
+    }
+  }
+
+  /* ---- submit handler --------------------------------------------- */
+  async function handleSubmit() {
+    if (!captionId) return alert("No caption to submit");
+    
+    try {
+      // 1. Update image metadata
+      const metadataBody = {
+        source: source,
+        type: type,
+        epsg: epsg,
+        image_type: imageType,
+        countries: countries,
+      };
+      const metadataRes = await fetch(`/api/images/${uploadedImageId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(metadataBody),
+      });
+      const metadataJson = await readJsonSafely(metadataRes);
+      if (!metadataRes.ok) throw new Error(metadataJson.error || "Metadata update failed");
+      
+      // 2. Update caption
+      const captionBody = {
+        edited: draft || '', // Use draft if available, otherwise empty string
+        accuracy: scores.accuracy,
+        context: scores.context,
+        usability: scores.usability,
+      };
+      const captionRes = await fetch(`/api/captions/${captionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(captionBody),
+      });
+      const captionJson = await readJsonSafely(captionRes);
+      if (!captionRes.ok) throw new Error(captionJson.error || "Caption update failed");
+      
+      // Clear uploaded IDs since submission was successful
+      setUploadedImageId(null);
+      setUploadedCaptionId(null);
+      setStep(3);
+    } catch (err) {
+      handleApiError(err, 'Submit');
+    }
+  }
+
+  /* ---- delete handler --------------------------------------------- */
+  async function handleDelete() {
+    if (!uploadedImageId) return;
+    
+    if (confirm("Are you sure you want to delete this uploaded image? This action cannot be undone.")) {
+      try {
+        // Delete the image (this will cascade delete the caption)
+        const res = await fetch(`/api/images/${uploadedImageId}`, {
+          method: "DELETE",
+        });
+        
+        if (!res.ok) {
+          const json = await readJsonSafely(res);
+          throw new Error(json.error || "Delete failed");
+        }
+        
+        // Reset to step 1
+        resetToStep1();
+      } catch (err) {
+        handleApiError(err, 'Delete');
+      }
     }
   }
 
@@ -350,12 +465,8 @@ export default function UploadPage() {
         name="countries"
         value={countries}
         onChange={handleCountriesChange}
-        options={[
-          { value: 'PH', label: 'Philippines' },
-          { value: 'ID', label: 'Indonesia' },
-          { value: 'VN', label: 'Vietnam' },
-        ]}
-        keySelector={(o) => o.value}
+        options={countriesOptions}
+        keySelector={(o) => o.c_code}
         labelSelector={(o) => o.label}
         placeholder="Select one or more"
       />
@@ -394,26 +505,17 @@ export default function UploadPage() {
     </div>
 
     {/* ────── SUBMIT BUTTON ────── */}
-    <div className="flex justify-center mt-10">
+    <div className="flex justify-center gap-4 mt-10">
+      <Button
+        name="delete"
+        variant="secondary"
+        onClick={handleDelete}
+      >
+        Delete
+      </Button>
       <Button
         name="submit"
-        onClick={async () => {
-          if (!captionId) return alert("No caption to submit");
-          const body = {
-            edited: draft,
-            accuracy: scores.accuracy,
-            context:  scores.context,
-            usability: scores.usability,
-          };
-          const res = await fetch(`/api/captions/${captionId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-          const json = await readJsonSafely(res);
-          if (!res.ok) return alert(json.error || "Save failed");
-          setStep(3);
-        }}
+        onClick={handleSubmit}
       >
         Submit
       </Button>

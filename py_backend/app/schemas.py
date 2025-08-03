@@ -9,6 +9,13 @@ class ImageCreate(BaseModel):
     epsg: str
     image_type: str
 
+class ImageMetadataUpdate(BaseModel):
+    source: Optional[str] = None
+    type: Optional[str] = None
+    countries: Optional[List[str]] = None
+    epsg: Optional[str] = None
+    image_type: Optional[str] = None
+
 class ImageOut(BaseModel):
     image_id: UUID
     file_key: str
@@ -82,6 +89,14 @@ class SpatialReferenceOut(BaseModel):
 class ImageTypeOut(BaseModel):
     image_type: str
     label: str
+
+    class Config:
+        orm_mode = True
+
+class CountryOut(BaseModel):
+    c_code: str
+    label: str
+    r_code: str
 
     class Config:
         orm_mode = True

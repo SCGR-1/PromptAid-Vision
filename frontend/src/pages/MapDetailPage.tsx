@@ -12,6 +12,7 @@ interface MapOut {
   image_type: string;
   caption?: {
     generated: string;
+    edited?: string;
   };
 }
 
@@ -169,8 +170,8 @@ export default function MapDetailPage() {
           <div>
             <h3 className="text-lg font-semibold mb-2">Generated Caption</h3>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700">
-                {map.caption?.generated || '— no caption yet —'}
+              <p className="mt-2 text-sm text-gray-700 line-clamp-2">
+                {map.caption?.edited || map.caption?.generated || '— no caption yet —'}
               </p>
             </div>
           </div>

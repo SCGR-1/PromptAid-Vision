@@ -10,8 +10,10 @@ interface MapOut {
   type: string;
   epsg: string;
   image_type: string;
+  countries?: {c_code: string, label: string, r_code: string}[];
   caption?: {
     generated: string;
+    edited?: string;
   };
 }
 
@@ -21,34 +23,164 @@ export default function ExplorePage() {
   const [search, setSearch] = useState('');
   const [srcFilter, setSrcFilter] = useState('');
   const [catFilter, setCatFilter] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
   const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
+  const [regions, setRegions] = useState<{r_code: string, label: string}[]>([]);
+  const [countries, setCountries] = useState<{c_code: string, label: string, r_code: string}[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchMaps = () => {
+    setIsLoading(true);
+    // Fetch maps
+    fetch('/api/images/')
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+      })
+      .then(data => {
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setMaps(data);
+          console.log(`Loaded ${data.length} maps`);
+        } else {
+          console.error('Expected array from /api/images/, got:', data);
+          setMaps([]);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch maps:', err);
+        setMaps([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
 
   useEffect(() => {
-    // Fetch maps
-    fetch('/api/images/').then(r => r.json()).then(setMaps);
-    
-    // Fetch lookup data
-    fetch('/api/sources').then(r => r.json()).then(setSources);
-    fetch('/api/types').then(r => r.json()).then(setTypes);
+    fetchMaps();
   }, []);
 
+  // Auto-refresh when component becomes visible (user navigates back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchMaps();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Fetch lookup data
+    fetch('/api/sources')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSources(data);
+        } else {
+          console.error('Expected array from /api/sources, got:', data);
+          setSources([]);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch sources:', err);
+        setSources([]);
+      });
+    
+    fetch('/api/types')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setTypes(data);
+        } else {
+          console.error('Expected array from /api/types, got:', data);
+          setTypes([]);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch types:', err);
+        setTypes([]);
+      });
+
+    fetch('/api/regions')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setRegions(data);
+        } else {
+          console.error('Expected array from /api/regions, got:', data);
+          setRegions([]);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch regions:', err);
+        setRegions([]);
+      });
+
+    fetch('/api/countries')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCountries(data);
+        } else {
+          console.error('Expected array from /api/countries, got:', data);
+          setCountries([]);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch countries:', err);
+        setCountries([]);
+      });
+  }, []);
+
+  // Add refresh function
+  const handleRefresh = () => {
+    fetchMaps();
+  };
+
   const filtered = useMemo(() => {
+    // Ensure maps is an array before filtering
+    if (!Array.isArray(maps)) {
+      console.warn('maps is not an array:', maps);
+      return [];
+    }
+    
     return maps.filter(m => {
       return (
         m.file_key.toLowerCase().includes(search.toLowerCase()) &&
         (!srcFilter || m.source === srcFilter) &&
-        (!catFilter || m.type === catFilter)
+        (!catFilter || m.type === catFilter) &&
+        (!regionFilter || m.countries?.some(c => c.r_code === regionFilter)) &&
+        (!countryFilter || m.countries?.some(c => c.c_code === countryFilter))
       );
     });
-  }, [maps, search, srcFilter, catFilter]);
+  }, [maps, search, srcFilter, catFilter, regionFilter, countryFilter]);
 
   const sourceOptions   = sources.map(s => ({ value: s.s_code, label: s.label }));
   const typeOptions = types.map(t => ({ value: t.t_code, label: t.label }));
+  const regionOptions = regions.map(r => ({ value: r.r_code, label: r.label }));
+  const countryOptions = countries.map(c => ({ value: c.c_code, label: c.label }));
 
   return (
     <PageContainer>
-      <Heading level={2}>Explore Examples</Heading>
+      <div className="flex justify-between items-center">
+        <Heading level={2}>Explore Examples</Heading>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="px-4 py-2 bg-ifrcRed text-white rounded hover:bg-ifrcRed/90 disabled:opacity-50"
+        >
+          {isLoading ? 'Loading...' : 'Refresh'}
+        </button>
+      </div>
 
       {/* ── Filters Bar ──────────────────────────────── */}
       <div className="mt-4 flex flex-wrap gap-4 items-center">
@@ -77,6 +209,28 @@ export default function ExplorePage() {
           options={typeOptions}
           value={catFilter ? [catFilter] : []}
           onChange={(v) => setCatFilter((v as string[])[0] || '')}
+          keySelector={(o) => o.value}
+          labelSelector={(o) => o.label}
+          selectedOnTop={false}
+        />
+
+        <SearchSelectInput
+          name="region"
+          placeholder="All Regions"
+          options={regionOptions}
+          value={regionFilter || null}
+          onChange={(v) => setRegionFilter(v as string || '')}
+          keySelector={(o) => o.value}
+          labelSelector={(o) => o.label}
+          selectedOnTop={false}
+        />
+
+        <SearchSelectInput
+          name="country"
+          placeholder="All Countries"
+          options={countryOptions}
+          value={countryFilter || null}
+          onChange={(v) => setCountryFilter(v as string || '')}
           keySelector={(o) => o.value}
           labelSelector={(o) => o.label}
           selectedOnTop={false}
@@ -111,7 +265,7 @@ export default function ExplorePage() {
                 <span className="px-2 py-1 bg-ifrcRed/10 text-ifrcRed text-xs rounded">{m.type}</span>
               </div>
               <p className="mt-2 text-sm text-gray-700 line-clamp-2">
-                {m.caption?.generated || '— no caption yet —'}
+                {m.caption?.edited || m.caption?.generated || '— no caption yet —'}
               </p>
             </div>
           </div>

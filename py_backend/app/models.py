@@ -72,7 +72,7 @@ class Images(Base):
     image_type = Column(String, ForeignKey("image_types.image_type"), nullable=False)
 
     countries = relationship("Country", secondary=image_countries, backref="images")
-    caption   = relationship("Captions", uselist=False, back_populates="image")
+    caption   = relationship("Captions", uselist=False, back_populates="image", cascade="all, delete-orphan")
 
 class Captions(Base):
     __tablename__ = "captions"
