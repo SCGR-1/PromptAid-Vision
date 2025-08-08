@@ -1,0 +1,104 @@
+.per-export {
+    --pdf-element-bg: var(--go-ui-color-background);
+
+    font-family: 'Open Sans', sans-serif;
+    font-size: var(--go-ui-font-size-export);
+
+    @media screen {
+        margin: var(--go-ui-spacing-xl) auto;
+        background-color: var(--go-ui-color-foreground);
+        padding: var(--go-ui-export-page-margin);
+        width: 210mm;
+        min-height: 297mm;
+    }
+
+    .page-break {
+        break-before: page;
+    }
+
+    .average-rating-key-figure {
+        padding: 0;
+    }
+
+    .page-title-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .ifrc-logo {
+            width: 6rem;
+            height: 6rem;
+        }
+
+        .per-logo {
+            width: 5rem;
+            height: 5rem;
+        }
+
+        .country-name {
+            display: flex;
+            text-align: center;
+            font-size: var(--go-ui-font-size-2xl);
+        }
+    }
+
+    .pending-message {
+        grid-column: 1 / -1;
+    }
+
+    .meta-section {
+        display: grid;
+        grid-gap: var(--go-ui-width-separator-lg);
+        grid-template-columns: 1fr 1fr 1fr;
+        background-color: var(--pdf-element-bg);
+        padding: var(--go-ui-spacing-md);
+    }
+
+    .top-rated-component-content {
+        display: grid;
+        flex-grow: 0;
+        grid-gap: var(--go-ui-spacing-sm);
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+
+        .top-rated-component {
+            border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+            padding: var(--go-ui-spacing-sm);
+            page-break-inside: avoid;
+
+            .label {
+                margin-bottom: var(--go-ui-spacing-xs);
+                font-size: var(--go-ui-spacing-md);
+                font-weight: var(--go-ui-font-weight-semibold);
+            }
+        }
+    }
+
+    .rating-results-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--go-ui-spacing-md);
+
+        .rated-component {
+            display: grid;
+            grid-gap: var(--go-ui-spacing-md);
+            grid-template-columns: 1fr 1fr 1fr;
+            page-break-inside: avoid;
+
+            .label {
+                font-size: var(--go-ui-font-size-sm);
+                font-weight: var(--go-ui-font-weight-semibold);
+            }
+        }
+
+        .legend {
+            display: flex;
+            gap: var(--go-ui-spacing-sm);
+
+            .separator {
+                align-self: stretch;
+                background-color: var(--go-ui-color-separator);
+                width: var(--go-ui-width-separator-thin);
+            }
+        }
+    }
+}

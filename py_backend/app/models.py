@@ -58,7 +58,10 @@ class ImageTypes(Base):
 class Models(Base):
     __tablename__ = "models"
     m_code = Column(String, primary_key=True)
-    label  = Column(String, nullable=False)
+    label = Column(String, nullable=False)
+    model_type = Column(String, nullable=False)  # gpt4v, claude, gemini, etc.
+    is_available = Column(Boolean, default=True)
+    config = Column(JSON, nullable=True)  # Model-specific configuration
 
 class Images(Base):
     __tablename__ = "images"
@@ -72,12 +75,12 @@ class Images(Base):
     image_type = Column(String, ForeignKey("image_types.image_type"), nullable=False)
 
     countries = relationship("Country", secondary=image_countries, backref="images")
-    caption   = relationship("Captions", uselist=False, back_populates="image", cascade="all, delete-orphan")
+    caption   = relationship("Captions", back_populates="image", cascade="all, delete-orphan")
 
 class Captions(Base):
     __tablename__ = "captions"
     cap_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    image_id     = Column(UUID(as_uuid=True), ForeignKey("images.image_id", ondelete="CASCADE"), unique=True)
+    image_id     = Column(UUID(as_uuid=True), ForeignKey("images.image_id", ondelete="CASCADE"))
     title      = Column(String, nullable=False)
     prompt     = Column(String, nullable=False)
     model      = Column(String, ForeignKey("models.m_code"), nullable=False)

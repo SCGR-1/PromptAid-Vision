@@ -1,0 +1,69 @@
+.checkbox {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    gap: var(--go-ui-spacing-sm);
+
+    &.with-background {
+        background-color: var(--go-ui-color-background);
+        padding: var(--go-ui-spacing-sm);
+    }
+
+    .checkmark-container {
+        position: relative;
+        flex-shrink: 0;
+        line-height: 0;
+        font-size: var(--go-ui-height-icon-multiplier);
+
+        .input {
+            position: absolute;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+
+            &:focus-visible  + svg {
+                outline: var(--go-ui-width-separator-thin) dashed var(--go-ui-color-gray-40);
+            }
+        }
+    }
+
+    .content {
+        flex-direction: column;
+        flex-grow: 1;
+        line-height: var(--go-ui-line-height-sm);
+        gap: 0;
+    }
+
+    .description {
+        color: var(--go-ui-color-text-light);
+        font-size: var(--go-ui-font-size-xs);
+    }
+
+    &.checked {
+        .checkmark {
+            color: var(--go-ui-color-primary-red);
+        }
+    }
+
+    &:focus,
+    &:hover {
+        .checkmark {
+            color: var(--go-ui-color-primary-red);
+        }
+    }
+
+    &.disabled-checkbox {
+        display: flex;
+        align-items: flex-start;
+        cursor: not-allowed;
+        gap: var(--go-ui-spacing-sm);
+        color: var(--go-ui-color-gray-40);
+
+        .checkmark {
+            color: var(--go-ui-color-gray-40);
+        }
+    }
+}

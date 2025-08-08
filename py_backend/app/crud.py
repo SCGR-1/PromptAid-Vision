@@ -43,16 +43,20 @@ def get_images(db: Session):
     ).all()
 
 def get_image(db: Session, image_id: str):
-    """Get a single image by ID with its caption"""
+    """Get a single image by ID with its captions"""
     return db.query(models.Images).options(
         joinedload(models.Images.caption)
     ).filter(models.Images.image_id == image_id).first()
 
-def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text):
+def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None):
     print(f"Creating caption for image_id: {image_id}")
     print(f"Caption data: title={title}, prompt={prompt}, model={model_code}")
     print(f"Database session ID: {id(db)}")
     print(f"Database session is active: {db.is_active}")
+    
+    # Include metadata in raw_json if provided
+    if metadata:
+        raw_json["extracted_metadata"] = metadata
     
     c = models.Captions(
         image_id=image_id,
@@ -74,10 +78,14 @@ def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, t
 def get_caption(db: Session, cap_id):
     return db.get(models.Captions, cap_id)
 
-def update_caption(db: Session, cap_id, edited=None, accuracy=None, context=None, usability=None, starred=None):
+def update_caption(db: Session, cap_id, title=None, edited=None, accuracy=None, context=None, usability=None, starred=None):
     c = get_caption(db, cap_id)
     if not c:
         return None
+    
+    # Update title if provided
+    if title is not None:
+        c.title = title
     
     # Always save an edited version - use provided edited text or fall back to generated
     if edited is not None:
@@ -126,3 +134,11 @@ def get_countries(db: Session):
 def get_country(db: Session, c_code: str):
     """Get a single country by code"""
     return db.get(models.Country, c_code)
+
+def get_models(db: Session):
+    """Get all models"""
+    return db.query(models.Models).all()
+
+def get_model(db: Session, m_code: str):
+    """Get a specific model by code"""
+    return db.get(models.Models, m_code)

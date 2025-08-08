@@ -1,0 +1,55 @@
+{
+    "parent": "000040-1750998623099.json",
+    "actions": [
+        {
+            "action": "remove",
+            "key": "nationalSocietyAmountCHF",
+            "namespace": "drefApplicationExport"
+        },
+        {
+            "action": "update",
+            "key": "drefApplicationExportForecastedLabel",
+            "namespace": "drefApplicationExport",
+            "newValue": "Forecasted day of event (or peak)"
+        },
+        {
+            "action": "update",
+            "key": "nationalSocietyDescriptionSixteen",
+            "namespace": "drefApplicationExport",
+            "newValue": "By signing this Imminent DREF request, the National Society commits to implement all activities funded with this Imminent DREF request in compliance with the Fundamental Principles of the International Red Cross and Red Crescent Movement and all applicable domestic and international laws and regulations. The National Society further commits to zero tolerance for, and shall take appropriate measures against fraud, corruption, and any form of abuse against any person, in particular children, including without limitation sexual exploitation, abuse and harassment, to comply with any applicable sanctions, and any applicable data protection laws and policies, in particular, the National Society shall only process personal data to the extent necessary to respond to the Imminent DREF Operation. The IFRC reserves the right to perform audits, financial reviews, checks and verifications and/or investigations to ensure the proper use of the Imminent DREF and compliance with the above-mentioned obligations. In order to facilitate such audits, financial reviews, checks and verifications and/or investigations, the National Society shall grant the IFRC access to its documents, records, and premises as well as its staff, agents, volunteers, beneficiaries, sub-grantees and contractors. Any breach of the above obligations shall entitle the IFRC to request a full refund of this Imminent DREF request."
+        },
+        {
+            "action": "add",
+            "key": "drefHazardExpectedDescription",
+            "namespace": "drefApplicationForm",
+            "value": "Include here the forecasted date of impact as well as the geographical areas at risk."
+        },
+        {
+            "action": "add",
+            "key": "drefHazardExpectedLabel",
+            "namespace": "drefApplicationForm",
+            "value": "Forecasted day of event (or peak)"
+        },
+        {
+            "action": "update",
+            "key": "drefHazardExpectedTitle",
+            "namespace": "drefApplicationForm",
+            "newValue": "When and where is the hazard expected to happen?"
+        },
+        {
+            "action": "remove",
+            "key": "currentNationalSocietyActionsHeading",
+            "namespace": "drefOperationalUpdateExport"
+        },
+        {
+            "action": "remove",
+            "key": "drefFormNsResponseStarted",
+            "namespace": "drefOperationalUpdateExport"
+        },
+        {
+            "action": "remove",
+            "key": "nationalSocietyActionsHeading",
+            "namespace": "drefOperationalUpdateExport"
+        }
+    ]
+}

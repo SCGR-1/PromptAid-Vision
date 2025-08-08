@@ -1,0 +1,8 @@
+{
+    "namespace": "accountMyFormsThreeW",
+    "strings": {
+        "threeWViewDetails": "View Details",
+        "threeWEdit": "Edit",
+        "threeWDuplicate": "Duplicate"
+    }
+}

@@ -1,0 +1,68 @@
+.input-container {
+    position: relative;
+
+    .input-section {
+        align-items: center;
+        transition: var(--go-ui-duration-transition-medium) var(--go-ui-color-gray-10) ease-in-out;
+        border-bottom: var(--go-ui-width-separator-thin) solid transparent;
+        border-radius: var(--go-ui-border-radius-md);
+        background-color: var(--go-ui-color-element-background);
+        padding: 0 var(--go-ui-spacing-sm);
+
+        .input {
+            padding: var(--go-ui-spacing-xs) 0;
+        }
+    }
+
+    &.disabled {
+        opacity: var(--go-ui-opacity-disabled-element);
+
+        .input-section {
+            cursor: not-allowed;
+        }
+    }
+
+    &.errored {
+        .input-section {
+            border-color: var(--go-ui-color-red);
+        }
+    }
+
+    &.general {
+        .input-section {
+            border-radius: 0;
+            border-bottom-color: var(--go-ui-color-separator);
+        }
+    }
+
+    &.read-only {
+        .input-section {
+            background-color: var(--go-ui-color-readonly-element-background);
+        }
+    }
+
+    &:not(.read-only):not(.disabled) {
+        .input-section {
+            &:hover,
+            &:focus-within {
+                border-bottom-color: var(--go-ui-color-primary-red);
+            }
+        }
+    }
+
+    .input-hint {
+        color: var(--go-ui-color-text-light);
+        font-size: var(--go-ui-font-size-sm);
+    }
+
+    .input-error {
+        position: absolute;
+        min-width: 10rem;
+    }
+
+    &:not(.disabled):not(.read-only):hover:enabled {
+        .input-section {
+            border-bottom-color: var(--go-ui-color-primary-red);
+        }
+    }
+}

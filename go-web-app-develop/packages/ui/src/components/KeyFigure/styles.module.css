@@ -1,0 +1,46 @@
+.key-figure {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    padding: var(--go-ui-spacing-md);
+    gap: var(--go-ui-spacing-xs);
+
+    .icon-section {
+        display: flex;
+
+        .icon {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            justify-content: flex-start;
+            color: var(--go-ui-color-primary-red);
+            font-size: var(--go-ui-height-key-figure-icon);
+        }
+
+        .info {
+            flex-shrink: 0;
+        }
+    }
+
+    .info-section-without-icon {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+
+    .value {
+        font-size: var(--go-ui-font-size-3xl);
+        font-weight: var(--go-ui-font-weight-medium);
+    }
+
+    .description {
+        color: var(--go-ui-color-text-light);
+        font-size: var(--go-ui-font-size-sm);
+    }
+
+    &.with-icon {
+        .value {
+            font-size: var(--go-ui-font-size-4xl);
+        }
+    }
+}

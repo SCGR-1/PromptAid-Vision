@@ -1,0 +1,16 @@
+{
+    "namespace": "countryOngoingActivitiesEmergencies",
+    "strings": {
+        "appealsStartDate": "Start Date",
+        "appealsStartDateAfter": "Start After",
+        "appealsStartDateBefore": "Start Before",
+        "appealsTypeLabel": "Appeal Type",
+        "activeOperationLabel": "Active Operation",
+        "appealsDisasterType": "Disaster Type",
+        "appealsRequestedAmount": "Funding Requirements",
+        "appealsFundedAmount": "Funding Coverage",
+        "appealsFilterTypePlaceholder": "All Appeal Types",
+        "appealsFilterDisastersPlaceholder": "All Disaster Types",
+        "operationMapClearFilters": "Clear Filters"
+    }
+}

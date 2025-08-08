@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html
+    lang="en"
+    translate="no"
+>
+    <head>
+        <meta charset="UTF-8" />
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="/go-icon.svg"
+        />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        />
+        <meta
+            name="description"
+            content=""
+        />
+        <title>
+            %APP_TITLE%
+        </title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: Poppins, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            }
+
+            @media screen {
+                body {
+                    background-color: #f7f7f7;
+                }
+            }
+
+            #webapp-preload {
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        </style>
+    </head>
+    <body>
+        <noscript>
+            %APP_TITLE% needs JS.
+        </noscript>
+        <div id="webapp-root">
+            <div id="webapp-preload">
+                %APP_TITLE% loading...
+            </div>
+        </div>
+        <script
+            type="module"
+            src="/src/index.tsx"
+        ></script>
+    </body>
+</html>

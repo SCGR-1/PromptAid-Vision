@@ -1,0 +1,20 @@
+.dropdown-menu {
+    align-items: center;
+
+    .icons,
+    .content,
+    .actions {
+        pointer-events: none;
+    }
+
+    .dropdown-icon {
+        margin-inline-start: -0.3em;
+        font-size: var(--go-ui-height-icon-multiplier);
+    }
+}
+
+.dropdown-content {
+    display: flex;
+    flex-direction: column;
+    padding: var(--go-ui-spacing-sm) 0;
+}

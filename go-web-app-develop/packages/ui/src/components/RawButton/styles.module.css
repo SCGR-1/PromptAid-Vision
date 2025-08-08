@@ -1,0 +1,17 @@
+.raw-button {
+    position: relative;
+    outline-offset: var(--go-ui-width-separator-lg);
+    border: 0;
+    background-color: transparent;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+
+    &:focus-visible,
+    &.focused {
+        outline: var(--go-ui-width-separator-thin) dashed var(--go-ui-color-gray-40);
+        outline-offset: -4px;
+    }
+}

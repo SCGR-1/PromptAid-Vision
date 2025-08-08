@@ -1,0 +1,27 @@
+{
+    "namespace": "activeSurgeDeployments",
+    "strings": {
+        "deployedEru": "Deployed ERU(s)",
+        "eventPopoverEmpty": "No Current Deployments",
+        "deployedPersonnel": "Deployed Personnel",
+        "surgeEruOnly": "Emergency Response Unit(ERU)",
+        "surgePersonnelOnly": "Rapid Response Personnel(RR)",
+        "surgeDownloadMapTitle": "Rapid Response Deployments",
+        "eruAndPersonnel": "ERU & RR",
+        "eruLabel": "ERU",
+        "personnelLabel": "RR",
+        "explanationScalePoints": "Scale points by",
+        "surgeMapTitle": "Active Deployments",
+        "disasterTypeLabel": "Disaster Type",
+        "disasterTypePlaceholder": "All Disaster Types",
+        "surgeMechanismsLabel": "Surge Mechanism",
+        "surgeMechanismsPlaceholder": "All Surge Mechanisms",
+        "clearFilters": "Clear Filters",
+        "emergencyResponseUnit": "Emergency Response Unit",
+        "rapidResponsePersonnel": "Rapid Response Personnel",
+        "eruType": "ERU Type(s)",
+        "deployingNS": "Deploying NS",
+        "roleProfile": "Role Profile(s)"
+
+    }
+}

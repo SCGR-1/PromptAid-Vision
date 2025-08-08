@@ -1,0 +1,17 @@
+.submission {
+    display: flex;
+    flex-direction: column;
+    gap: var(--go-ui-spacing-2xl);
+
+    .warning {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--go-ui-spacing-2xs);
+        padding: var(--go-ui-spacing-2xs) 0;
+        color: var(--go-ui-color-warning);
+
+        .icon {
+            font-size: var(--go-ui-height-icon-multiplier);
+        }
+    }
+}

@@ -1,0 +1,48 @@
+.per-assessment-summary {
+    .content {
+        display: grid;
+        grid-gap: var(--go-ui-spacing-2xl);
+        grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+
+        .total-progress {
+            .answer-counts {
+                display: flex;
+                color: var(--go-ui-color-dark-blue-40);
+                gap: var(--go-ui-spacing-lg);
+            }
+        }
+
+        .component-rating {
+            grid-column: auto / span 2;
+        }
+
+        .avg-component-rating {
+            display: flex;
+            gap: var(--go-ui-spacing-sm);
+
+            .area-rating {
+                display: flex;
+                align-items: center;
+                flex-direction: column;
+
+                .rating-value {
+                    font-size: var(--go-ui-font-size-sm);
+                    font-weight: var(--go-ui-font-weight-semibold);
+                }
+
+                .bar-container {
+                    display: flex;
+                    align-items: flex-end;
+                    background-color: var(--go-ui-color-separator);
+                    width: 1rem;
+                    height: 4rem;
+
+                    .filled-bar {
+                        background-color: var(--go-ui-color-dark-blue-40);
+                        width: 100%;
+                    }
+                }
+            }
+        }
+    }
+}

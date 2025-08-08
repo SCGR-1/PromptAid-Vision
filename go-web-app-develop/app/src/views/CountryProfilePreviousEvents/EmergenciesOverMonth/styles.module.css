@@ -1,0 +1,7 @@
+.emergencies-over-month {
+    height: 16rem;
+
+    .data-point {
+        color: var(--go-ui-color-primary-red);
+    }
+}

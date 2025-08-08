@@ -1,0 +1,9 @@
+.switch {
+    .checkmark-container {
+        --width: var(--go-ui-font-size-4xl);
+    }
+
+    &.with-inverted-view {
+        flex-direction: row-reverse;
+    }
+}

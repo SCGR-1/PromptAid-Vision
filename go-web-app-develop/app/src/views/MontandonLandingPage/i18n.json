@@ -1,0 +1,42 @@
+{
+    "namespace": "montandonLandingPage",
+    "strings": {
+        "montandonPageTitle": "Montandon - The Global Crisis Data Bank",
+        "montandonHeading": "Montandon - The Global Crisis Data Bank",
+        "montandonHeadingDescription": "Montandon is the world’s largest disaster database—a global public good with applications far beyond IFRC. Montandon integrates three key types of data: 1) forecasted and recorded natural hazards; 2) impact data on these hazards; and 3) operational response data (where available). Montandon contains more than 2 million of records about hazards and their impacts for hundreds of thousands of events.",
+
+        "sourceButtonTitle": "Source",
+        "sourcePopupTitle": "Source Data",
+        "stacIdLabel": "ID",
+        "stacIdValue": "stac-fastapi",
+        "stacVersionLabel": "STAC Version",
+        "stacVersionValue": "1.0.0",
+        "validLabel": "Valid",
+        "validValue": "Yes",
+        "stacLocationText": "The STAC metadata file is located at",
+        "montandonEoapi": "Montandon EoAPI",
+
+        "sharePopupTitle": "Share",
+        "emailLabel": "Email",
+        "shareUrlLabel": "Share the URL of this page:",
+
+        "videoTitle": "IFRC GO Platform: Mapping global crises' historical data with Montandon",
+
+        "resources": "Resources",
+        "visitGithub": "GitHub",
+        "goWiki": "GO Wiki",
+        "apiDescription": "OpenAPI service description",
+        "apiDocumentation": "OpenAPI service documentation",
+
+        "blogPosts": "Blog Posts",
+        "leveragingDataBlogPostTitle": "Leveraging data to learn from past disasters",
+        "scaledUpSystemsBlogPostTitle": "Scaled-up ambitions require scaled-up systems",
+
+        "contact": "Contact",
+        "contactName": "Justin Ginnetti",
+        "contactInfo": "Senior Officer, Information Management and Risk Analysis, IFRC",
+
+        "accessAPILabel": "Access the Montandon API",
+        "exploreRadiantEarthLabel": "Explore data in STAC browser"
+    }
+}

@@ -1,0 +1,78 @@
+.field-report-details {
+    .description {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+        gap: var(--go-ui-spacing-md);
+
+        .basic-info {
+            font-size: var(--go-ui-font-size-lg);
+            font-weight: var(--go-ui-font-weight-medium);
+
+            .separator {
+                display: inline-block;
+                margin: 0 var(--go-ui-spacing-md);
+                background-color: var(--go-ui-color-separator);
+                width: var(--go-ui-width-separator-md);
+                height: 1rem;
+            }
+
+            .title-link {
+                text-align: left;
+            }
+        }
+
+        .latest-updated-detail {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            text-align: center;
+            color: var(--go-ui-color-text-light);
+            gap: var(--go-ui-spacing-sm);
+        }
+    }
+
+    .content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--go-ui-spacing-2xl);
+
+        .basic-details {
+            display: grid;
+            grid-gap: var(--go-ui-spacing-xl);
+            grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+        }
+
+        .numeric-details {
+            display: grid;
+            grid-gap: var(--go-ui-spacing-xl);
+            grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+        }
+
+        .actions-taken {
+            .action-category {
+                display: flex;
+                align-items: center;
+                gap: var(--go-ui-spacing-sm);
+
+                .icon {
+                    font-size: var(--go-ui-height-icon-multiplier);
+                }
+            }
+        }
+
+        .contact-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--go-ui-spacing-md);
+
+            .contact {
+                .type {
+                    font-weight: var(--go-ui-font-weight-bold);
+                }
+            }
+        }
+    }
+}
+

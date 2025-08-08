@@ -1,0 +1,8 @@
+{
+    "namespace": "multiImageWithCaptionInput",
+    "strings": {
+        "removeImagesButtonTitle": "Remove",
+        "imagePreviewAlt": "preview",
+        "enterCaptionPlaceholder": "Enter Caption"
+    }
+}

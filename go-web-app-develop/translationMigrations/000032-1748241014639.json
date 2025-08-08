@@ -1,0 +1,17 @@
+{
+    "parent": "000031-1747730639485.json",
+    "actions": [
+        {
+            "action": "update",
+            "key": "accessAPILabel",
+            "namespace": "montandonLandingPage",
+            "newValue": "Access the Montandon API"
+        },
+        {
+            "action": "update",
+            "key": "exploreRadiantEarthLabel",
+            "namespace": "montandonLandingPage",
+            "newValue": "Explore data in STAC browser"
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "namespace": "riskImminentEvents",
+    "strings": {
+        "meteoSwissEventListViewDetails": "View / Hide Details",
+        "meteoSwissEventListStartedOn": "Started On"
+    }
+}

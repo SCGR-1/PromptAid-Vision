@@ -1,0 +1,165 @@
+.button {
+    --color-border: transparent;
+    --color-text: inherit;
+    --color-background: transparent;
+    --font-size: inherit;
+    --border-radius: var(--go-ui-border-radius-full);
+    --text-transform: none;
+    --cursor: default;
+    --padding: var(--go-ui-spacing-3xs) var(--go-ui-spacing-lg);
+
+    display: inline-flex;
+    position: relative;
+    align-items: center;
+    border: var(--go-ui-width-separator-sm) solid var(--color-border);
+    border-radius: var(--border-radius);
+    background-color: var(--color-background);
+    cursor: var(--cursor);
+    padding: var(--padding);
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+    text-transform: var(--text-transform);
+    line-height: var(--go-ui-line-height-xs);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: var(--font-size);
+    font-weight: var(--go-ui-font-weight-medium);
+
+    &.ellipsized {
+        flex-grow: 1;
+
+        .children {
+            display: block;
+            min-width: 0;
+
+            .overflow-wrapper {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+    }
+
+    &.primary,
+    &.secondary {
+        .children {
+            text-align: center;
+        }
+
+        &.no-spacing {
+            --padding: 0;
+        }
+
+        &.condensed-spacing {
+            --padding: var(--go-ui-spacing-4xs) var(--go-ui-spacing-sm);
+        }
+
+        &.compact-spacing {
+            --padding: var(--go-ui-spacing-4xs) var(--go-ui-spacing-sm);
+        }
+
+        &.cozy-spacing {
+            --padding: var(--go-ui-spacing-3xs) var(--go-ui-spacing-md);
+        }
+
+        &.default-spacing {
+            --padding: var(--go-ui-spacing-3xs) var(--go-ui-spacing-md);
+        }
+
+        &.comfortable-spacing {
+            --padding: var(--go-ui-spacing-2xs) var(--go-ui-spacing-lg);
+        }
+
+        &.relaxed-spacing {
+            --padding: var(--go-ui-spacing-xs) var(--go-ui-spacing-xl);
+        }
+
+        &.loose-spacing {
+            --padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-2xl);
+        }
+    }
+
+    &.primary {
+        --color-border: var(--go-ui-color-primary-red);
+        --color-background: var(--go-ui-color-primary-red);
+        --color-text: var(--go-ui-color-white);
+
+        &.disabled {
+            filter: saturate(50%);
+        }
+
+        &:not(.disabled) {
+            &:hover {
+                --color-background: var(--go-ui-color-red-hover);
+            }
+        }
+    }
+
+    &.secondary {
+        --color-border: var(--go-ui-color-primary-red);
+        --color-background: var(--go-ui-color-white);
+        --color-text: var(--go-ui-color-primary-red);
+
+        &.disabled {
+            filter: saturate(50%);
+        }
+
+        &:not(.disabled) {
+            &:hover {
+                background-color: var(--go-ui-color-red-hover);
+                color: var(--go-ui-color-white);
+            }
+        }
+    }
+
+    &.tertiary {
+        --color-border: transparent;
+        --color-background: transparent;
+        --color-text: inherit;
+        --padding: 0;
+        --border-radius: unset;
+
+        &:not(.disabled) {
+            &:hover {
+                --color-text: var(--go-ui-color-primary-red);
+            }
+        }
+    }
+
+    &.tertiary-on-dark {
+        --color-border: transparent;
+        --color-background: transparent;
+        --color-text: var(--go-ui-color-white);
+        --padding: 0;
+        --border-radius: unset;
+
+        &:not(.disabled) {
+            &:hover {
+                opacity: 0.8;
+            }
+        }
+    }
+
+    &.dropdown-item {
+        display: flex;
+        width: 100%;
+        text-align: left;
+        --border-radius: unset;
+        --padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-lg);
+
+        &:hover {
+            background-color: var(--go-ui-color-background-hover);
+        }
+    }
+
+    &.disabled {
+        opacity: var(--go-ui-opacity-disabled-element);
+        --cursor: not-allowed;
+    }
+
+    &:not(.disabled) {
+        --cursor: pointer;
+    }
+
+}

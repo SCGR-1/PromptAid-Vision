@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import upload, caption, metadata
+from app.routers import upload, caption, metadata, models
 from app.config import settings
 import boto3
 
@@ -24,4 +24,7 @@ app.add_middleware(
 app.include_router(upload.router,   prefix="/api/images", tags=["images"])
 app.include_router(caption.router,  prefix="/api",      tags=["captions"])
 app.include_router(metadata.router, prefix="/api",      tags=["metadata"])
+app.include_router(models.router,   prefix="/api",      tags=["models"])
+
+
 

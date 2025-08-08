@@ -50,6 +50,7 @@ class CaptionOut(BaseModel):
         orm_mode = True
 
 class CaptionUpdate(BaseModel):
+    title: Optional[str] = None
     edited: Optional[str] = None
     accuracy: Optional[int] = None
     context: Optional[int] = None
@@ -101,6 +102,9 @@ class CountryOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ModelToggleRequest(BaseModel):
+    is_available: bool
 
 # Update forward references
 ImageOut.update_forward_refs()

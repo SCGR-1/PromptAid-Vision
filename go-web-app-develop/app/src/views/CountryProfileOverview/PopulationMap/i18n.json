@@ -1,0 +1,10 @@
+{
+    "namespace": "countryProfileOverview",
+    "strings": {
+        "populationMapTitle": "Population Map",
+        "populationMapSource": "Source",
+        "populationMapWorldBank": "The World Bank",
+        "populationLegendLabel": "Population",
+        "populationPopupYearLabel": "Year"
+    }
+}

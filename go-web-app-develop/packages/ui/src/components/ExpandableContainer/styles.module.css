@@ -1,0 +1,31 @@
+.expandable-container {
+    border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+    background-color: var(--go-ui-color-foreground);
+
+    .header {
+        background-color: var(--go-ui-color-foreground);
+    }
+
+    .icon {
+        display: flex;
+        font-size: var(--go-ui-height-icon-multiplier);
+    }
+
+    &:hover {
+        .icon {
+            animation: wiggle var(--go-ui-duration-transition-medium) ease-out;
+        }
+    }
+}
+
+@keyframes wiggle {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-0.1rem);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}

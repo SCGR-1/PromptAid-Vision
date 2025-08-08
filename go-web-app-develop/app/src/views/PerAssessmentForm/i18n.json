@@ -1,0 +1,15 @@
+{
+    "namespace": "perAssessmentForm",
+    "strings": {
+        "assessmentHeading": "Assessment",
+        "saveRequestSuccessMessage": "PER Process created/updated successfully",
+        "saveRequestFailureMessage": "Failed to create/update PER Process",
+        "resourceNotFound": "Resource not found",
+        "prevButtonLabel": "Prev",
+        "nextButtonLabel": "Next",
+        "saveAssessmentButtonLabel": "Save",
+        "submitAssessmentButtonLabel": "Submit",
+        "submitAssessmentConfirmHeading": "Submit PER Assessment Results",
+        "submitAssessmentConfirmMessage": "You are about to submit the results of the PER Assessment. Once submitted, the results cannot be edited. You'll be redirected to the Prioritization form after the successful submission"
+    }
+}

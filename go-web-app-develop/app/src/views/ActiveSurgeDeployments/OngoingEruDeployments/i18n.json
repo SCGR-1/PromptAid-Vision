@@ -1,0 +1,18 @@
+{
+    "namespace": "activeSurgeDeployments",
+    "strings": {
+        "eruHeading": "Ongoing ERU Deployments",
+        "eruEmergency": "Emergency / Name",
+        "eruOrganisation": "Deploying Organisation",
+        "eruName": "Name",
+        "eruViewAll": "View All",
+        "eruTypes": "ERU Types",
+        "ongoingEmergencyStartDate": "Emergency Start Date",
+        "ongoingEmergencyEndDate": "Emergency End Date",
+        "eruStartDate": "Deployment Start Date",
+        "eruEndDate": "Deployment End Date",
+        "eruEmergencyTimeline": "Emergency Timeframe",
+        "eruDeploymentTimeline": "Deployment Timeline",
+        "eruDeploymentCountry": "Deployed To"
+    }
+}

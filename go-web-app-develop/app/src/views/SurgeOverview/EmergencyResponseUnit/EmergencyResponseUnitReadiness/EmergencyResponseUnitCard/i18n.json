@@ -1,0 +1,14 @@
+{
+    "namespace": "surgeOverview",
+    "strings": {
+        "emergencyResponseUnitOwnerCardLastUpdated": "Last updated",
+        "emergencyResponseUnitOwnerCardReady": "{count} Ready ERUs",
+        "emergencyResponseUnitOwnerCardDeployed": "{count} Deployed ERUs",
+        "emergencyResponseUnitNationalSociety": "National Society",
+        "eruSeeReadinessInfoButton": "See readiness info",
+        "eruEquipmentReadiness": "Equipment",
+        "eruPeopleReadiness": "People",
+        "eruFundingReadiness": "Funding",
+        "eruReadinessInformationHeading": "Readiness Information by National Society"
+    }
+}

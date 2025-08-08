@@ -1,0 +1,47 @@
+.local-units-form {
+    .point-input-map {
+        background-color: var(--go-ui-color-background);
+        height: 32rem;
+    }
+
+}
+
+.latitude-diff-wrapper {
+    .latitude-changes {
+        /* NOTE: normal override not possible without force */
+        background-color: var(--go-ui-color-semantic-yellow) !important;
+    }
+}
+
+.longitude-diff-wrapper {
+    .longitude-changes {
+        /* NOTE: normal override not possible without force */
+        background-color: var(--go-ui-color-semantic-yellow) !important;
+    }
+}
+
+.diff-container {
+    .changes {
+        /* NOTE: normal override not possible without force */
+        background-color: var(--go-ui-color-semantic-yellow) !important;
+    }
+}
+
+/* NOTE: this element is portaled */
+.actions {
+    display: flex;
+    gap: var(--go-ui-spacing-md);
+    align-self: end;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.last-update-label {
+    color: var(--go-ui-color-text-light);
+
+    .new-local-unit {
+        color: var(--go-ui-color-positive);
+    }
+
+}
+

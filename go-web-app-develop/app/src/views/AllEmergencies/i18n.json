@@ -1,0 +1,23 @@
+{
+    "namespace": "allEmergencies",
+    "strings": {
+        "allEmergenciesTitle": "All Emergencies",
+        "allEmergenciesHeading": "All Emergencies ({numEmergencies})",
+        "failedToCreateExport": "Failed to generate export.",
+        "allEmergenciesDate":"Start Date",
+        "allEmergenciesName":"Name",
+        "allEmergenciesDisasterType":"Disaster Type",
+        "allEmergenciesGlide":"Glide",
+        "allEmergenciesRequestedAmt":"Requested Amount",
+        "allEmergenciesAffected":"# Affected",
+        "allEmergenciesCountry":"Countries",
+        "allEmergenciesRegion":"Region",
+        "allEmergenciesViewAll":"View all Emergencies",
+        "allEmergenciesFilterDisastersPlaceholder": "All Disaster Types",
+        "allEmergenciesFilterCountryPlaceholder": "All Countries",
+        "allEmergenciesFilterRegionPlaceholder": "All Regions",
+        "allEmergenciesTableFilterStartAfter": "Start After",
+        "allEmergenciesTableFilterStartBefore": "Start Before",
+        "allEmergenciesTableFilterDisastersPlaceholder": "All Disaster Types"
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "namespace": "countryPreparedness",
+    "strings": {
+        "publicNsPreparednessAndResponseCapacityHeading": "NS Preparedness and Response Capacity",
+        "publicHighlightedTopRatedComponentHeading": "Highlighted Top Rated Components",
+        "publicPriorityComponentToBeStrengthenedHeading": "Priority Components To Be Strengthened",
+        "publicStartDateLabel": "Start Date",
+        "publicPerPhaseLabel": "PER Phase",
+        "publicPerCycleLabel": "PER Cycle",
+        "publicTypeOfAssessmentLabel": "Type of Assessment",
+        "publicFocalPointNameLabel": "Focal Point",
+        "publicFocalPointEmailTitle": "Email",
+        "publicLastUpdatedLabel": "Last update",
+        "publicGoBackButtonTitle": "Go back",
+        "publicComponentLimitedAccess": "Limited access!",
+        "publicComponentLimitedAccessDescription": "You do not have enough permission to view more details on this PER.",
+        "publicComponentRequestSeeMore": "Request to see more"
+    }
+}

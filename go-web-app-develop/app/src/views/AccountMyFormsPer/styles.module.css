@@ -1,0 +1,6 @@
+.account-per-forms {
+    .sub-cell {
+        border-bottom: unset;
+        background-color: var(--go-ui-color-gray-20);
+    }
+}

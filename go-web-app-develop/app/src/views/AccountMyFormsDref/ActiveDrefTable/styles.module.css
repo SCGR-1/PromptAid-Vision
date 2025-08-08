@@ -1,0 +1,42 @@
+.active-dref-table {
+    .filters {
+        display: grid;
+        grid-gap: var(--go-ui-spacing-md);
+        grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    }
+
+    .table {
+        .type,
+        .status,
+        .date {
+            width: 0%;
+            min-width: 7rem;
+        }
+
+        .country,
+        .appeal-code {
+            width: 0%;
+            min-width: 8rem;
+        }
+
+        .title {
+            min-width: 9rem;
+        }
+
+        .country {
+            width: 0%;
+            min-width: 9rem;
+        }
+
+        .actions,
+        .stage {
+            width: 0%;
+            min-width: 9rem;
+        }
+
+        .sub-cell {
+            border-bottom: unset;
+            background-color: var(--go-ui-color-gray-20);
+        }
+    }
+}

@@ -1,0 +1,13 @@
+{
+    "namespace": "emergencySurge",
+    "strings": {
+        "containerHeading": "Deployed Erus ({count})",
+        "eruTableName": "Owner",
+        "eruTableType": "Type",
+        "eruTablePersonnel": "Personnel Units",
+        "eruTableEquipment":"Equipment Units",
+        "eruTableCountry": "Country Deployed To",
+        "eruTableEmergency": "Emergency",
+        "deployedErusViewAll": "View All Deployed ERUs"
+    }
+}

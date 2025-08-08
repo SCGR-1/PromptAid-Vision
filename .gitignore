@@ -5,13 +5,31 @@ build/
 .cache/
 .vite/
 
-# Local env & secrets
+# ─── Local env & secrets ────────────────────────
 .env*
 !.env.example
 
-# ─── Go backend (we’ll add later) ───────────────
-/backend/bin/
-/backend/coverage.out
+# ─── Python / FastAPI backend ───────────────────
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Testing / coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.mypy_cache/
 
 # ─── Docker ─────────────────────────────────────
 *.log
@@ -20,8 +38,9 @@ docker-compose.override.yml
 # ─── OS / editor cruft ─────────────────────────
 .DS_Store
 Thumbs.db
+*.swp
 .idea/
 .vscode/
-*.swp
 
+# ─── Prisma (if you’re using it) ────────────────
 /generated/prisma

@@ -1,63 +1,74 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button, PageContainer } from "@ifrc-go/ui";
 import {
   UploadCloudLineIcon,
   AnalysisIcon,
   SearchLineIcon,
   QuestionLineIcon,
   GoMainIcon,
+  SettingsIcon,
 } from "@ifrc-go/icons";
 
-/* Style helper for active vs. inactive nav links */
-const navLink = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-1 px-4 sm:px-6 py-2 text-xs sm:text-sm transition-colors whitespace-nowrap mx-4 sm:mx-6
-  ${isActive ? "text-ifrcRed font-semibold" : "text-gray-600 hover:text-ifrcRed"}`;
-
-/* Put page info in one list so it’s easy to extend */
+/* Put page info in one list so it's easy to extend */
 const navItems = [
   { to: "/upload",    label: "Upload",    Icon: UploadCloudLineIcon },
-  { to: "/analytics", label: "Analytics", Icon: AnalysisIcon },
   { to: "/explore",   label: "Explore",   Icon: SearchLineIcon },
+  { to: "/analytics", label: "Analytics", Icon: AnalysisIcon },
+  { to: "/dev",       label: "Dev",       Icon: SettingsIcon },
 ];
 
 export default function HeaderNav() {
   const location = useLocation();
-  
-  const handleNavigation = (e: React.MouseEvent, to: string) => {
-    if (location.pathname === "/upload") {
-      const uploadPage = document.querySelector('[data-step="2"]');
-      if (uploadPage) {
-        e.preventDefault();
-        if (confirm("Changes will not be saved")) {
-          window.location.href = to;
-        }
-      }
-    }
-  };
+  const navigate = useNavigate();
 
   return (
-    <header className="bg-white border-b border-ifrcRed/40">
-      <div className="flex items-center justify-between px-2 sm:px-4 py-3 max-w-full overflow-hidden">
-
+    <nav className="border-b border-gray-200 bg-white">
+      <PageContainer
+        className="border-b border-ifrcRed"
+        contentClassName="flex items-center justify-between py-4"
+      >
         {/* ── Logo + title ─────────────────────────── */}
-        <NavLink to="/" className="flex items-center gap-2 min-w-0" onClick={(e) => handleNavigation(e, "/")}>
-          <GoMainIcon className="h-6 w-6 flex-shrink-0 text-ifrcRed" />
-          <span className="font-semibold text-sm sm:text-base truncate">PromptAid Vision</span>
-        </NavLink>
+        <div className="flex items-center gap-3 min-w-0 cursor-pointer" onClick={() => navigate('/')}>
+          <GoMainIcon className="h-8 w-8 flex-shrink-0 text-ifrcRed" />
+          <span className="font-semibold text-lg truncate text-gray-900">PromptAid Vision</span>
+        </div>
 
         {/* ── Centre nav links ─────────────────────── */}
-        <nav className="flex flex-wrap justify-center gap-6">
-          {navItems.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} className={navLink} onClick={(e) => handleNavigation(e, to)}>
-              <Icon className="w-4 h-4" /> <span className="inline">{label}</span>
-            </NavLink>
+        <nav className="flex items-center">
+          {navItems.map(({ to, label, Icon }, index) => (
+            <div key={to} className={index < navItems.length - 1 ? "mr-8" : ""}>
+              <Button
+                name={label.toLowerCase()}
+                variant={location.pathname === to ? "primary" : "tertiary"}
+                size={1}
+                onClick={() => {
+                  if (location.pathname === "/upload") {
+                    const uploadPage = document.querySelector('[data-step="2"]');
+                    if (uploadPage && !confirm("Changes will not be saved")) {
+                      return;
+                    }
+                  }
+                  navigate(to);
+                }}
+              >
+                <Icon className="w-4 h-4" /> 
+                <span className="inline ml-2 font-medium">{label}</span>
+              </Button>
+            </div>
           ))}
         </nav>
 
         {/* ── Right-side utility buttons ───────────── */}
-        <NavLink to="/help" className={navLink}>
+        <Button
+          name="help"
+          variant="tertiary"
+          size={1}
+          onClick={() => navigate('/help')}
+        >
           <QuestionLineIcon className="w-4 h-4" />
-        </NavLink>
-      </div>
-    </header>
+          <span className="inline ml-2 font-medium">Help & Support</span>
+        </Button>
+      </PageContainer>
+    </nav>
   );
 }

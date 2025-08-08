@@ -1,0 +1,11 @@
+{
+    "parent": "000021-1742221802140.json",
+    "actions": [
+        {
+            "action": "add",
+            "key": "positionInputLabel",
+            "namespace": "accountDetails",
+            "value": "Position"
+        }
+    ]
+}

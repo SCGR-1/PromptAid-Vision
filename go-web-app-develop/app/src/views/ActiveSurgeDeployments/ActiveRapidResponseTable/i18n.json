@@ -1,0 +1,17 @@
+{
+    "namespace": "activeSurgeDeployments",
+    "strings": {
+        "surgeAlertsTableHeading": "Active Rapid Response Alerts",
+        "surgeAlertsTableHeaderDescription": "To apply for an open position, contact your local surge team.",
+        "surgeAlertsTableAlertDate": "Alert Date",
+        "surgeAlertsTableDuration": "Duration",
+        "surgeAlertsTableStartDate": "Start Date",
+        "surgeAlertsTablePosition": "Position",
+        "surgeAlertsTableKeywords": "Keywords",
+        "surgeAlertsTableEmergency": "Emergency",
+        "surgeAlertsTableCountry": "Country",
+        "surgeAlertsTableStatus": "Status",
+        "surgeAlertsViewAll": "View All Surge Alerts",
+        "surgeAlertImmediately": "Immediately"
+    }
+}

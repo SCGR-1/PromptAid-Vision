@@ -86,6 +86,9 @@ def upgrade():
         'models',
         sa.Column('m_code', sa.String(), primary_key=True),
         sa.Column('label', sa.String(), nullable=False),
+        sa.Column('model_type', sa.String(), nullable=False),
+        sa.Column('is_available', sa.Boolean(), server_default=sa.text('true')),
+        sa.Column('config', sa.JSON(), nullable=True),
     )
 
     #
@@ -109,34 +112,35 @@ def upgrade():
         ('AMR','Americas'),
         ('APA','Asia-Pacific'),
         ('EUR','Europe'),
-        ('MENA','Middle East & N Africa')
+        ('MENA','Middle East & N Africa'),
+        ('OTHER','Other')
     """)
     # — Type —
     op.execute("""
       INSERT INTO types (t_code,label) VALUES
-        ('FLOOD','Flood'),
-        ('FIRE','Fire'),
-        ('EARTHQUAKE','Earthquake'),
-        ('CYCLONE','Cyclone'),
-        ('TSUNAMI','Tsunami'),
-        ('POPULATION_MOVEMENT','Population Movement'),
-        ('EPIDEMIC','Epidemic'),
-        ('PLUVIAL','Pluvial'),
-        ('STORM','Storm'),
-        ('LANDSLIDE','Landslide'),
-        ('COLD_WAVE','Cold Wave'),
         ('BIOLOGICAL_EMERGENCY','Biological Emergency'),
         ('CHEMICAL_EMERGENCY','Chemical Emergency'),
         ('CIVIL_UNREST','Civil Unrest'),
+        ('COLD_WAVE','Cold Wave'),
         ('COMPLEX_EMERGENCY','Complex Emergency'),
+        ('CYCLONE','Cyclone'),
         ('DROUGHT','Drought'),
+        ('EARTHQUAKE','Earthquake'),
+        ('EPIDEMIC','Epidemic'),
+        ('FIRE','Fire'),
+        ('FLOOD','Flood'),
         ('FLOOD_INSECURITY','Flood Insecurity'),
         ('HEAT_WAVE','Heat Wave'),
         ('INSECT_INFESTATION','Insect Infestation'),
+        ('LANDSLIDE','Landslide'),
+        ('OTHER','Other'),
+        ('PLUVIAL','Pluvial'),
+        ('POPULATION_MOVEMENT','Population Movement'),
         ('RADIOLOGICAL_EMERGENCY','Radiological Emergency'),
+        ('STORM','Storm'),
         ('TRANSPORTATION_EMERGENCY','Transportation Emergency'),
-        ('VOLCANIC_ERUPTION','Volcanic Eruption'),
-        ('OTHER','Other')
+        ('TSUNAMI','Tsunami'),
+        ('VOLCANIC_ERUPTION','Volcanic Eruption')
     """)
 
     # seed only the most common CRSs + an “Other” placeholder
@@ -152,16 +156,20 @@ def upgrade():
         ),
         ('32633','32633',
           '+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs',
-          'PROJCS["WGS 84 / UTM zone 33N",GEOGCS["WGS 84",…]]'
+          'PROJCS["WGS 84 / UTM zone 33N",GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]]]'
         ),
         ('32634','32634',
           '+proj=utm +zone=34 +datum=WGS84 +units=m +no_defs',
-          'PROJCS["WGS 84 / UTM zone 34N",GEOGCS["WGS 84",…]]'
+          'PROJCS["WGS 84 / UTM zone 34N",GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]]]'
         ),
-        ('OTHER','OTHER',
-          '',
-          'Other'
-        );
+        ('32617','32617',
+          '+proj=utm +zone=17 +datum=WGS84 +units=m +no_defs',
+          'PROJCS["WGS 84 / UTM zone 17N",GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-81],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]'
+        ),
+                 ('OTHER','OTHER',
+           '',
+           'OTHER'
+         );
     """)
     # — image_type —
     op.execute("""
@@ -171,11 +179,14 @@ def upgrade():
     """)
     # — model —
     op.execute("""
-      INSERT INTO models (m_code,label) VALUES
-        ('GPT-4O','GPT-4O'),
-        ('GEMINI15','Gemini 1.5'),
-        ('CLAUDE3','Claude 3'),
-        ('STUB_MODEL','<stub>')
+      INSERT INTO models (m_code,label,model_type,is_available,config) VALUES
+        ('GPT-4O','GPT-4O','gpt4o',true,'{"provider": "openai", "model": "gpt-4o"}'),
+        ('GEMINI15','Gemini 1.5','gemini_pro_vision',true,'{}'),
+        ('CLAUDE3','Claude 3','claude_3_5_sonnet',false,'{}'),
+        ('STUB_MODEL','Stub Model','custom',true,'{"stub": true}'),
+        ('LLAVA_1_5_7B','LLaVA 1.5 7B','custom',true,'{"provider": "huggingface", "model_id": "llava-hf/llava-1.5-7b-hf"}'),
+        ('BLIP2_OPT_2_7B','BLIP Image Captioning','custom',true,'{"provider": "huggingface", "model_id": "Salesforce/blip-image-captioning-base"}'),
+        ('VIT_GPT2','Vit gpt2 image captioning','custom',true,'{"provider": "huggingface", "model_id": "nlpconnect/vit-gpt2-image-captioning"}')
     """)
 
     # — country: full ISO-3166 seed via pycountry + auto region guess —
@@ -187,6 +198,12 @@ def upgrade():
             f"INSERT INTO countries (c_code,label,r_code) "
             f"VALUES ('{code}','{name}','{region}')"
         )
+    
+    # Add "XX" option for cases where country is not applicable
+    op.execute("""
+      INSERT INTO countries (c_code,label,r_code) VALUES
+        ('XX','Not Applicable','OTHER')
+    """)
 
     #
     # 3) core tables
@@ -219,7 +236,7 @@ def upgrade():
                   primary_key=True),
         sa.Column('image_id', postgresql.UUID(as_uuid=True),
                   sa.ForeignKey('images.image_id', ondelete='CASCADE'),
-                  unique=True, nullable=False),
+                  nullable=False),
         sa.Column('title', sa.String(), nullable=False),
         sa.Column('prompt', sa.String(), nullable=False),
         sa.Column('model', sa.String(), sa.ForeignKey('models.m_code'), nullable=False),

@@ -1,0 +1,38 @@
+.completed-dref-table {
+    .table {
+        .status,
+        .date {
+            width: 0%;
+            min-width: 7rem;
+        }
+
+        .type,
+        .appeal-code {
+            width: 0%;
+            min-width: 8rem;
+        }
+
+        .title {
+            min-width: 9rem;
+        }
+
+        .country {
+            min-width: 9rem;
+        }
+
+        .actions {
+            width: 0%;
+            min-width: 2rem;
+        }
+
+        .stage {
+            width: 0%;
+            min-width: 9rem;
+        }
+
+        .sub-cell {
+            border-bottom: unset;
+            background-color: var(--go-ui-color-gray-20);
+        }
+    }
+}

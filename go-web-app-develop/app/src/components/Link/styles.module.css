@@ -1,0 +1,57 @@
+.link {
+    --decoration: none;
+
+    display: inline-flex;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    width: fit-content;
+
+    &.ellipsized {
+        width: 100%;
+        overflow: auto;
+    }
+
+    &.dropdown-item {
+        width: 100%;
+    }
+
+    &:not(.non-link) {
+        font-weight: var(--go-ui-font-weight-medium);
+
+        &.underline {
+            --decoration: underline;
+        }
+    }
+
+    &:not(.tertiary):not(.dropdown-item) {
+        text-align: center;
+    }
+
+    &:not(.disabled):not(.non-link) {
+        cursor: pointer;
+
+        &:hover {
+            --decoration: underline;
+        }
+    }
+
+    &.disabled {
+        pointer-events: none;
+    }
+
+    .link-element {
+        display: inline-flex;
+        align-items: center;
+        flex-grow: 1;
+        text-decoration: var(--decoration);
+
+        &:focus-visible {
+            outline: var(--go-ui-width-separator-thin) dashed var(--go-ui-color-gray-40);
+        }
+    }
+
+    .forward-icon {
+        font-size: var(--go-ui-height-icon-multiplier);
+        margin-inline-start: -0.3em;
+    }
+}

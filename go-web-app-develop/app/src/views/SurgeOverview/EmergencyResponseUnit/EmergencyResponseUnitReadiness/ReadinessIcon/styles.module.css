@@ -1,0 +1,25 @@
+.readiness-icon {
+    display: flex;
+    align-items: center;
+    gap: var(--go-ui-spacing-sm);
+
+    .green-icon {
+        color: var(--go-ui-color-green);
+        font-size: var(--go-ui-height-compact-status-icon);
+    }
+
+    .yellow-icon {
+        color: var(--go-ui-color-semantic-yellow);
+        font-size: var(--go-ui-height-compact-status-icon);
+    }
+
+    .red-icon {
+        color: var(--go-ui-color-primary-red);
+        font-size: var(--go-ui-height-compact-status-icon);
+    }
+
+    .gray-icon {
+        color: var(--go-ui-color-primary-gray);
+        font-size: var(--go-ui-height-compact-status-icon);
+    }
+}

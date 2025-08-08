@@ -1,0 +1,11 @@
+{
+    "namespace": "threeWDecommissionMessage",
+    "strings": {
+        "title": "IFRC GO - 3W Projects shutdown",
+        "pageHeading": "3W Projects shutdown",
+        "heading": "3W Projects section shutdown",
+        "description": "3W Projects have been removed from this page. All 3W project data will continue to be accessible through the GO API till the end of 2025. This change is part of our efforts to streamline data collection throughout IFRC data systems.",
+        "rationaleHeading": "Rationale",
+        "rationale": "The GO 3W for projects was initiated at the request of the IFRC Regional Offices and was used extensively in the COVID-19 response. However, due to the desire to reinforce the Unified Planning process as the single means of reporting on programmatic work by the IFRC, the decision was taken by the GO Advisory Group to remove the 3W for projects to remove any confusion over its use case. The GO 3W for operations is still required for use emergency reporting, especially large-scale emergencies."
+    }
+}

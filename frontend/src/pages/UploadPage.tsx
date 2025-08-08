@@ -2,32 +2,33 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import type { DragEvent } from 'react';
 import {
   PageContainer, Heading, Button,
-  SelectInput, MultiSelectInput,
-  RawFileInput,
+  SelectInput, MultiSelectInput, Container, IconButton, TextInput, TextArea, Spinner,
 } from '@ifrc-go/ui';
 import {
   UploadCloudLineIcon,
   ArrowRightLineIcon,
+  DeleteBinLineIcon,
 } from '@ifrc-go/icons';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+
+const SELECTED_MODEL_KEY = 'selectedVlmModel';
 
 export default function UploadPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [isLoading, setIsLoading] = useState(false);
   const stepRef = useRef(step);
   const uploadedImageIdRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   /* ---------------- local state ----------------- */
 
   const [file, setFile] = useState<File | null>(null);
-  //const [source,    setSource]    = useState('');
-  //const [type,  setType]  = useState('');
   const [source,   setSource]   = useState('');
   const [type, setType] = useState('');
   const [epsg, setEpsg] = useState('');
   const [imageType, setImageType] = useState('');
   const [countries, setCountries] = useState<string[]>([]);
+  const [title, setTitle] = useState('');
 
   // Metadata options from database
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
@@ -38,7 +39,6 @@ export default function UploadPage() {
 
   // Track uploaded image data for potential deletion
   const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
-  const [uploadedCaptionId, setUploadedCaptionId] = useState<string | null>(null);
   
   // Keep refs updated with current values
   stepRef.current = step;
@@ -58,7 +58,8 @@ export default function UploadPage() {
       fetch('/api/types').then(r => r.json()),
       fetch('/api/spatial-references').then(r => r.json()),
       fetch('/api/image-types').then(r => r.json()),
-      fetch('/api/countries').then(r => r.json())
+      fetch('/api/countries').then(r => r.json()),
+      fetch('/api/models').then(r => r.json())
     ]).then(([sourcesData, typesData, spatialData, imageTypesData, countriesData]) => {
       setSources(sourcesData);
       setTypes(typesData);
@@ -66,7 +67,7 @@ export default function UploadPage() {
       setImageTypes(imageTypesData);
       setCountriesOptions(countriesData);
       
-      // Set default values from the first available options
+      // Set default values
       if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
       if (typesData.length > 0) setType(typesData[0].t_code);
       if (spatialData.length > 0) setEpsg(spatialData[0].epsg);
@@ -74,11 +75,8 @@ export default function UploadPage() {
     });
   }, []);
 
-  // Cleanup effect for navigation away - delete if user hasn't submitted yet
   useEffect(() => {
     const handleBeforeUnload = () => {
-      // Delete if user is in step 1 or 2 (hasn't submitted yet)
-      // Only preserve if user has successfully submitted (step 3)
       if (uploadedImageIdRef.current && stepRef.current !== 3) {
         fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
       }
@@ -87,12 +85,11 @@ export default function UploadPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      // Only cleanup on component unmount if user hasn't submitted yet
       if (uploadedImageIdRef.current && stepRef.current !== 3) {
         fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
       }
     };
-  }, []); // No dependencies - handler will always use current ref values
+  }, []);
 
   const [captionId, setCaptionId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string|null>(null);
@@ -114,7 +111,6 @@ export default function UploadPage() {
           setEpsg(mapData.epsg);
           setImageType(mapData.image_type);
           
-          // Generate caption for the existing map
           return fetch(`/api/images/${mapId}/caption`, { 
             method: 'POST',
             headers: {
@@ -122,7 +118,10 @@ export default function UploadPage() {
             },
             body: new URLSearchParams({
               title: 'Generated Caption',
-              prompt: 'Describe this crisis map in detail'
+              prompt: 'Describe this crisis map in detail',
+              ...(localStorage.getItem(SELECTED_MODEL_KEY) && {
+              model_name: localStorage.getItem(SELECTED_MODEL_KEY)!
+              })
             })
           });
         })
@@ -139,19 +138,6 @@ export default function UploadPage() {
     }
   }, [searchParams]);
 
-  // Handle navigation with confirmation
-  const handleNavigation = () => {
-    if (step === 2) {
-      if (confirm("Changes will not be saved. Do you want to delete the uploaded image?")) {
-        // Delete the uploaded image if user confirms
-        if (uploadedImageId) {
-          fetch(`/api/images/${uploadedImageId}`, { method: "DELETE" }).catch(console.error);
-        }
-        resetToStep1();
-      }
-    }
-  };
-
   const resetToStep1 = () => {
     setStep(1);
     setFile(null);
@@ -159,15 +145,17 @@ export default function UploadPage() {
     setImageUrl(null);
     setCaptionId(null);
     setDraft('');
+    setTitle('');
     setScores({ accuracy: 50, context: 50, usability: 50 });
     setUploadedImageId(null);
-    setUploadedCaptionId(null);
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
     context:  50,
     usability: 50,
   });
+
+
 
   /* ---- drag-and-drop + file-picker handlers -------------------------- */
   const onDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -211,6 +199,8 @@ export default function UploadPage() {
   async function handleGenerate() {
     if (!file) return;
 
+    setIsLoading(true);
+
     const fd = new FormData();
     fd.append('file', file);
     fd.append('source', source);
@@ -218,6 +208,11 @@ export default function UploadPage() {
     fd.append('epsg', epsg);
     fd.append('image_type', imageType);
     countries.forEach((c) => fd.append('countries', c));
+
+    const modelName = localStorage.getItem(SELECTED_MODEL_KEY);
+    if (modelName) {
+    fd.append('model_name', modelName);
+    }
 
     try {
       /* 1) upload */
@@ -230,7 +225,7 @@ export default function UploadPage() {
       if (!mapIdVal) throw new Error('Upload failed: image_id not found');
       setUploadedImageId(mapIdVal);
     
-      /* 2) caption */
+      /* 2) caption */     
       const capRes = await fetch(
         `/api/images/${mapIdVal}/caption`, 
         { 
@@ -239,22 +234,39 @@ export default function UploadPage() {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: new URLSearchParams({
-            title: 'Generated Caption',
-            prompt: 'Describe this crisis map in detail'
+            title: title || 'Generated Caption',
+            prompt: 'Analyze this crisis map and provide a detailed description of the emergency situation, affected areas, and key information shown in the map.',
+            ...(modelName      && { model_name: modelName })
           })
         },
       );
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
       setCaptionId(capJson.cap_id);
-      setUploadedCaptionId(capJson.cap_id);
       console.log(capJson);
 
-      /* 3) continue workflow */
+      /* 3) Extract and apply metadata from AI response */
+      const extractedMetadata = capJson.raw_json?.extracted_metadata;
+      if (extractedMetadata) {
+        console.log('Extracted metadata:', extractedMetadata);
+        
+        // Apply AI-extracted metadata to form fields
+        if (extractedMetadata.title) setTitle(extractedMetadata.title);
+        if (extractedMetadata.source) setSource(extractedMetadata.source);
+        if (extractedMetadata.type) setType(extractedMetadata.type);
+        if (extractedMetadata.epsg) setEpsg(extractedMetadata.epsg);
+        if (extractedMetadata.countries && Array.isArray(extractedMetadata.countries)) {
+          setCountries(extractedMetadata.countries);
+        }
+      }
+
+      /* 4) continue workflow */
       setDraft(capJson.generated);
       setStep(2);
     } catch (err) {
       handleApiError(err, 'Upload');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -281,6 +293,7 @@ export default function UploadPage() {
       
       // 2. Update caption
       const captionBody = {
+        title: title,
         edited: draft || '', // Use draft if available, otherwise empty string
         accuracy: scores.accuracy,
         context: scores.context,
@@ -296,7 +309,6 @@ export default function UploadPage() {
       
       // Clear uploaded IDs since submission was successful
       setUploadedImageId(null);
-      setUploadedCaptionId(null);
       setStep(3);
     } catch (err) {
       handleApiError(err, 'Submit');
@@ -330,70 +342,94 @@ export default function UploadPage() {
   /* ------------------------------------------------------------------- */
   return (
     <PageContainer>
-      <div
-        className="mx-auto max-w-screen-lg text-center px-2 sm:px-4 py-6 sm:py-10 overflow-x-hidden"
-        data-step={step}
-      >
-        {/* Title & intro copy */}
-        {step === 1 && <>
-          <Heading level={2}>Upload Your Crisis Map</Heading>
-          <p className="mt-3 text-gray-700 leading-relaxed">
-            This app evaluates how well multimodal AI models turn emergency maps
-            into meaningful text. Upload your map, let the AI generate a
-            description, then review and rate the result based on your expertise.
-          </p>
-          {/* “More »” link  */}
-          <div className="mt-2 flex justify-center">
-            <Link
-              to="/help"
-              className="text-ifrcRed text-xs hover:underline flex items-center gap-1"
-            >
-              More <ArrowRightLineIcon className="w-3 h-3" />
-            </Link>
-          </div>
-        </>}
-
-
-
+      <div className="mx-auto max-w-screen-lg text-center px-4 sm:px-6 lg:px-8 py-6 sm:py-10 overflow-x-hidden" data-step={step}>
         {/* Drop-zone */}
         {step === 1 && (
-          <div
-            className="mt-6 sm:mt-10 border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl py-12 px-8 flex flex-col items-center gap-6 hover:bg-gray-100 transition-colors max-w-md mx-auto min-h-[300px] justify-center"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={onDrop}
+          <Container
+            heading="Upload Your Image"
+            headingLevel={2}
+            withHeaderBorder
+            withInternalPadding
+            headingClassName="text-center"
           >
-            <UploadCloudLineIcon className="w-10 h-10 text-ifrcRed" />
-
-            {file ? (
-              <p className="text-sm font-medium text-gray-800">
-                Selected file: {file.name}
+            <div className="space-y-6">
+              <p className="text-gray-700 leading-relaxed max-w-2xl mx-auto">
+                This app evaluates how well multimodal AI models turn emergency maps
+                into meaningful text. Upload your map, let the AI generate a
+                description, then review and rate the result based on your expertise.
               </p>
-            ) : (
-              <p className="text-sm text-gray-600">Drag &amp; Drop a file here</p>
-            )}
-            
-            {/* File-picker button - always visible */}
-            <label className="inline-block cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={e => onFileChange(e.target.files?.[0], "file")}
-              />
-              <Button 
-                name="upload" 
-                size={1}
-                onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+              
+              {/* "More »" link  */}
+              <div className="flex justify-center">
+                <Link
+                  to="/help"
+                  className="text-red-600 text-xs hover:text-red-700 hover:underline flex items-center gap-1"
+                >
+                  More <ArrowRightLineIcon className="w-3 h-3" />
+                </Link>
+              </div>
+              
+              <div
+                className={`border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl py-8 sm:py-12 px-4 sm:px-8 flex flex-col items-center gap-4 sm:gap-6 hover:bg-gray-100 transition-colors max-w-sm sm:max-w-md lg:max-w-lg mx-auto min-h-[250px] sm:min-h-[300px] justify-center ${
+                  file ? 'bg-white' : ''
+                }`}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={onDrop}
               >
-                {file ? 'Change File' : 'Upload'}
-              </Button>
-            </label>
+                {file && preview ? (
+                  <div className="w-full max-w-full">
+                    <div className="relative w-1/2 mx-auto max-h-32 overflow-hidden rounded-lg bg-gray-100">
+                      <img
+                        src={preview}
+                        alt="File preview"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <p className="text-sm font-medium text-gray-800 mt-2 text-center">
+                      {file.name}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <UploadCloudLineIcon className="w-10 h-10 text-ifrcRed" />
+                    <p className="text-sm text-gray-600">Drag &amp; Drop a file here</p>
+                    <p className="text-sm text-gray-500 my-4">or</p>
+                  </>
+                )}
+              
+              {/* File-picker button - always visible */}
+              <label className="inline-block cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={e => onFileChange(e.target.files?.[0], "file")}
+                />
+                <Button 
+                  name="upload" 
+                  variant="secondary"
+                  size={1}
+                  onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+                >
+                  {file ? 'Change File' : 'Browse Device'}
+                </Button>
+              </label>
+              </div>
+            </div>
+          </Container>
+        )}
+
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center gap-4 mt-12">
+            <Spinner className="text-ifrcRed" />
+            <p className="text-gray-600">Generating caption...</p>
           </div>
         )}
 
         {/* Generate button */}
-        {step === 1 && (
-          <div className="flex justify-center mt-12">
+        {step === 1 && !isLoading && (
+          <div className="flex flex-col items-center justify-center gap-4 mt-12">
             <Button
               name="generate"
               disabled={!file}
@@ -404,143 +440,181 @@ export default function UploadPage() {
           </div>
         )}
 
-{step === 2 && imageUrl && (
-  <div className="mt-6 flex justify-center">
-    <div className="w-full max-w-screen-lg max-h-80 overflow-hidden bg-red-50">
-             <img
-         src={preview || undefined}
-         alt="Uploaded map preview"
-         className="w-full h-full object-contain rounded shadow"
-       />
-    </div>
-  </div>
-)}
+        {step === 2 && imageUrl && (
+          <Container
+            heading="Uploaded Map"
+            headingLevel={3}
+            withHeaderBorder
+            withInternalPadding
+          >
+            <div className="flex justify-center">
+              <div className="w-full max-w-screen-lg max-h-80 overflow-hidden bg-red-50">
+                <img
+                  src={preview || undefined}
+                  alt="Uploaded map preview"
+                  className="w-full h-full object-contain rounded shadow"
+                />
+              </div>
+            </div>
+          </Container>
+        )}
 
-{step === 2 && (
-  <div className="space-y-10">
-    {/* ────── METADATA FORM ────── */}
-    <div className="grid gap-4 text-left grid-cols-1 lg:grid-cols-2">
-      <SelectInput
-        label="Source"
-        name="source"
-        value={source}
-        onChange={handleSourceChange}
-        options={sources}
-        keySelector={(o) => o.s_code}
-        labelSelector={(o) => o.label}
-        required
-      />
-      <SelectInput
-        label="Type"
-        name="type"
-        value={type}
-        onChange={handleTypeChange}
-        options={types}
-        keySelector={(o) => o.t_code}
-        labelSelector={(o) => o.label}
-        required
-      />
-      <SelectInput
-        label="EPSG"
-        name="epsg"
-        value={epsg}
-        onChange={handleEpsgChange}
-        options={spatialReferences}
-        keySelector={(o) => o.epsg}
-        labelSelector={(o) => `${o.srid} (EPSG:${o.epsg})`}
-        required
-      />
-      <SelectInput
-        label="Image Type"
-        name="image_type"
-        value={imageType}
-        onChange={handleImageTypeChange}
-        options={imageTypes}
-        keySelector={(o) => o.image_type}
-        labelSelector={(o) => o.label}
-        required
-      />
-      <MultiSelectInput
-        label="Countries (optional)"
-        name="countries"
-        value={countries}
-        onChange={handleCountriesChange}
-        options={countriesOptions}
-        keySelector={(o) => o.c_code}
-        labelSelector={(o) => o.label}
-        placeholder="Select one or more"
-      />
-    </div>
-
-    {/* ────── RATING SLIDERS ────── */}
-    <div className="text-left">
-      <Heading level={3}>How well did the AI perform on the task?</Heading>
-      {(['accuracy', 'context', 'usability'] as const).map((k) => (
-        <div key={k} className="mt-6 flex items-center gap-2 sm:gap-4">
-          <label className="block text-sm font-medium capitalize w-20 sm:w-28 flex-shrink-0">{k}</label>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={scores[k]}
-            onChange={(e) =>
-              setScores((s) => ({ ...s, [k]: Number(e.target.value) }))
-            }
-            className="w-full accent-ifrcRed"
-          />
-          <span className="ml-2 w-8 sm:w-10 text-right tabular-nums flex-shrink-0">{scores[k]}</span>
-        </div>
-      ))}
-    </div>
-
-    {/* ────── AI‑GENERATED CAPTION ────── */}
-    <div className="text-left">
-      <Heading level={3}>AI‑Generated Caption</Heading>
-      <textarea
-        className="w-full border rounded p-2 sm:p-3 font-mono mt-2"
-        rows={5}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-      />
-    </div>
-
-    {/* ────── SUBMIT BUTTON ────── */}
-    <div className="flex justify-center gap-4 mt-10">
-      <Button
-        name="delete"
-        variant="secondary"
-        onClick={handleDelete}
-      >
-        Delete
-      </Button>
-      <Button
-        name="submit"
-        onClick={handleSubmit}
-      >
-        Submit
-      </Button>
-    </div>
-          </div>
-      )}
-
-      {/* Success page */}
-      {step === 3 && (
-        <div className="text-center space-y-6">
-          <Heading level={2}>Saved!</Heading>
-          <p className="text-gray-700">Your caption has been successfully saved.</p>
-          <div className="flex justify-center mt-6">
-            <Button
-              name="upload-another"
-              onClick={resetToStep1}
+        {step === 2 && (
+          <div className="space-y-6">
+            {/* ────── METADATA FORM ────── */}
+            <Container
+              heading="Map Metadata"
+              headingLevel={3}
+              withHeaderBorder
+              withInternalPadding
             >
-              Upload Another
-            </Button>
+              <div className="grid gap-4 text-left grid-cols-1 lg:grid-cols-2">
+              <div className="lg:col-span-2">
+                <TextInput
+                  label="Title"
+                  name="title"
+                  value={title}
+                  onChange={(value) => setTitle(value || '')}
+                  placeholder="Enter a title for this map..."
+                  required
+                />
+              </div>
+              <SelectInput
+                label="Source"
+                name="source"
+                value={source}
+                onChange={handleSourceChange}
+                options={sources}
+                keySelector={(o) => o.s_code}
+                labelSelector={(o) => o.label}
+                required
+              />
+              <SelectInput
+                label="Type"
+                name="type"
+                value={type}
+                onChange={handleTypeChange}
+                options={types}
+                keySelector={(o) => o.t_code}
+                labelSelector={(o) => o.label}
+                required
+              />
+              <SelectInput
+                label="EPSG"
+                name="epsg"
+                value={epsg}
+                onChange={handleEpsgChange}
+                options={spatialReferences}
+                keySelector={(o) => o.epsg}
+                labelSelector={(o) => `${o.srid} (EPSG:${o.epsg})`}
+                required
+              />
+              <SelectInput
+                label="Image Type"
+                name="image_type"
+                value={imageType}
+                onChange={handleImageTypeChange}
+                options={imageTypes}
+                keySelector={(o) => o.image_type}
+                labelSelector={(o) => o.label}
+                required
+              />
+              <MultiSelectInput
+                label="Countries (optional)"
+                name="countries"
+                value={countries}
+                onChange={handleCountriesChange}
+                options={countriesOptions}
+                keySelector={(o) => o.c_code}
+                labelSelector={(o) => o.label}
+                placeholder="Select one or more"
+              />
+            </div>
+            </Container>
+
+            {/* ────── RATING SLIDERS ────── */}
+            <Container
+              heading="AI Performance Rating"
+              headingLevel={3}
+              withHeaderBorder
+              withInternalPadding
+            >
+              <div className="text-left">
+                <p className="text-gray-700 mb-4">How well did the AI perform on the task?</p>
+                {(['accuracy', 'context', 'usability'] as const).map((k) => (
+                  <div key={k} className="mt-6 flex items-center gap-2 sm:gap-4">
+                    <label className="block text-sm font-medium capitalize w-20 sm:w-28 flex-shrink-0">{k}</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={scores[k]}
+                      onChange={(e) =>
+                        setScores((s) => ({ ...s, [k]: Number(e.target.value) }))
+                      }
+                      className="w-full accent-ifrcRed"
+                    />
+                    <span className="ml-2 w-8 sm:w-10 text-right tabular-nums flex-shrink-0">{scores[k]}</span>
+                  </div>
+                ))}
+              </div>
+            </Container>
+
+            {/* ────── AI‑GENERATED CAPTION ────── */}
+            <Container
+              heading="AI‑Generated Caption"
+              headingLevel={3}
+              withHeaderBorder
+              withInternalPadding
+            >
+              <div className="text-left">
+                <TextArea
+                  name="caption"
+                  value={draft}
+                  onChange={(value) => setDraft(value || '')}
+                  rows={5}
+                  placeholder="AI-generated caption will appear here..."
+                />
+              </div>
+            </Container>
+
+            {/* ────── SUBMIT BUTTON ────── */}
+            <div className="flex justify-center gap-4 mt-10">
+              <IconButton
+                name="delete"
+                variant="tertiary"
+                onClick={handleDelete}
+                title="Delete"
+                ariaLabel="Delete uploaded image"
+              >
+                <DeleteBinLineIcon />
+              </IconButton>
+              <Button
+                name="submit"
+                onClick={handleSubmit}
+              >
+                Submit
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-      
-      
-    </div>
-  </PageContainer>
-);
+        )}
+
+        {/* Success page */}
+        {step === 3 && (
+          <div className="text-center space-y-6">
+            <Heading level={2}>Saved!</Heading>
+            <p className="text-gray-700">Your caption has been successfully saved.</p>
+            <div className="flex justify-center mt-6">
+              <Button
+                name="upload-another"
+                onClick={resetToStep1}
+              >
+                Upload Another
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </PageContainer>
+  );
 }

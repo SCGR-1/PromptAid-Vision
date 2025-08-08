@@ -1,0 +1,10 @@
+{
+    "namespace": "countryNsOverviewContextAndStructure",
+    "strings": {
+        "nsIncomeOverTimeHeading": "National Society Income Over Time",
+        "nsIncomeOverTimeChartAxisLabel": "Income (CHF)",
+        "nsIncomeOverTimeTooltipTotalLabel": "Total",
+        "sourceFDRSLabel": "{nationalSociety} on FDRS",
+        "sourceLabel": "Source"
+    }
+}

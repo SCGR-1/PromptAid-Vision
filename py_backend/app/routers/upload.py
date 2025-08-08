@@ -37,21 +37,22 @@ def list_images(db: Session = Depends(get_db)):
             "caption": None
         }
         
-        # Convert caption if it exists
-        if img.caption:
+        # Convert first caption if it exists
+        if img.caption and len(img.caption) > 0:
+            first_caption = img.caption[0]  # Get the first caption
             img_dict["caption"] = {
-                "cap_id": img.caption.cap_id,
-                "image_id": img.caption.image_id,
-                "title": img.caption.title,
-                "prompt": img.caption.prompt,
-                "model": img.caption.model,
-                "raw_json": img.caption.raw_json,
-                "generated": img.caption.generated,
-                "edited": img.caption.edited,
-                "accuracy": img.caption.accuracy,
-                "context": img.caption.context,
-                "usability": img.caption.usability,
-                "starred": img.caption.starred
+                "cap_id": first_caption.cap_id,
+                "image_id": first_caption.image_id,
+                "title": first_caption.title,
+                "prompt": first_caption.prompt,
+                "model": first_caption.model,
+                "raw_json": first_caption.raw_json,
+                "generated": first_caption.generated,
+                "edited": first_caption.edited,
+                "accuracy": first_caption.accuracy,
+                "context": first_caption.context,
+                "usability": first_caption.usability,
+                "starred": first_caption.starred
             }
         
         result.append(schemas.ImageOut(**img_dict))
@@ -80,21 +81,22 @@ def get_image(image_id: str, db: Session = Depends(get_db)):
         "caption": None
     }
     
-    # Convert caption if it exists
-    if img.caption:
+    # Convert first caption if it exists
+    if img.caption and len(img.caption) > 0:
+        first_caption = img.caption[0]  # Get the first caption
         img_dict["caption"] = {
-            "cap_id": img.caption.cap_id,
-            "image_id": img.caption.image_id,
-            "title": img.caption.title,
-            "prompt": img.caption.prompt,
-            "model": img.caption.model,
-            "raw_json": img.caption.raw_json,
-            "generated": img.caption.generated,
-            "edited": img.caption.edited,
-            "accuracy": img.caption.accuracy,
-            "context": img.caption.context,
-            "usability": img.caption.usability,
-            "starred": img.caption.starred
+            "cap_id": first_caption.cap_id,
+            "image_id": first_caption.image_id,
+            "title": first_caption.title,
+            "prompt": first_caption.prompt,
+            "model": first_caption.model,
+            "raw_json": first_caption.raw_json,
+            "generated": first_caption.generated,
+            "edited": first_caption.edited,
+            "accuracy": first_caption.accuracy,
+            "context": first_caption.context,
+            "usability": first_caption.usability,
+            "starred": first_caption.starred
         }
     
     return schemas.ImageOut(**img_dict)

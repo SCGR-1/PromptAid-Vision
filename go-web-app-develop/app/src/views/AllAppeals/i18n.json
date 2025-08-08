@@ -1,0 +1,23 @@
+{
+    "namespace": "allAppeals",
+    "strings": {
+        "allAppealsTitle": "All Appeals",
+        "failedToCreateExport": "Failed to generate export.",
+        "allAppealsHeading": "All Appeals ({numAppeals})",
+        "allAppealsStartDate": "Start Date",
+        "allAppealsType": "Type",
+        "allAppealsCode": "Code",
+        "allAppealsOperation": "Operation",
+        "allAppealsDisasterType": "Disaster Type",
+        "allAppealsRequestedAmount": "Requested Amount",
+        "allAppealsFundedAmount": "Funding",
+        "allAppealsCountry": "Country",
+        "allAppealsRegion": "Region",
+        "allAppealsFilterCountryPlaceholder": "All Countries",
+        "allAppealsFilterRegionPlaceholder": "All Regions",
+        "allAppealsFilterAppealsPlaceholder": "All Appeal Types",
+        "allAppealsFilterDisastersPlaceholder": "All Disaster Types",
+        "allAppealsFilterStartDateAfter": "Start After",
+        "allAppealsFilterStartDateBefore": "Start Before"
+    }
+}

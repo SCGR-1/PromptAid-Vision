@@ -1,0 +1,59 @@
+{
+    "parent": "000038-1750656635055.json",
+    "actions": [
+        {
+            "action": "update",
+            "key": "communityBasedAdditionalResourcesListItemOne",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "Public Health ERU Community Base Surveillance {link}"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedAdditionalResourcesListItemOneLink",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "Handbook"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedAdditionalResourcesListItemTwo",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "Community based surveillance (CBS) {link}"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedAdditionalResourcesListItemTwoLink",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "website"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedPersonnelListItemOne",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "Advanced team: 2 people: Team lead, field epidemiologist"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedPersonnelListItemTwo",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "Full deployment: 2 to 4 people max. Complete CBS deployment: as above +/- logistics, +/- finance/admin"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedSpecificationsVolumeLabel",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "Agile, carry-on baggage"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedSpecificationsWeightValue",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "<10 kg"
+        },
+        {
+            "action": "update",
+            "key": "communityBasedStandardComponentsListItemOne",
+            "namespace": "surgeCatalogueHealthCommunityBasedSurveillance",
+            "newValue": "CBS kit (rucksack bag)"
+        }
+    ]
+}

@@ -1,0 +1,27 @@
+.info-popup {
+    .label {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--go-ui-spacing-xs);
+
+        .icon {
+            display: inline-flex;
+            font-size: var(--go-ui-height-icon-multiplier);
+        }
+    }
+
+}
+
+.dropdown-container {
+    padding: 0;
+    min-width: min(20rem, 100vw);
+    max-width: 25rem;
+
+    .content {
+        display: flex;
+        flex-direction: column;
+        white-space: pre-wrap;
+        gap: var(--go-ui-spacing-xs);
+        font-size: var(--go-ui-font-size-sm);
+    }
+}

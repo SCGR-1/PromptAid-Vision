@@ -1,0 +1,23 @@
+{
+    "parent": "000042-1754038716022.json",
+    "actions": [
+        {
+            "action": "add",
+            "key": "severityLevelUpdateDateLabel",
+            "namespace": "emergencyDetails",
+            "value": "Updated date"
+        },
+        {
+            "action": "add",
+            "key": "fieldReportFundamentalPrinciplesLabel",
+            "namespace": "fieldReportForm",
+            "value": "Fundamental Principles"
+        },
+        {
+            "action": "add",
+            "key": "fieldReportOverviewConsentLabel",
+            "namespace": "fieldReportForm",
+            "value": "All content published on IFRC platforms must adhere to the {fundamentalPrinciples} and align with the relevant Movement language and communications guidelines. Where content does not meet these standards, the IFRC will collaborate with the respective National Society to revise it accordingly."
+        }
+    ]
+}

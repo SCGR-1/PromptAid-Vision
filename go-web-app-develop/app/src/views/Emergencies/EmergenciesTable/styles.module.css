@@ -1,0 +1,8 @@
+.emergencies-table {
+    .table {
+        .start-date {
+            width: 0%;
+            min-width: 9rem;
+        }
+    }
+}

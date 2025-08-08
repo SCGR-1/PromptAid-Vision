@@ -1,0 +1,16 @@
+.title {
+    color: inherit;
+}
+
+.expansion-indicator-cell-container {
+    position: relative;
+}
+
+.timeline-cell-container {
+    position: relative;
+}
+
+.date-column {
+    width: 0%;
+    min-width: 7rem;
+}

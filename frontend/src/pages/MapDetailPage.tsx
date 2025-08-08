@@ -1,4 +1,4 @@
-import { PageContainer, Heading, Button } from '@ifrc-go/ui';
+import { PageContainer, Button } from '@ifrc-go/ui';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -11,6 +11,7 @@ interface MapOut {
   epsg: string;
   image_type: string;
   caption?: {
+    title: string;
     generated: string;
     edited?: string;
   };
@@ -111,13 +112,14 @@ export default function MapDetailPage() {
   return (
     <PageContainer>
       <div className="mb-4">
-        <button
+        <Button
+          name="back"
+          variant="secondary"
           onClick={() => navigate('/explore')}
-          className="text-ifrcRed hover:text-ifrcRed/80 mb-4 flex items-center gap-2"
+          className="mb-4"
         >
           ← Back to Explore
-        </button>
-        <Heading level={2}>Map Details</Heading>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -142,10 +144,11 @@ export default function MapDetailPage() {
         {/* Details Section */}
         <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-semibold mb-2">File Information</h3>
+            <h3 className="text-lg font-semibold mb-2">Title</h3>
             <div className="space-y-2 text-sm">
-              <div><span className="font-medium">File:</span> {map.file_key}</div>
-              <div><span className="font-medium">ID:</span> {map.image_id}</div>
+              <div className="text-gray-700">
+                {map.caption?.title || '— no title —'}
+              </div>
             </div>
           </div>
 
@@ -179,20 +182,15 @@ export default function MapDetailPage() {
       </div>
 
       {/* Contribute Section */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">
-            Want to contribute to this map? Use this image as a starting point for your own analysis.
-          </p>
-          <Button
-            name="contribute"
-            onClick={handleContribute}
-            disabled={contributing}
-            className="bg-ifrcRed hover:bg-ifrcRed/90 text-white px-6 py-2 rounded-lg"
-          >
-            {contributing ? 'Contributing...' : 'Contribute'}
-          </Button>
-        </div>
+      <div className="mt-8 pt-6 border-t border-gray-200 flex justify-center">
+        <Button
+          name="contribute"
+          onClick={handleContribute}
+          disabled={contributing}
+          className="bg-ifrcRed hover:bg-ifrcRed/90 text-white px-6 py-2 rounded-lg"
+        >
+          {contributing ? 'Contributing...' : 'Contribute'}
+        </Button>
       </div>
     </PageContainer>
   );

@@ -1,0 +1,41 @@
+.spinner {
+    display: inline-flex;
+    border-radius: var(--go-ui-border-radius-full);
+    background: var(--go-ui-color-gray-40);
+    padding: 0.2em;
+    line-height: 0;
+    gap: 0.2em;
+
+    .spinner-bounce {
+        border-radius: 50%;
+        background: var(--go-ui-color-white);
+        width: 0.6em;
+        height: 0.6em;
+        animation: spinner-bounce-delay var(--go-ui-duration-animation-slow) infinite ease-in-out both;
+
+        &:nth-child(1) {
+            animation-delay: calc(var(--go-ui-duration-animation-fast));
+        }
+
+        &:nth-child(2) {
+            animation-delay: calc(var(--go-ui-duration-animation-fast) * 2);
+        }
+
+        &:nth-child(3) {
+            animation-delay: calc(var(--go-ui-duration-animation-fast) * 3);
+        }
+    }
+
+}
+
+@keyframes spinner-bounce-delay {
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+
+    40% {
+        transform: scale(1);
+    }
+}

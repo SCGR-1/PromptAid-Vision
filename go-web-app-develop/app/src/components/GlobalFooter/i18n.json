@@ -1,0 +1,20 @@
+{
+    "namespace": "common",
+    "strings": {
+        "footerAboutGo":"About GO",
+        "footerAboutGoDesc":"IFRC GO is a Red Cross Red Crescent platform to connect information on emergency needs with the right response.",
+        "footerFindOutMore":"Find out more",
+        "footerHelpfulLinks":"Helpful links",
+        "footerOpenSourceCode":"Open Source Code",
+        "footerApiDocumentation":"API Documentation",
+        "footerOtherResources":"Other Resources",
+        "footerGoWiki":"GO Wiki",
+        "footerContactUs":"Contact Us",
+        "footerIFRC":"© IFRC {year} v{appVersion}",
+        "globalFindOut": "Find Out More",
+        "policies": "Policies",
+        "cookiePolicy": "Cookie Policy",
+        "termsAndConditions": "Terms and Conditions",
+        "globalHelpfulLinks": "Helpful links"
+    }
+}

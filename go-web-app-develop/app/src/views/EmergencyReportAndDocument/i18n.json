@@ -1,0 +1,22 @@
+{
+    "namespace": "emergencyReportAndDocument",
+    "strings": {
+        "emergencyReportAndDocumentTempContent": "Emergency Reports / Documents",
+        "featuredDocuments": "Featured Documents",
+        "responseDocuments": "Response Documents",
+        "fieldReports": "Reports ({count})",
+        "fieldReportsTableTitle": "Field Reports in the last 30 days ({numFieldReports})",
+        "fieldReportsTableCreatedAt": "Created At",
+        "fieldReportsTableName": "Name",
+        "fieldReportsTableCountry": "Countries",
+        "fieldReportsTableRegion": "Regions",
+        "addAReportLink": "Add a Report",
+        "appealDocuments": "Appeal Documents ({count})",
+        "appealDocumentDate": "Date",
+        "appealDocumentType": "Type",
+        "appealDocumentCode": "Code",
+        "appealDocumentDescription": "Description",
+        "appealDocumentLink": "Name",
+        "emergencyReportAndDocumentImageAlt": "Image"
+    }
+}

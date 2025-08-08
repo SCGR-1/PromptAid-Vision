@@ -1,0 +1,31 @@
+.option {
+    display: flex;
+    gap: var(--go-ui-spacing-sm);
+    overflow: auto;
+
+    .icon {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        opacity: 0;
+        font-size: var(--go-ui-height-icon-multiplier);
+    }
+
+    .label {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        overflow: auto;
+
+        .overflow-container {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            &.description {
+                color: var(--go-ui-color-text-light);
+                font-size: var(--go-ui-font-size-sm);
+            }
+        }
+    }
+}

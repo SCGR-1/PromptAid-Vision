@@ -1,0 +1,15 @@
+{
+    "namespace": "perWorkPlanForm",
+    "strings": {
+        "actionInputHeading": "Additional action #{actionNumber}",
+        "actionInputRemoveButtonLabel": "Remove",
+        "actionInputActionsPlaceholder": "Enter actions",
+        "actionInputSupportedByLabel": "Supporting National Society",
+        "actionInputSupportedByPlaceholder": "National Society",
+        "actionInputDueDateLabel": "Due date",
+        "actionInputStatusLabel": "Status",
+        "actionSupportedByOrganizationInputLabel":"Supported by",
+        "actionSupportedByOrganizationInputPlaceholder": "Select NS",
+        "actionStatusInputPlaceholder": "Status"
+    }
+}

@@ -1,0 +1,29 @@
+{
+    "parent": "000022-1744013911100.json",
+    "actions": [
+        {
+            "action": "add",
+            "key": "emergencyPageTitleFallback",
+            "namespace": "emergency",
+            "value": "IFRC GO - Emergency"
+        },
+        {
+            "action": "update",
+            "key": "emergencyPageTitle",
+            "namespace": "emergency",
+            "newValue": "IFRC GO - Emergency - {emergencyName}"
+        },
+        {
+            "action": "add",
+            "key": "flashUpdatePageTitleFallback",
+            "namespace": "flashUpdateDetails",
+            "value": "IFRC GO - Flash Update"
+        },
+        {
+            "action": "update",
+            "key": "flashUpdateDetailsPageTitle",
+            "namespace": "flashUpdateDetails",
+            "newValue": "IFRC GO - Flash Update - {flashUpdateName}"
+        }
+    ]
+}

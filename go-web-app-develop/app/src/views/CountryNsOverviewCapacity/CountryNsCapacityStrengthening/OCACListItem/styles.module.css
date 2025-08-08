@@ -1,0 +1,14 @@
+.ocac-list-item {
+    border-radius: var(--go-ui-border-radius-md);
+    box-shadow: var(--go-ui-box-shadow-md);
+
+    .ocac-detail {
+        display: flex;
+        flex-direction: column;
+
+        .date {
+            font-size: var(--go-ui-font-size-3xl);
+            font-weight: var(--go-ui-font-weight-medium);
+        }
+    }
+}

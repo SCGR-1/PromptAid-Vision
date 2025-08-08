@@ -1,0 +1,8 @@
+{
+    "namespace": "drefOperationalUpdateForm",
+    "strings": {
+        "drefFormRiskSecurityRiskLabel": "Risk",
+        "drefFormRiskSecurityMitigationLabel": "Mitigation action",
+        "drefOperationalUpdateFormDeleteRisk": "Delete Risk"
+    }
+}
