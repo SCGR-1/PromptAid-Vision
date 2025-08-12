@@ -1,9 +1,0 @@
-.content {
-    margin-bottom: var(--go-ui-spacing-lg);
-
-    .content {
-        &:last-child {
-            margin-bottom: unset;
-        }
-    }
-}

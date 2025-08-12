@@ -1,9 +1,0 @@
-{
-    "namespace": "countryNsOverviewContextAndStructure",
-    "strings": {
-        "validationSuccessMessage": "{localUnitName} was validated.",
-        "validationFailureMessage": "Failed to validate {localUnitName}",
-        "validateLocalUnitHeading": "Are you sure you want to validate \"{localUnitName}\"?",
-        "validateButtonLabel": "Validate"
-    }
-}

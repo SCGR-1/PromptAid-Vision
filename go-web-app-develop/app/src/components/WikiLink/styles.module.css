@@ -1,8 +1,0 @@
-.wiki-link {
-    padding: 0;
-    font-size: var(--go-ui-font-size-2xl);
-
-    .icon {
-        transform: scale(1.4);
-    }
-}

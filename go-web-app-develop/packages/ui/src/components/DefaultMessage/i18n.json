@@ -1,9 +1,0 @@
-{
-    "namespace": "common",
-    "strings": {
-        "messageTitleFetching":"Fetching data...",
-        "messageTitleFilteredDataNotAvailable":"Data is not available for selected filter!",
-        "messageTitleDataNotAvailable":"Data is not available!",
-        "messageTitleDataFailedToFetch": "Failed to fetch data!"
-    }
-}

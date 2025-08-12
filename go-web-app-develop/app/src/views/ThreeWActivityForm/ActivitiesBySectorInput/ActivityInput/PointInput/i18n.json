@@ -1,9 +1,0 @@
-{
-    "namespace": "threeWActivityForm",
-    "strings": {
-        "descriptionLabel": "Description",
-        "latitudeLabel": "Latitude",
-        "longitudeLabel": "Longitude",
-        "removeLabel": "Remove"
-    }
-}
