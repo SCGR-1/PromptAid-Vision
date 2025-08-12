@@ -12,7 +12,6 @@ class GeminiService(VLMService):
     """Google Gemini Vision service implementation"""
 
     def __init__(self, api_key: str, model: str = "gemini-1.5-flash"):
-        # Register under DB m_code to match selection (see alembic seed: GEMINI15)
         super().__init__("Gemini", ModelType.GEMINI_PRO_VISION)
         self.model_name = "GEMINI15"
         genai.configure(api_key=api_key)
@@ -21,7 +20,6 @@ class GeminiService(VLMService):
 
     async def generate_caption(self, image_bytes: bytes, prompt: str) -> Dict[str, Any]:
         """Generate caption using Google Gemini Vision"""
-        # Build the instruction to return JSON with the same schema as GPT service
         instruction = (
             prompt
             + "\n\nAdditionally, extract the following metadata in JSON format. Choose exactly ONE option from each category:\n\n"
@@ -49,13 +47,11 @@ class GeminiService(VLMService):
         }
 
         start = time.time()
-        # The SDK is synchronous; run in thread to avoid blocking
         response = await asyncio.to_thread(self.model.generate_content, [instruction, image_part])
         elapsed = time.time() - start
 
         content = getattr(response, "text", None) or ""
 
-        # Clean optional markdown code fencing and parse JSON
         cleaned_content = content
         if cleaned_content.startswith("```json"):
             cleaned_content = re.sub(r"^```json\s*", "", cleaned_content)
@@ -65,7 +61,6 @@ class GeminiService(VLMService):
             parsed = json.loads(cleaned_content)
             caption_text = parsed.get("analysis", content)
             metadata = parsed.get("metadata", {})
-            # Validate EPSG
             if metadata.get("epsg"):
                 epsg_value = metadata["epsg"]
                 allowed_epsg = ["4326", "3857", "32617", "32633", "32634", "OTHER"]
@@ -75,14 +70,12 @@ class GeminiService(VLMService):
             caption_text = content
             metadata = {}
 
-        # Build a concise raw_response snapshot
-        # Keep raw minimal and JSON-serializable to store in DB
         raw_response: Dict[str, Any] = {"model": self.model_id}
 
         return {
             "caption": caption_text,
             "metadata": metadata,
-            "confidence": None,  # Gemini does not provide a simple confidence score
+            "confidence": None,
             "processing_time": elapsed,
             "raw_response": raw_response,
         }

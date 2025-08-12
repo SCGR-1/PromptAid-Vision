@@ -1,8 +1,0 @@
-{
-    "namespace": "countryPreparedness",
-    "strings": {
-        "performanceTooltipCycleLabel": "Cycle",
-        "performanceTooltipAverageRatingLabel": "Average rating",
-        "performanceAxisTickLabel": "Cycle {cycle}"
-    }
-}

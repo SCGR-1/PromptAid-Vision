@@ -193,7 +193,7 @@ def test_complete_upload_flow():
                         db_image = db.query(models.Images).filter(models.Images.image_id == image_id).first()
                         if db_image:
                             print(f"SUCCESS: Image found in database: {db_image.image_id}")
-                            print(f"Image source: {db_image.source}, type: {db_image.type}")
+                            print(f"Image source: {db_image.source}, event_type: {db_image.event_type}")
                         else:
                             print("ERROR: Image NOT found in database!")
                         

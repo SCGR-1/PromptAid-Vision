@@ -1,8 +1,0 @@
-{
-    "namespace": "allThreeWActivity",
-    "strings": {
-        "threeWActivityViewDetails": "View Details",
-        "threeWActivityEdit": "Edit",
-        "threeWActivityDuplicate": "Duplicate"
-    }
-}

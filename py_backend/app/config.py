@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     S3_SECRET_KEY: str
     S3_BUCKET: str
     
-    # VLM API Keys
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""
@@ -17,5 +16,4 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8-sig"
 
-# instantiate a single global settings object
 settings = Settings()

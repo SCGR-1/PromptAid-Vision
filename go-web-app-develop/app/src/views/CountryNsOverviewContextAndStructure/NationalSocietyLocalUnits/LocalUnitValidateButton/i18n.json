@@ -1,8 +1,0 @@
-{
-    "namespace": "countryNsOverviewContextAndStructure",
-    "strings": {
-        "localUnitsValidate": "Validate",
-        "localUnitsValidated": "Validated",
-        "localUnitsNotValidated": "Not validated"
-    }
-}

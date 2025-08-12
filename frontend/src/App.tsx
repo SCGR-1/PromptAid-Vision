@@ -7,13 +7,13 @@ import UploadPage from './pages/UploadPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ExplorePage from './pages/ExplorePage';
 import HelpPage from './pages/HelpPage';
-import MapDetailPage from './pages/MapDetailPage';
+import MapDetailPage from './pages/MapDetailsPage';
 import DemoPage from './pages/DemoPage';
 import DevPage from './pages/DevPage';
 
 const router = createBrowserRouter([
   {
-    element: <RootLayout />,   // header sticks here
+    element: <RootLayout />,
     children: [
       { path: '/',          element: <UploadPage /> },
       { path: '/upload',    element: <UploadPage /> },
@@ -28,7 +28,6 @@ const router = createBrowserRouter([
 ]);
 
 function Application() {
-  // ALERTS
   const [alerts, setAlerts] = useState<AlertParams[]>([]);
 
   const addAlert = useCallback((alert: AlertParams) => {
@@ -79,7 +78,6 @@ function Application() {
     [alerts, addAlert, removeAlert, updateAlert],
   );
 
-  // LANGUAGE
   const languageContextValue = useMemo<LanguageContextProps>(
     () => ({
       languageNamespaceStatus: {},

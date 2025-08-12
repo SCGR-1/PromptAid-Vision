@@ -99,5 +99,4 @@ class VLMServiceManager:
             logger.error(f"Error generating caption with {service.model_name}: {str(e)}")
             raise
 
-# Global service manager instance
 vlm_manager = VLMServiceManager() 

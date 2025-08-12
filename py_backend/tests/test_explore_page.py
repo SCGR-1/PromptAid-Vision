@@ -184,7 +184,7 @@ def test_database_consistency():
         sources = db.query(models.Source).all()
         print(f"  + Total sources: {len(sources)}")
         
-        types = db.query(models.Type).all()
+        types = db.query(models.EventType).all()
         print(f"  + Total types: {len(types)}")
         
         countries = db.query(models.Country).all()

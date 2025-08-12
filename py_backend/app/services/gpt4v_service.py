@@ -12,15 +12,13 @@ class GPT4VService(VLMService):
     def __init__(self, api_key: str):
         super().__init__("GPT4V", ModelType.GPT4V)
         self.client = openai.OpenAI(api_key=api_key)
-        self.model_name = "GPT-4O"  # Match database m_code
+        self.model_name = "GPT-4O"
     
     async def generate_caption(self, image_bytes: bytes, prompt: str) -> Dict[str, Any]:
         """Generate caption using GPT-4 Vision"""
         try:
-            # Convert image bytes to base64
             image_base64 = base64.b64encode(image_bytes).decode('utf-8')
             
-            # Create the API request (run sync method in thread)
             response = await asyncio.to_thread(
                 self.client.chat.completions.create,
                 model="gpt-4o",
@@ -60,14 +58,11 @@ class GPT4VService(VLMService):
             content = response.choices[0].message.content
             print(f"DEBUG: Raw AI response: {content[:200]}...")
             
-            # Try to parse JSON response for metadata
             import json
             import re
             
-            # Clean up markdown code blocks if present
             cleaned_content = content
             if content.startswith('```json'):
-                # Remove markdown code blocks
                 cleaned_content = re.sub(r'^```json\s*', '', content)
                 cleaned_content = re.sub(r'\s*```$', '', cleaned_content)
                 print(f"DEBUG: Cleaned content: {cleaned_content[:200]}...")
@@ -77,7 +72,6 @@ class GPT4VService(VLMService):
                 caption = parsed.get("analysis", content)
                 metadata = parsed.get("metadata", {})
                 
-                # Validate and clean metadata values
                 if metadata.get("epsg"):
                     epsg_value = metadata["epsg"]
                     allowed_epsg = ["4326", "3857", "32617", "32633", "32634", "OTHER"]
@@ -88,15 +82,14 @@ class GPT4VService(VLMService):
                 print(f"DEBUG: Successfully parsed JSON, metadata: {metadata}")
             except json.JSONDecodeError as e:
                 print(f"DEBUG: JSON parse error: {e}")
-                # Fallback to original content if not JSON
                 caption = content
                 metadata = {}
             
             return {
                 "caption": caption,
                 "metadata": metadata,
-                "confidence": 0.9,  # GPT-4 doesn't provide confidence scores
-                "processing_time": 0.0,  # You could measure this
+                "confidence": 0.9,
+                "processing_time": 0.0,
                 "raw_response": {
                     "model": "gpt-4o",
                     "usage": response.usage.dict() if response.usage else None,

@@ -9,12 +9,47 @@ router = APIRouter()
 
 def get_db():
     db = database.SessionLocal()
-    print(f"Created database session: {id(db)}")
     try:
         yield db
     finally:
-        print(f"Closing database session: {id(db)}")
         db.close()
+
+
+def convert_image_to_dict(img, image_url):
+    """Helper function to convert SQLAlchemy image model to dict for Pydantic"""
+    img_dict = {
+        "image_id": img.image_id,
+        "file_key": img.file_key,
+        "sha256": img.sha256,
+        "source": img.source,
+        "event_type": img.event_type,
+        "epsg": img.epsg,
+        "image_type": img.image_type,
+        "image_url": image_url,
+        "countries": [{"c_code": c.c_code, "label": c.label, "r_code": c.r_code} for c in img.countries],
+        "captions": []
+    }
+    
+    if img.captions and len(img.captions) > 0:
+        img_dict["captions"] = [{
+            "cap_id": caption.cap_id,
+            "image_id": caption.image_id,
+            "title": caption.title,
+            "prompt": caption.prompt,
+            "model": caption.model,
+            "schema_id": caption.schema_id,
+            "raw_json": caption.raw_json,
+            "generated": caption.generated,
+            "edited": caption.edited,
+            "accuracy": caption.accuracy,
+            "context": caption.context,
+            "usability": caption.usability,
+            "starred": caption.starred,
+            "created_at": caption.created_at,
+            "updated_at": caption.updated_at
+        } for caption in img.captions]
+    
+    return img_dict
 
 
 @router.get("/", response_model=List[schemas.ImageOut])
@@ -23,41 +58,9 @@ def list_images(db: Session = Depends(get_db)):
     images = crud.get_images(db)
     result = []
     for img in images:
-        # Convert SQLAlchemy model to dict for Pydantic
-        img_dict = {
-            "image_id": img.image_id,
-            "file_key": img.file_key,
-            "sha256": img.sha256,
-            "source": img.source,
-            "type": img.type,
-            "epsg": img.epsg,
-            "image_type": img.image_type,
-            "image_url": f"/api/images/{img.image_id}/file",
-            "countries": [{"c_code": c.c_code, "label": c.label, "r_code": c.r_code} for c in img.countries],
-            "caption": None
-        }
-        
-        # Convert first caption if it exists
-        if img.caption and len(img.caption) > 0:
-            first_caption = img.caption[0]  # Get the first caption
-            img_dict["caption"] = {
-                "cap_id": first_caption.cap_id,
-                "image_id": first_caption.image_id,
-                "title": first_caption.title,
-                "prompt": first_caption.prompt,
-                "model": first_caption.model,
-                "raw_json": first_caption.raw_json,
-                "generated": first_caption.generated,
-                "edited": first_caption.edited,
-                "accuracy": first_caption.accuracy,
-                "context": first_caption.context,
-                "usability": first_caption.usability,
-                "starred": first_caption.starred
-            }
-        
+        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
         result.append(schemas.ImageOut(**img_dict))
     
-    print(f"Returning {len(result)} images")
     return result
 
 @router.get("/{image_id}", response_model=schemas.ImageOut)
@@ -67,92 +70,49 @@ def get_image(image_id: str, db: Session = Depends(get_db)):
     if not img:
         raise HTTPException(404, "Image not found")
     
-    # Convert SQLAlchemy model to dict for Pydantic
-    img_dict = {
-        "image_id": img.image_id,
-        "file_key": img.file_key,
-        "sha256": img.sha256,
-        "source": img.source,
-        "type": img.type,
-        "epsg": img.epsg,
-        "image_type": img.image_type,
-        "image_url": f"/api/images/{img.image_id}/file",
-        "countries": [{"c_code": c.c_code, "label": c.label, "r_code": c.r_code} for c in img.countries],
-        "caption": None
-    }
-    
-    # Convert first caption if it exists
-    if img.caption and len(img.caption) > 0:
-        first_caption = img.caption[0]  # Get the first caption
-        img_dict["caption"] = {
-            "cap_id": first_caption.cap_id,
-            "image_id": first_caption.image_id,
-            "title": first_caption.title,
-            "prompt": first_caption.prompt,
-            "model": first_caption.model,
-            "raw_json": first_caption.raw_json,
-            "generated": first_caption.generated,
-            "edited": first_caption.edited,
-            "accuracy": first_caption.accuracy,
-            "context": first_caption.context,
-            "usability": first_caption.usability,
-            "starred": first_caption.starred
-        }
-    
+    img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
     return schemas.ImageOut(**img_dict)
 
 
 @router.post("/", response_model=schemas.ImageOut)
 async def upload_image(
-    source: str        = Form(...),
-    type: str          = Form(...),
-    countries: list[str] = Form([]),
-    epsg: str          = Form(...),
-    image_type: str    = Form(...),
+    source: str        = Form(default="OTHER"),
+    event_type: str    = Form(default="OTHER"),
+    countries: str     = Form(default=""),
+    epsg: str          = Form(default=""),
+    image_type: str    = Form(default="crisis_map"),
     file: UploadFile   = Form(...),
     db: Session        = Depends(get_db)
 ):
-    print(f"Starting upload for file: {file.filename}")
-    print(f"Upload parameters: source={source}, type={type}, countries={countries}, epsg={epsg}, image_type={image_type}")
+    countries_list = [c.strip() for c in countries.split(',') if c.strip()] if countries else []
     
-    # 1) read & hash
+    if not source or source.strip() == "":
+        source = "OTHER"
+    if not event_type or event_type.strip() == "":
+        event_type = "OTHER"
+    if not image_type or image_type.strip() == "":
+        image_type = "crisis_map"
+    
+    if not epsg or epsg.strip() == "":
+        epsg = None
+    
     content = await file.read()
     sha     = crud.hash_bytes(content)
-    print(f"File read successfully, size: {len(content)} bytes, SHA256: {sha[:16]}...")
 
-    # 2) upload to S3/MinIO (or local FS)
     key = storage.upload_fileobj(io.BytesIO(content), file.filename)
-    print(f"File uploaded to storage with key: {key}")
 
-    # 3) persist the DB record
     try:
-        img = crud.create_image(db, source, type, key, sha, countries, epsg, image_type)
-        print(f"Image saved to database with ID: {img.image_id}")
+        img = crud.create_image(db, source, event_type, key, sha, countries_list, epsg, image_type)
     except Exception as e:
-        print(f"Error saving image to database: {e}")
         raise HTTPException(500, f"Failed to save image to database: {str(e)}")
 
-    # 4) generate a URL for your front‑end
     try:
         url = storage.generate_presigned_url(key, expires_in=3600)
     except Exception as e:
-        # fallback: if you're serving via StaticFiles("/uploads")
         url = f"/api/images/{img.image_id}/file"
-        print(f"Warning: Could not generate presigned URL, using fallback: {e}")
 
-    # 5) return the Image plus that URL
-    result = schemas.ImageOut(
-        image_id    = img.image_id,
-        file_key  = img.file_key,
-        sha256    = img.sha256,
-        source    = img.source,
-        type      = img.type,
-        epsg      = img.epsg,
-        image_type = img.image_type,
-        image_url = url,
-        caption   = None,  # Will be populated when caption is created
-    )
-    print(f"Upload completed successfully, returning image_id: {img.image_id}")
+    img_dict = convert_image_to_dict(img, url)
+    result = schemas.ImageOut(**img_dict)
     return result
 
 @router.get("/{image_id}/file")
@@ -163,11 +123,9 @@ async def get_image_file(image_id: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Image not found")
     
     try:
-        # Get the file from S3/MinIO
         response = storage.s3.get_object(Bucket=storage.settings.S3_BUCKET, Key=img.file_key)
         content = response['Body'].read()
         
-        # Determine content type based on file extension
         import mimetypes
         content_type, _ = mimetypes.guess_type(img.file_key)
         if not content_type:
@@ -175,7 +133,6 @@ async def get_image_file(image_id: str, db: Session = Depends(get_db)):
         
         return Response(content=content, media_type=content_type)
     except Exception as e:
-        print(f"Error serving image file {image_id}: {e}")
         raise HTTPException(500, "Failed to serve image file")
 
 @router.put("/{image_id}")
@@ -190,17 +147,15 @@ def update_image_metadata(
         raise HTTPException(404, "Image not found")
     
     try:
-        # Update metadata fields
         if metadata.source is not None:
             img.source = metadata.source
-        if metadata.type is not None:
-            img.type = metadata.type
+        if metadata.event_type is not None:
+            img.event_type = metadata.event_type
         if metadata.epsg is not None:
             img.epsg = metadata.epsg
         if metadata.image_type is not None:
             img.image_type = metadata.image_type
         if metadata.countries is not None:
-            # Clear existing countries and add new ones
             img.countries = []
             for country_code in metadata.countries:
                 country = crud.get_country(db, country_code)
@@ -211,7 +166,6 @@ def update_image_metadata(
         return {"message": "Image metadata updated successfully"}
     except Exception as e:
         db.rollback()
-        print(f"Error updating image metadata: {e}")
         raise HTTPException(500, f"Failed to update image metadata: {str(e)}")
 
 @router.delete("/{image_id}")
@@ -221,7 +175,6 @@ def delete_image(image_id: str, db: Session = Depends(get_db)):
     if not img:
         raise HTTPException(404, "Image not found")
     
-    # Delete the image (this will cascade delete the caption due to CASCADE constraint)
     db.delete(img)
     db.commit()
     

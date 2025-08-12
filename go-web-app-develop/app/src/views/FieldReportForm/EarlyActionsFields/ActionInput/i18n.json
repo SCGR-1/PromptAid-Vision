@@ -1,8 +1,0 @@
-{
-    "namespace": "fieldReportForm",
-    "strings": {
-        "cmpActionDescriptionLabel": "Description",
-        "fieldsStep3CheckboxSectionsFederationActionsEVTEPIEWPlaceholder": "Brief description of the action"
-    }
-}
-

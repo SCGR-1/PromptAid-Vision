@@ -1,7 +1,8 @@
 from sqlalchemy import (
-    Column, String, DateTime, JSON, SmallInteger, Table, ForeignKey, Boolean
+    Column, String, DateTime, SmallInteger, Table, ForeignKey, Boolean,
+    CheckConstraint, UniqueConstraint, Text
 )
-from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP, CHAR
+from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP, CHAR, JSONB
 from sqlalchemy.orm import relationship
 import datetime, uuid
 from .database import Base
@@ -32,10 +33,10 @@ class Region(Base):
     r_code = Column(String, primary_key=True)
     label  = Column(String, nullable=False)
 
-class Type(Base):
-    __tablename__ = "types"
+class EventType(Base):
+    __tablename__ = "event_types"
     t_code = Column(String, primary_key=True)
-    label    = Column(String, nullable=False)
+    label  = Column(String, nullable=False)
 
 class Country(Base):
     __tablename__ = "countries"
@@ -45,10 +46,10 @@ class Country(Base):
 
 class SpatialReference(Base):
     __tablename__ = "spatial_references"
-    epsg = Column(String, primary_key=True)
-    srid = Column(String, nullable=False)
+    epsg  = Column(String, primary_key=True)
+    srid  = Column(String, nullable=False)
     proj4 = Column(String, nullable=False)
-    wkt = Column(String, nullable=False)
+    wkt   = Column(String, nullable=False)
 
 class ImageTypes(Base):
     __tablename__ = "image_types"
@@ -59,34 +60,51 @@ class Models(Base):
     __tablename__ = "models"
     m_code = Column(String, primary_key=True)
     label = Column(String, nullable=False)
-    model_type = Column(String, nullable=False)  # gpt4v, claude, gemini, etc.
+    model_type = Column(String, nullable=False)
     is_available = Column(Boolean, default=True)
-    config = Column(JSON, nullable=True)  # Model-specific configuration
+    config = Column(JSONB, nullable=True)
+
+class JSONSchema(Base):
+    __tablename__ = "json_schemas"
+    schema_id = Column(String, primary_key=True)
+    title     = Column(String, nullable=False)
+    schema    = Column(JSONB, nullable=False)
+    version   = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
 
 class Images(Base):
     __tablename__ = "images"
-    image_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    image_id   = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     file_key   = Column(String, nullable=False)
     sha256     = Column(String, nullable=False)
     source     = Column(String, ForeignKey("sources.s_code"), nullable=False)
-    type   = Column(String, ForeignKey("types.t_code"), nullable=False)
-    epsg = Column(String, ForeignKey("spatial_references.epsg"), nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
+    event_type = Column(String, ForeignKey("event_types.t_code"), nullable=False)
+    epsg       = Column(String, ForeignKey("spatial_references.epsg"), nullable=True)
     image_type = Column(String, ForeignKey("image_types.image_type"), nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
+    captured_at = Column(TIMESTAMP(timezone=True))
 
     countries = relationship("Country", secondary=image_countries, backref="images")
-    caption   = relationship("Captions", back_populates="image", cascade="all, delete-orphan")
+    captions  = relationship("Captions", back_populates="image", cascade="all, delete-orphan")
 
 class Captions(Base):
     __tablename__ = "captions"
+    __table_args__ = (
+        CheckConstraint('accuracy  IS NULL OR (accuracy  BETWEEN 0 AND 100)', name='chk_captions_accuracy'),
+        CheckConstraint('context   IS NULL OR (context   BETWEEN 0 AND 100)', name='chk_captions_context'),
+        CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_captions_usability'),
+    )
+
     cap_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    image_id     = Column(UUID(as_uuid=True), ForeignKey("images.image_id", ondelete="CASCADE"))
+    image_id   = Column(UUID(as_uuid=True), ForeignKey("images.image_id", ondelete="CASCADE"), nullable=False)
     title      = Column(String, nullable=False)
     prompt     = Column(String, nullable=False)
     model      = Column(String, ForeignKey("models.m_code"), nullable=False)
-    raw_json   = Column(JSON, nullable=False)
-    generated  = Column(String, nullable=False)
-    edited     = Column(String)
+    schema_id  = Column(String, ForeignKey("json_schemas.schema_id"), nullable=False)
+    raw_json   = Column(JSONB, nullable=False)
+    generated  = Column(Text, nullable=False)
+    edited     = Column(Text)
     accuracy   = Column(SmallInteger)
     context    = Column(SmallInteger)
     usability  = Column(SmallInteger)
@@ -94,4 +112,6 @@ class Captions(Base):
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
     updated_at = Column(TIMESTAMP(timezone=True), onupdate=datetime.datetime.utcnow)
 
-    image = relationship("Images", back_populates="caption")
+    image   = relationship("Images", back_populates="captions")
+    schema  = relationship("JSONSchema")
+    model_r = relationship("Models", foreign_keys=[model])

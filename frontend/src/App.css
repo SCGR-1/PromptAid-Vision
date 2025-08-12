@@ -17,7 +17,6 @@ html, body {
   transform-origin: top center;
 }
 
-/* Responsive adjustments for different screen sizes */
 @media (min-width: 640px) {
   #root {
     padding: 1.5rem;

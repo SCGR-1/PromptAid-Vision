@@ -3,7 +3,8 @@ from typing import Dict, Any
 import aiohttp
 import base64
 import json
-import asyncio
+import time
+import re
 
 class HuggingFaceService(VLMService):
     """Hugging Face Inference API service implementation"""
@@ -15,77 +16,161 @@ class HuggingFaceService(VLMService):
         self.base_url = "https://api-inference.huggingface.co/models"
     
     async def generate_caption(self, image_bytes: bytes, prompt: str) -> Dict[str, Any]:
-        print(f"DEBUG: HuggingFaceService: Starting caption generation for {self.model_name}")
-        print(f"DEBUG: HuggingFaceService: Model ID: {self.model_id}")
-        print(f"DEBUG: HuggingFaceService: API Key: {self.api_key[:10]}...")
-        print(f"DEBUG: HuggingFaceService: Image bytes size: {len(image_bytes)}")
+        """Generate caption using Hugging Face Inference API"""
+        start_time = time.time()
         
-        # append the image-to-text task
-        url = f"https://api-inference.huggingface.co/pipeline/image-to-text?model={self.model_id}"
+        instruction = (
+            prompt
+            + "\n\nAdditionally, extract the following metadata in JSON format. Choose exactly ONE option from each category:\n\n"
+            + "- title: Create a concise title (less than 10 words) for the crisis/event\n"
+            + "- source: Choose ONE from: PDC, GDACS, WFP, GFH, GGC, USGS, OTHER\n"
+            + "- type: Choose ONE from: BIOLOGICAL_EMERGENCY, CHEMICAL_EMERGENCY, CIVIL_UNREST, COLD_WAVE, COMPLEX_EMERGENCY, CYCLONE, DROUGHT, EARTHQUAKE, EPIDEMIC, FIRE, FLOOD, FLOOD_INSECURITY, HEAT_WAVE, INSECT_INFESTATION, LANDSLIDE, OTHER, PLUVIAL, POPULATION_MOVEMENT, RADIOLOGICAL_EMERGENCY, STORM, TRANSPORTATION_EMERGENCY, TSUNAMI, VOLCANIC_ERUPTION\n"
+            + "- countries: List of affected country codes (ISO 2-letter codes like PA, US, etc.)\n"
+            + "- epsg: Choose ONE from: 4326, 3857, 32617, 32633, 32634, OTHER. If the map shows a different EPSG code, use \"OTHER\"\n\n"
+            + "If you cannot find a match, use \"OTHER\". Return ONLY the JSON object (no markdown formatting) in this exact format:\n"
+            + "{\n"
+            + "  \"analysis\": \"detailed description...\",\n"
+            + "  \"metadata\": {\n"
+            + "    \"title\": \"...\",\n"
+            + "    \"source\": \"...\",\n"
+            + "    \"type\": \"...\",\n"
+            + "    \"countries\": [\"...\"],\n"
+            + "    \"epsg\": \"...\"\n"
+            + "  }\n"
+            + "}"
+        )
+        
+        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+        
+        url = f"{self.base_url}/{self.model_id}"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/octet-stream",  # <— critical
+            "Content-Type": "application/json"
         }
         
-        print(f"DEBUG: HuggingFaceService: URL: {url}")
-        print(f"DEBUG: HuggingFaceService: Headers: {headers}")
+        if "llava" in self.model_id.lower():
+            payload = {
+                "inputs": [
+                    {"type": "text", "text": instruction},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}
+                ],
+                "parameters": {
+                    "max_new_tokens": 800,
+                    "temperature": 0.7,
+                    "do_sample": True
+                }
+            }
+        elif "blip" in self.model_id.lower():
+            payload = {
+                "inputs": f"data:image/jpeg;base64,{image_base64}",
+                "parameters": {
+                    "max_new_tokens": 800,
+                    "temperature": 0.7
+                }
+            }
+        else:
+            payload = {
+                "inputs": instruction,
+                "parameters": {
+                    "max_new_tokens": 800,
+                    "temperature": 0.7,
+                    "do_sample": True
+                }
+            }
         
         try:
             async with aiohttp.ClientSession() as session:
-                print(f"DEBUG: HuggingFaceService: Sending POST request...")
+                
+                if "blip" in self.model_id.lower():
+                    url = f"https://api-inference.huggingface.co/pipeline/image-to-text"
+                    payload = {
+                        "inputs": f"data:image/jpeg;base64,{image_base64}",
+                        "parameters": {
+                            "max_new_tokens": 800,
+                            "temperature": 0.7
+                        }
+                    }
+                
                 async with session.post(
                     url,
                     headers=headers,
-                    data=image_bytes,  # raw JPEG/PNG bytes
-                    timeout=aiohttp.ClientTimeout(total=60),
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=120),
                 ) as resp:
-                    print(f"DEBUG: HuggingFaceService: Response status: {resp.status}")
-                    
                     text = await resp.text()
                     if resp.status != 200:
-                        print(f"DEBUG: HuggingFaceService: API error {resp.status}: {text}")
-                        # bubble up the real HF error
-                        raise Exception(f"HF API error {resp.status}: {text}")
+                        if resp.status == 503 and "loading" in text.lower():
+                            raise Exception(f"Model {self.model_id} is still loading. Please wait a moment and try again.")
+                        elif resp.status == 404:
+                            raise Exception(f"Model {self.model_id} not found. Please check the model ID.")
+                        else:
+                            raise Exception(f"HF API error {resp.status}: {text}")
 
                     result = await resp.json()
-                    print(f"DEBUG: HuggingFaceService: Response: {result}")
                     
-                    # HF returns e.g. [ { "generated_text": "..." } ]
-                    caption = result[0].get("generated_text", "")
-                    print(f"DEBUG: HuggingFaceService: Extracted caption: {caption[:100]}...")
+                    if isinstance(result, list) and len(result) > 0:
+                        caption = result[0].get("generated_text", "")
+                    elif isinstance(result, dict):
+                        caption = result.get("generated_text", result.get("text", ""))
+                    else:
+                        caption = str(result)
+                    
+                    cleaned_content = caption
+                    if caption.startswith('```json'):
+                        cleaned_content = re.sub(r'^```json\s*', '', caption)
+                        cleaned_content = re.sub(r'\s*```$', '', cleaned_content)
+                    
+                    try:
+                        parsed = json.loads(cleaned_content)
+                        caption_text = parsed.get("analysis", caption)
+                        metadata = parsed.get("metadata", {})
+                        
+                        if metadata.get("epsg"):
+                            epsg_value = metadata["epsg"]
+                            allowed_epsg = ["4326", "3857", "32617", "32633", "32634", "OTHER"]
+                            if epsg_value not in allowed_epsg:
+                                metadata["epsg"] = "OTHER"
+                        
+                    except json.JSONDecodeError as e:
+                        caption_text = caption
+                        metadata = {}
+                    
+                    elapsed_time = time.time() - start_time
                     
                     return {
-                        "caption": caption,
+                        "caption": caption_text,
+                        "metadata": metadata,
                         "confidence": None,
-                        "processing_time": None,
-                        "raw_response": result,
+                        "processing_time": elapsed_time,
+                        "raw_response": {
+                            "model": self.model_id,
+                            "response": result,
+                            "parsed_successfully": "metadata" in metadata
+                        }
                     }
         except Exception as e:
-            print(f"DEBUG: HuggingFaceService: Exception: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            raise
+            raise Exception(f"HuggingFace API error: {str(e)}")
 
 class LLaVAService(HuggingFaceService):
     """LLaVA model service using Hugging Face"""
     
     def __init__(self, api_key: str):
-        super().__init__(api_key, "llava-hf/llava-1.5-7b-hf")  # Use the standard LLaVA model
-        self.model_name = "LLAVA_1_5_7B"  # Match database m_code
+        super().__init__(api_key, "llava-hf/llava-1.5-7b-hf")
+        self.model_name = "LLAVA_1_5_7B"
         self.model_type = ModelType.CUSTOM
 
 class BLIP2Service(HuggingFaceService):
     """BLIP-2 model service using Hugging Face"""
     
     def __init__(self, api_key: str):
-        super().__init__(api_key, "Salesforce/blip-image-captioning-base")  # BLIP image captioning model
-        self.model_name = "BLIP2_OPT_2_7B"  # Match database m_code
+        super().__init__(api_key, "Salesforce/blip-image-captioning-base")
+        self.model_name = "BLIP2_OPT_2_7B"
         self.model_type = ModelType.CUSTOM
 
 class InstructBLIPService(HuggingFaceService):
     """InstructBLIP model service using Hugging Face"""
     
     def __init__(self, api_key: str):
-        super().__init__(api_key, "nlpconnect/vit-gpt2-image-captioning")  # Use same reliable model
-        self.model_name = "INSTRUCTBLIP_VICUNA_7B"  # Match database m_code
+        super().__init__(api_key, "microsoft/git-base")
+        self.model_name = "INSTRUCTBLIP_VICUNA_7B"
         self.model_type = ModelType.CUSTOM 

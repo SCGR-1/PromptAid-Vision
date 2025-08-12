@@ -3,11 +3,9 @@ import {
   PageContainer, Heading, Button, Container,
 } from '@ifrc-go/ui';
 
-// Local storage key for selected model
 const SELECTED_MODEL_KEY = 'selectedVlmModel';
 
 export default function DevPage() {
-  // Model selection state
   const [availableModels, setAvailableModels] = useState<Array<{
     m_code: string;
     label: string;
@@ -16,7 +14,6 @@ export default function DevPage() {
   }>>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
 
-  // Fetch models on component mount
   useEffect(() => {
     fetchModels();
   }, []);
@@ -25,11 +22,8 @@ export default function DevPage() {
     fetch('/api/models')
       .then(r => r.json())
       .then(modelsData => {
-        console.log('Models data:', modelsData);
-        console.log('Available models count:', modelsData.models?.length || 0);
         setAvailableModels(modelsData.models || []);
         
-        // Load persisted model or set default model (first available model)
         const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
         if (modelsData.models && modelsData.models.length > 0) {
           if (persistedModel && modelsData.models.find((m: any) => m.m_code === persistedModel && m.is_available)) {
@@ -42,7 +36,7 @@ export default function DevPage() {
         }
       })
       .catch(err => {
-        console.error('Failed to fetch models:', err);
+
       });
   };
 
@@ -59,7 +53,6 @@ export default function DevPage() {
       });
 
       if (response.ok) {
-        // Update local state
         setAvailableModels(prev => 
           prev.map(model => 
             model.m_code === modelCode 
@@ -67,19 +60,15 @@ export default function DevPage() {
               : model
           )
         );
-        console.log(`Model ${modelCode} availability toggled to ${!currentStatus}`);
       } else {
         const errorData = await response.json();
-        console.error('Failed to toggle model availability:', errorData);
         alert(`Failed to toggle model availability: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error toggling model availability:', error);
       alert('Error toggling model availability');
     }
   };
 
-  // Handle model selection change
   const handleModelChange = (modelCode: string) => {
     setSelectedModel(modelCode);
     localStorage.setItem(SELECTED_MODEL_KEY, modelCode);
@@ -195,12 +184,10 @@ export default function DevPage() {
                     fetch('/api/models')
                       .then(r => r.json())
                       .then(data => {
-                        console.log('Models API response:', data);
-                        alert('Check console for models API response');
+                        alert('Models API response received successfully');
                       })
                       .catch(err => {
-                        console.error('Models API error:', err);
-                        alert('Models API error - check console');
+                        alert('Models API error occurred');
                       });
                   }}
                 >
@@ -216,12 +203,10 @@ export default function DevPage() {
                     fetch(`/api/models/${selectedModel}/test`)
                       .then(r => r.json())
                       .then(data => {
-                        console.log('Model test response:', data);
-                        alert('Check console for model test response');
+                        alert('Model test completed successfully');
                       })
                       .catch(err => {
-                        console.error('Model test error:', err);
-                        alert('Model test error - check console');
+                        alert('Model test failed');
                       });
                   }}
                 >

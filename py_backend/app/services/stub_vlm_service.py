@@ -14,7 +14,6 @@ class StubVLMService(VLMService):
         print(f"DEBUG: StubVLMService: Image size: {len(image_bytes)}")
         print(f"DEBUG: StubVLMService: Prompt: {prompt[:100]}...")
         
-        # Simulate processing time
         await asyncio.sleep(0.1)
         
         caption = "This is a stub caption generated for testing purposes. The image appears to contain geographic or crisis-related information."

@@ -18,8 +18,7 @@ def update_metadata(
     update: schemas.CaptionUpdate,
     db: Session = Depends(get_db)
 ):
-    # we stored cap_id == map_id in Go; here cap_id is uuid on captions table
-    c = crud.update_caption(db, map_id, **update.dict())
+    c = crud.update_caption(db, map_id, **update.model_dump(exclude_unset=True))
     if not c:
         raise HTTPException(404, "caption not found")
     return c

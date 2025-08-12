@@ -1,22 +1,18 @@
-# app/routers/caption.py
-
 from fastapi import APIRouter, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
+from typing import List
 from .. import crud, database, schemas, storage
 from ..services.vlm_service import vlm_manager
 
-# Initialize VLM services
 from ..services.stub_vlm_service import StubVLMService
 from ..services.gpt4v_service import GPT4VService
 from ..services.gemini_service import GeminiService
 from ..services.huggingface_service import LLaVAService, BLIP2Service, InstructBLIPService
 from ..config import settings
 
-# Register stub service
 stub_service = StubVLMService()
 vlm_manager.register_service(stub_service)
 
-# Register GPT-4 Vision service (if API key is available)
 if settings.OPENAI_API_KEY:
     try:
         gpt4v_service = GPT4VService(settings.OPENAI_API_KEY)
@@ -27,7 +23,6 @@ if settings.OPENAI_API_KEY:
 else:
     print("DEBUG: No OpenAI API key found")
 
-# Register Gemini service (if API key is available)
 if settings.GOOGLE_API_KEY:
     try:
         gemini_service = GeminiService(settings.GOOGLE_API_KEY)
@@ -38,11 +33,9 @@ if settings.GOOGLE_API_KEY:
 else:
     print("DEBUG: No Google API key found")
 
-# Register Hugging Face services (if API key is available)
 if settings.HF_API_KEY:
     print(f"DEBUG: Hugging Face API key found: {settings.HF_API_KEY[:10]}...")
     try:
-        # Register popular vision-language models
         llava_service = LLaVAService(settings.HF_API_KEY)
         vlm_manager.register_service(llava_service)
         print(f"DEBUG: Registered LLaVA service: {llava_service.model_name}")
@@ -63,7 +56,6 @@ if settings.HF_API_KEY:
 else:
     print("DEBUG: No Hugging Face API key found")
 
-# Debug: Print registered services
 print(f"DEBUG: Registered services: {list(vlm_manager.services.keys())}")
 print(f"DEBUG: Available models: {vlm_manager.get_available_models()}")
 
@@ -84,15 +76,13 @@ async def create_caption(
     image_id: str,
     title: str = Form(...),
     prompt: str = Form(...),
-    model_name: str | None = Form(None),          # ← pull in your selected VLM
+    model_name: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
-    # 1) ensure image exists
     img = crud.get_image(db, image_id)
     if not img:
         raise HTTPException(404, "image not found")
 
-    # 2) fetch raw bytes
     try:
         response = storage.s3.get_object(
             Bucket=storage.settings.S3_BUCKET,
@@ -100,14 +90,12 @@ async def create_caption(
         )
         img_bytes = response["Body"].read()
     except Exception:
-        # fallback via presigned URL
         url = storage.generate_presigned_url(img.file_key)
         import requests
         resp = requests.get(url)
         resp.raise_for_status()
         img_bytes = resp.content
 
-    # 3) generate via VLM
     metadata = {}
     try:
         print(f"DEBUG: calling VLM with model={model_name}")
@@ -129,7 +117,6 @@ async def create_caption(
         raw = {"error": str(e), "fallback": True}
         metadata = {}
 
-    # 4) persist and return
     c = crud.create_caption(
         db,
         image_id=image_id,
@@ -150,10 +137,33 @@ def get_caption(
     cap_id: str,
     db: Session = Depends(get_db),
 ):
-    c = crud.get_caption(db, cap_id)
-    if not c:
+    caption = crud.get_caption(db, cap_id)
+    if not caption:
         raise HTTPException(404, "caption not found")
-    return c
+    return caption
+
+@router.get(
+    "/images/{image_id}/captions",
+    response_model=List[schemas.CaptionOut],
+)
+def get_captions_by_image(
+    image_id: str,
+    db: Session = Depends(get_db),
+):
+    """Get all captions for a specific image"""
+    captions = crud.get_captions_by_image(db, image_id)
+    return captions
+
+@router.get(
+    "/captions",
+    response_model=List[schemas.CaptionWithImageOut],
+)
+def get_all_captions_with_images(
+    db: Session = Depends(get_db),
+):
+    """Get all captions with their associated image data"""
+    captions = crud.get_all_captions_with_images(db)
+    return captions
 
 @router.put(
     "/captions/{cap_id}",
@@ -164,7 +174,20 @@ def update_caption(
     update: schemas.CaptionUpdate,
     db: Session = Depends(get_db),
 ):
-    c = crud.update_caption(db, cap_id, **update.dict())
-    if not c:
+    caption = crud.update_caption(db, cap_id, update)
+    if not caption:
         raise HTTPException(404, "caption not found")
-    return c
+    return caption
+
+@router.delete(
+    "/captions/{cap_id}",
+)
+def delete_caption(
+    cap_id: str,
+    db: Session = Depends(get_db),
+):
+    """Delete a caption by ID"""
+    success = crud.delete_caption(db, cap_id)
+    if not success:
+        raise HTTPException(404, "caption not found")
+    return {"message": "Caption deleted successfully"}

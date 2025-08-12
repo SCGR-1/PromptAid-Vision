@@ -1,14 +1,10 @@
-# py_backend/app/main.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import upload, caption, metadata, models
 from app.config import settings
-import boto3
 
 app = FastAPI(title="PromptAid Vision")
 
-# CORS: allow your React dev server(s)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -20,7 +16,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount routers
 app.include_router(upload.router,   prefix="/api/images", tags=["images"])
 app.include_router(caption.router,  prefix="/api",      tags=["captions"])
 app.include_router(metadata.router, prefix="/api",      tags=["metadata"])

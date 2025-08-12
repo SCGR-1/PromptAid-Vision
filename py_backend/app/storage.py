@@ -1,5 +1,3 @@
-# app/storage.py
-
 import io
 import boto3
 import botocore
@@ -7,7 +5,6 @@ from uuid import uuid4
 from typing import BinaryIO
 from .config import settings
 
-# Initialize the S3/MinIO client
 s3 = boto3.client(
     "s3",
     endpoint_url=settings.S3_ENDPOINT,
@@ -23,15 +20,12 @@ def upload_fileobj(fileobj: BinaryIO, filename: str) -> str:
     """
     key = f"maps/{uuid4()}_{filename}"
 
-    # 1) Ensure the bucket exists
     try:
         s3.head_bucket(Bucket=settings.S3_BUCKET)
     except botocore.exceptions.ClientError as e:
-        # A 404 or 403 here means the bucket doesn't exist or no access:
         s3.create_bucket(Bucket=settings.S3_BUCKET)
 
-    # 2) Perform the upload
-    fileobj.seek(0)  # rewind in case .read() was called
+    fileobj.seek(0)
     s3.upload_fileobj(fileobj, settings.S3_BUCKET, key)
 
     return key

@@ -7,12 +7,12 @@ boto3
 python-dotenv
 pydantic>=2.7.0
 pydantic-settings>=0.2
-openai  # for GPT-4 Vision
-anthropic  # for Claude Vision
-google-generativeai  # for Gemini Vision
-aiohttp  # for async HTTP requests
-asyncio  # for async support
-Pillow  # for image processing
+openai
+anthropic
+google-generativeai
+aiohttp
+asyncio
+Pillow
 huggingface-hub
 pytest
 httpx

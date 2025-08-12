@@ -32,8 +32,8 @@ services:
       MINIO_ROOT_USER: promptaid
       MINIO_ROOT_PASSWORD: promptaid
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # web console
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio_data:/data
     depends_on:

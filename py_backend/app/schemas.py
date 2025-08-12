@@ -1,17 +1,18 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime
 
 class ImageCreate(BaseModel):
     source: str
-    type: str
+    event_type: str
     countries: List[str] = []
-    epsg: str
+    epsg: Optional[str] = None
     image_type: str
 
 class ImageMetadataUpdate(BaseModel):
     source: Optional[str] = None
-    type: Optional[str] = None
+    event_type: Optional[str] = None
     countries: Optional[List[str]] = None
     epsg: Optional[str] = None
     image_type: Optional[str] = None
@@ -21,23 +22,23 @@ class ImageOut(BaseModel):
     file_key: str
     sha256: str
     source: str
-    type: str
-    epsg: str
+    event_type: str
+    epsg: Optional[str] = None
     image_type: str
     image_url: str
     countries: List["CountryOut"] = []
-    caption: Optional["CaptionOut"] = None
+    captions: List["CaptionOut"] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-#–– For the caption endpoints ––
 class CaptionOut(BaseModel):
     cap_id: UUID
     image_id: UUID
     title: str
     prompt: str
     model: str
+    schema_id: str
     raw_json: dict
     generated: str
     edited: Optional[str] = None
@@ -45,9 +46,38 @@ class CaptionOut(BaseModel):
     context: Optional[int] = None
     usability: Optional[int] = None
     starred: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class CaptionWithImageOut(BaseModel):
+    cap_id: UUID
+    image_id: UUID
+    title: str
+    prompt: str
+    model: str
+    schema_id: str
+    raw_json: dict
+    generated: str
+    edited: Optional[str] = None
+    accuracy: Optional[int] = None
+    context: Optional[int] = None
+    usability: Optional[int] = None
+    starred: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    file_key: str
+    image_url: str
+    source: str
+    event_type: str
+    epsg: str
+    image_type: str
+    countries: List["CountryOut"] = []
+
+    class Config:
+        from_attributes = True
 
 class CaptionUpdate(BaseModel):
     title: Optional[str] = None
@@ -57,27 +87,26 @@ class CaptionUpdate(BaseModel):
     usability: Optional[int] = None
     starred: Optional[bool] = None
 
-#–– For lookup data ––
 class SourceOut(BaseModel):
     s_code: str
     label: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RegionOut(BaseModel):
     r_code: str
     label: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class TypeOut(BaseModel):
     t_code: str
     label: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class SpatialReferenceOut(BaseModel):
     epsg: str
@@ -86,14 +115,14 @@ class SpatialReferenceOut(BaseModel):
     wkt: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ImageTypeOut(BaseModel):
     image_type: str
     label: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CountryOut(BaseModel):
     c_code: str
@@ -101,10 +130,9 @@ class CountryOut(BaseModel):
     r_code: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ModelToggleRequest(BaseModel):
     is_available: bool
 
-# Update forward references
 ImageOut.update_forward_refs()

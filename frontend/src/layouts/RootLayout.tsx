@@ -5,7 +5,6 @@ export default function RootLayout() {
   return (
     <>
       <HeaderNav />
-      {/* All routed pages render here */}
       <Outlet />
     </>
   );

@@ -10,132 +10,51 @@ import {
   SearchMultiSelectInput,
   TextArea,
   Checkbox,
-  Radio,
   Switch,
   DateInput,
   NumberInput,
   PasswordInput,
   RawFileInput,
   Container,
-  Alert,
-  Message,
   Spinner,
   ProgressBar,
   StackedProgressBar,
   KeyFigure,
   PieChart,
   BarChart,
-  TimeSeriesChart,
-  Table,
-  HeaderCell,
-  TableRow,
-  TableData,
-  Tabs,
-  Tab,
-  TabList,
-  TabPanel,
-  Chip,
-  Tooltip,
-  Modal,
-  Popup,
-  DropdownMenu,
   IconButton,
   ConfirmButton,
-  Breadcrumbs,
-  List,
-  Grid,
-  ExpandableContainer,
-  BlockLoading,
-  InputContainer,
   InputLabel,
   InputHint,
-  InputError,
   InputSection,
   BooleanInput,
   BooleanOutput,
   DateOutput,
-  DateRangeOutput,
   NumberOutput,
   TextOutput,
-  HtmlOutput,
-  DismissableTextOutput,
-  DismissableListOutput,
-  DismissableMultiListOutput,
-  Legend,
-  LegendItem,
-  ChartContainer,
-  ChartAxes,
-  InfoPopup,
   Footer,
   NavigationTabList,
-  Pager,
-  RawButton,
-  RawInput,
-  RawTextArea,
-  RawList,
   SegmentInput,
-  SelectInputContainer,
-  ReducedListDisplay,
-  Image,
-  TopBanner,
+  BlockLoading,
 } from '@ifrc-go/ui';
 import {
   UploadCloudLineIcon,
-  ArrowRightLineIcon,
   SearchLineIcon,
-  QuestionLineIcon,
-  GoMainIcon,
-  StarLineIcon,
-  DashboardIcon,
-  AnalysisIcon,
-  FilterLineIcon,
-  DropLineIcon,
-  CartIcon,
   ChevronDownLineIcon,
-  ChevronUpLineIcon,
   CloseLineIcon,
   EditLineIcon,
   DeleteBinLineIcon,
   DownloadLineIcon,
   ShareLineIcon,
-  SettingsLineIcon,
-  RulerLineIcon,
-  MagicLineIcon,
-  PantoneLineIcon,
-  MarkupLineIcon,
-  CalendarLineIcon,
-  LockLineIcon,
   LocationIcon,
-  HeartLineIcon,
-  ThumbUpLineIcon,
-  ThumbDownLineIcon,
-  EyeLineIcon,
-  EyeOffLineIcon,
   CheckLineIcon,
-  CropLineIcon,
   AlertLineIcon,
   InfoIcon,
-  AlarmWarningLineIcon,
-  SliceLineIcon,
-  ArrowLeftLineIcon,
-  ArrowDownLineIcon,
-  ArrowUpLineIcon,
-  MenuLineIcon,
-  MoreLineIcon,
-  RefreshLineIcon,
-  PaintLineIcon,
-  NotificationIcon,
-  HammerLineIcon,
-  ShapeLineIcon,
-  LinkLineIcon,
-  ExternalLinkLineIcon,
-  CopyLineIcon,
 } from '@ifrc-go/icons';
 
 export default function DemoPage() {
   const [showModal, setShowModal] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [activeTab, setActiveTab] = useState('components');
   const [loading, setLoading] = useState(false);
   const [textValue, setTextValue] = useState('');
   const [selectValue, setSelectValue] = useState('');
@@ -149,7 +68,7 @@ export default function DemoPage() {
   const [booleanValue, setBooleanValue] = useState(false);
   const [segmentValue, setSegmentValue] = useState('option1');
 
-  // Dummy data
+  
   const dummyOptions = [
     { key: 'option1', label: 'Option 1' },
     { key: 'option2', label: 'Option 2' },
@@ -168,12 +87,7 @@ export default function DemoPage() {
     { c_code: 'FR', label: 'France', r_code: 'EUR' },
   ];
 
-  const dummyTableData = [
-    { id: 1, name: 'John Doe', age: 30, country: 'United States', status: 'Active' },
-    { id: 2, name: 'Jane Smith', age: 25, country: 'Canada', status: 'Inactive' },
-    { id: 3, name: 'Bob Johnson', age: 35, country: 'Mexico', status: 'Active' },
-    { id: 4, name: 'Alice Brown', age: 28, country: 'Brazil', status: 'Active' },
-  ];
+
 
   const dummyChartData = [
     { name: 'Red Cross', value: 45 },
@@ -182,14 +96,7 @@ export default function DemoPage() {
     { name: 'WFP', value: 10 },
   ];
 
-  const dummyTimeSeriesData = [
-    { date: '2024-01', value: 100 },
-    { date: '2024-02', value: 120 },
-    { date: '2024-03', value: 110 },
-    { date: '2024-04', value: 140 },
-    { date: '2024-05', value: 130 },
-    { date: '2024-06', value: 160 },
-  ];
+
 
   const dummyBarData = [
     { name: 'Q1', value: 100 },
@@ -203,47 +110,47 @@ export default function DemoPage() {
     setTimeout(() => setLoading(false), 2000);
   };
 
-  const handleTextChange = (value: string | undefined, name: string) => {
+  const handleTextChange = (value: string | undefined) => {
     setTextValue(value || '');
   };
 
-  const handlePasswordChange = (value: string | undefined, name: string) => {
+  const handlePasswordChange = (value: string | undefined) => {
     setPasswordValue(value || '');
   };
 
-  const handleNumberChange = (value: number | undefined, name: string) => {
+  const handleNumberChange = (value: number | undefined) => {
     setNumberValue(value);
   };
 
-  const handleDateChange = (value: string | undefined, name: string) => {
+  const handleDateChange = (value: string | undefined) => {
     setDateValue(value || '');
   };
 
-  const handleSelectChange = (value: string | undefined, name: string) => {
+  const handleSelectChange = (value: string | undefined) => {
     setSelectValue(value || '');
   };
 
-  const handleMultiSelectChange = (value: string[], name: string) => {
+  const handleMultiSelectChange = (value: string[]) => {
     setMultiSelectValue(value);
   };
 
-  const handleCheckboxChange = (value: boolean, name: string) => {
+  const handleCheckboxChange = (value: boolean) => {
     setCheckboxValue(value);
   };
 
-  const handleRadioChange = (value: string, name: string) => {
+  const handleRadioChange = (value: string) => {
     setRadioValue(value);
   };
 
-  const handleSwitchChange = (value: boolean, name: string) => {
+  const handleSwitchChange = (value: boolean) => {
     setSwitchValue(value);
   };
 
-  const handleBooleanChange = (value: boolean, name: string) => {
+  const handleBooleanChange = (value: boolean) => {
     setBooleanValue(value);
   };
 
-  const handleSegmentChange = (value: string, name: string) => {
+  const handleSegmentChange = (value: string) => {
     setSegmentValue(value);
   };
 
@@ -255,7 +162,7 @@ export default function DemoPage() {
           <div className="space-y-6">
             {/* Navigation Tabs */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Navigation Tab List</h3>
+              <Heading level={3} className="mb-4">Navigation Tab List</Heading>
               <NavigationTabList variant="primary">
                 <Button name="upload" variant="primary">Upload</Button>
                 <Button name="analytics" variant="secondary">Analytics</Button>
@@ -266,7 +173,7 @@ export default function DemoPage() {
 
             {/* Top Banner */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Top Banner</h3>
+              <Heading level={3} className="mb-4">Top Banner</Heading>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div>
@@ -282,7 +189,7 @@ export default function DemoPage() {
 
             {/* Breadcrumbs */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Breadcrumbs</h3>
+              <Heading level={3} className="mb-4">Breadcrumbs</Heading>
               <nav className="flex" aria-label="Breadcrumb">
                 <ol className="flex items-center space-x-2">
                   <li>
@@ -311,7 +218,7 @@ export default function DemoPage() {
           <div className="space-y-6">
             {/* Buttons */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Buttons</h3>
+              <Heading level={3} className="mb-4">Buttons</Heading>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Button name="primary" variant="primary">Primary Button</Button>
                 <Button name="secondary" variant="secondary">Secondary Button</Button>
@@ -332,7 +239,7 @@ export default function DemoPage() {
 
             {/* Icon Buttons */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Icon Buttons</h3>
+              <Heading level={3} className="mb-4">Icon Buttons</Heading>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <IconButton name="upload" variant="primary" title="Upload" ariaLabel="Upload">
                   <UploadCloudLineIcon />
@@ -547,7 +454,7 @@ export default function DemoPage() {
                         name="radio"
                         value="option1"
                         checked={radioValue === 'option1'}
-                        onChange={(e) => handleRadioChange(e.target.value, 'radio')}
+                        onChange={(e) => handleRadioChange(e.target.value)}
                         className="mr-2"
                       />
                       <span className="text-sm">Option 1</span>
@@ -558,7 +465,7 @@ export default function DemoPage() {
                         name="radio"
                         value="option2"
                         checked={radioValue === 'option2'}
-                        onChange={(e) => handleRadioChange(e.target.value, 'radio')}
+                        onChange={(e) => handleRadioChange(e.target.value)}
                         className="mr-2"
                       />
                       <span className="text-sm">Option 2</span>
@@ -569,7 +476,7 @@ export default function DemoPage() {
                         name="radio"
                         value="option3"
                         checked={radioValue === 'option3'}
-                        onChange={(e) => handleRadioChange(e.target.value, 'radio')}
+                        onChange={(e) => handleRadioChange(e.target.value)}
                         className="mr-2"
                       />
                       <span className="text-sm">Option 3</span>
@@ -642,7 +549,7 @@ export default function DemoPage() {
                     valueSelector={(d) => d.value}
                     labelSelector={(d) => d.name}
                     keySelector={(d) => d.name}
-                    colorSelector={(d) => '#dc2626'}
+                    colorSelector={() => '#dc2626'}
                     showPercentageInLegend
                   />
                 </div>
@@ -670,40 +577,7 @@ export default function DemoPage() {
               </div>
             </div>
 
-            {/* Tables */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Tables</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {dummyTableData.map((row) => (
-                      <tr key={row.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.age}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.country}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            row.status === 'Active' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {row.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+
 
             {/* Lists */}
             <div>
