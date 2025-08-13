@@ -149,21 +149,6 @@ export default function ExplorePage() {
     });
   }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter]);
 
-  const toggleStarred = (imageId: string) => {
-    setCaptions(prev => prev.map(c => 
-      c.image_id === imageId ? { ...c, starred: !c.starred } : c
-    ));
-    
-    fetch(`/api/images/${imageId}/caption`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ starred: !captions.find(c => c.image_id === imageId)?.starred })
-    }).catch(() => {
-      setCaptions(prev => prev.map(c => 
-        c.image_id === imageId ? { ...c, starred: !c.starred } : c
-      ));
-    });
-  };
 
   return (
     <PageContainer>

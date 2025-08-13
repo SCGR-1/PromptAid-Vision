@@ -1,4 +1,4 @@
-import { PageContainer, Container, Button, Spinner, SegmentInput, IconButton, TextInput, SelectInput, MultiSelectInput } from '@ifrc-go/ui';
+import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput } from '@ifrc-go/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon } from '@ifrc-go/icons';
@@ -103,9 +103,8 @@ export default function MapDetailPage() {
         const images = await response.json();
         const currentIndex = images.findIndex((img: any) => img.image_id === currentId);
         
-        // Always show navigation arrows since it's circular
-        setHasPrevious(true);
-        setHasNext(true);
+        setHasPrevious(images.length > 1 && currentIndex > 0);
+        setHasNext(images.length > 1 && currentIndex < images.length - 1);
       }
     } catch (error) {
       console.error('Failed to check navigation availability:', error);
