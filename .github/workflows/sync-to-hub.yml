@@ -16,4 +16,4 @@ jobs:
         env:
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
         run: |
-          git push https://HF_USERNAME:${HF_API_KEY}@huggingface.co/spaces/SCGR/Promptaid_Vision main
+          git push https://SCGR:${HF_API_KEY}@huggingface.co/spaces/SCGR/Promptaid_Vision main
