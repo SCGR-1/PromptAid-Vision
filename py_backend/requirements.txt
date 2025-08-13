@@ -19,3 +19,4 @@ httpx
 requests
 pycountry>=22.3.5
 pycountry-convert>=0.7.2
+python-multipart

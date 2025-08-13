@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import io
 from sqlalchemy.orm import Session
 from .. import crud, schemas, storage, database
+from ..config import settings
 from typing import List
 import boto3
 import time
@@ -34,6 +35,9 @@ def convert_image_to_dict(img, image_url):
         except Exception as e:
             print(f"Warning: Error processing countries for image {img.image_id}: {e}")
             countries_list = []
+    
+    if image_url and image_url.startswith('/'):
+        image_url = f"{settings.BASE_URL}{image_url}"
     
     img_dict = {
         "image_id": img.image_id,

@@ -480,14 +480,15 @@ export default function UploadPage() {
 
   return (
     <PageContainer>
-      <Container
-        heading="Upload Your Image"
-        headingLevel={2}
-        withHeaderBorder
-        withInternalPadding
-        className="max-w-7xl mx-auto"
-      >
-        <div className={styles.uploadContainer} data-step={step}>
+      {step !== 3 && (
+        <Container
+          heading="Upload Your Image"
+          headingLevel={2}
+          withHeaderBorder
+          withInternalPadding
+          className="max-w-7xl mx-auto"
+        >
+          <div className={styles.uploadContainer} data-step={step}>
           {/* Drop-zone */}
           {step === 1 && !searchParams.get('step') && (
             <div className="space-y-6">
@@ -829,22 +830,6 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Success page */}
-        {step === 3 && (
-          <div className={styles.successContainer}>
-            <Heading level={2} className={styles.successHeading}>Saved!</Heading>
-            <p className={styles.successText}>Your caption has been successfully saved.</p>
-            <div className={styles.successButton}>
-              <Button
-                name="upload-another"
-                onClick={resetToStep1}
-              >
-                Upload Another
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Full Size Image Modal */}
         {isFullSizeModalOpen && (
           <div className={styles.fullSizeModalOverlay} onClick={() => setIsFullSizeModalOpen(false)}>
@@ -870,7 +855,24 @@ export default function UploadPage() {
         )}
 
         </div>
-      </Container>
+        </Container>
+      )}
+
+      {/* Success page - outside the upload container */}
+      {step === 3 && (
+        <div className={styles.successContainer}>
+          <Heading level={2} className={styles.successHeading}>Saved!</Heading>
+          <p className={styles.successText}>Your caption has been successfully saved.</p>
+          <div className={styles.successButton}>
+            <Button
+              name="upload-another"
+              onClick={resetToStep1}
+            >
+              Upload Another
+            </Button>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

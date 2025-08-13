@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./py_backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://promptaid:promptaid@postgres:5432/promptaid
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=promptaid
+      - S3_SECRET_KEY=promptaid
+      - S3_BUCKET=promptaid
+      - ENVIRONMENT=production
+      - BASE_URL=http://localhost:8080
+    depends_on:
+      - postgres
+      - minio
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: promptaid
+      POSTGRES_PASSWORD: promptaid
+      POSTGRES_DB: promptaid
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:latest
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: promptaid
+      MINIO_ROOT_PASSWORD: promptaid
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  pgdata:
+  minio_data:

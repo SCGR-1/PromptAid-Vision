@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import crud, database, schemas, storage
 from ..services.vlm_service import vlm_manager
+from ..config import settings
 
 from ..services.stub_vlm_service import StubVLMService
 from ..services.gpt4v_service import GPT4VService
 from ..services.gemini_service import GeminiService
 from ..services.huggingface_service import LLaVAService, BLIP2Service, InstructBLIPService
-from ..config import settings
 
 stub_service = StubVLMService()
 vlm_manager.register_service(stub_service)
@@ -129,6 +129,9 @@ async def create_caption(
     except Exception:
         url = f"/api/images/{c.image_id}/file"
     
+    if url and url.startswith('/'):
+        url = f"{settings.BASE_URL}{url}"
+    
     img_dict = convert_image_to_dict(c, url)
     return schemas.ImageOut(**img_dict)
 
@@ -151,6 +154,10 @@ def get_caption(
         url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
     except Exception:
         url = f"/api/images/{caption.image_id}/file"
+    
+
+    if url and url.startswith('/'):
+        url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(caption, url)
     return schemas.ImageOut(**img_dict)
@@ -175,6 +182,9 @@ def get_captions_by_image(
             url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
         except Exception:
             url = f"/api/images/{caption.image_id}/file"
+        
+        if url and url.startswith('/'):
+            url = f"{settings.BASE_URL}{url}"
         
         img_dict = convert_image_to_dict(caption, url)
         result.append(schemas.ImageOut(**img_dict))
@@ -231,6 +241,9 @@ def update_caption(
         url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
     except Exception:
         url = f"/api/images/{caption.image_id}/file"
+    
+    if url and url.startswith('/'):
+        url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(caption, url)
     return schemas.ImageOut(**img_dict)
