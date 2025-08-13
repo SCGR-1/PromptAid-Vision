@@ -195,61 +195,71 @@ export default function ExplorePage() {
         {view === 'explore' ? (
           <div className="space-y-6">
             {/* Search and Filters */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <TextInput
-                  name="search"
-                  placeholder="Search examples..."
-                  value={search}
-                  onChange={(v) => setSearch(v || '')}
-                />
+            <div className="mb-6">
+              <div className="flex flex-wrap items-center gap-4">
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
+                  <TextInput
+                    name="search"
+                    placeholder="Search examples..."
+                    value={search}
+                    onChange={(v) => setSearch(v || '')}
+                  />
+                </Container>
 
-                <SelectInput
-                  name="source"
-                  placeholder={isLoadingFilters ? "Loading..." : "All Sources"}
-                  options={sources}
-                  value={srcFilter || null}
-                  onChange={(v) => setSrcFilter(v as string || '')}
-                  keySelector={(o) => o.s_code}
-                  labelSelector={(o) => o.label}
-                  required={false}
-                  disabled={isLoadingFilters}
-                />
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <SelectInput
+                    name="source"
+                    placeholder={isLoadingFilters ? "Loading..." : "All Sources"}
+                    options={sources}
+                    value={srcFilter || null}
+                    onChange={(v) => setSrcFilter(v as string || '')}
+                    keySelector={(o) => o.s_code}
+                    labelSelector={(o) => o.label}
+                    required={false}
+                    disabled={isLoadingFilters}
+                  />
+                </Container>
 
-                <SelectInput
-                  name="category"
-                  placeholder={isLoadingFilters ? "Loading..." : "All Categories"}
-                  options={types}
-                  value={catFilter || null}
-                  onChange={(v) => setCatFilter(v as string || '')}
-                  keySelector={(o) => o.t_code}
-                  labelSelector={(o) => o.label}
-                  required={false}
-                  disabled={isLoadingFilters}
-                />
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <SelectInput
+                    name="category"
+                    placeholder={isLoadingFilters ? "Loading..." : "All Categories"}
+                    options={types}
+                    value={catFilter || null}
+                    onChange={(v) => setCatFilter(v as string || '')}
+                    keySelector={(o) => o.t_code}
+                    labelSelector={(o) => o.label}
+                    required={false}
+                    disabled={isLoadingFilters}
+                  />
+                </Container>
 
-                <SelectInput
-                  name="region"
-                  placeholder={isLoadingFilters ? "Loading..." : "All Regions"}
-                  options={regions}
-                  value={regionFilter || null}
-                  onChange={(v) => setRegionFilter(v as string || '')}
-                  keySelector={(o) => o.r_code}
-                  labelSelector={(o) => o.label}
-                  required={false}
-                  disabled={isLoadingFilters}
-                />
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <SelectInput
+                    name="region"
+                    placeholder={isLoadingFilters ? "Loading..." : "All Regions"}
+                    options={regions}
+                    value={regionFilter || null}
+                    onChange={(v) => setRegionFilter(v as string || '')}
+                    keySelector={(o) => o.r_code}
+                    labelSelector={(o) => o.label}
+                    required={false}
+                    disabled={isLoadingFilters}
+                  />
+                </Container>
 
-                <MultiSelectInput
-                  name="country"
-                  placeholder={isLoadingFilters ? "Loading..." : "All Countries"}
-                  options={countries}
-                  value={countryFilter ? [countryFilter] : []}
-                  onChange={(v) => setCountryFilter((v as string[])[0] || '')}
-                  keySelector={(o) => o.c_code}
-                  labelSelector={(o) => o.label}
-                  disabled={isLoadingFilters}
-                />
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <MultiSelectInput
+                    name="country"
+                    placeholder={isLoadingFilters ? "Loading..." : "All Countries"}
+                    options={countries}
+                    value={countryFilter ? [countryFilter] : []}
+                    onChange={(v) => setCountryFilter((v as string[])[0] || '')}
+                    keySelector={(o) => o.c_code}
+                    labelSelector={(o) => o.label}
+                    disabled={isLoadingFilters}
+                  />
+                </Container>
               </div>
             </div>
 

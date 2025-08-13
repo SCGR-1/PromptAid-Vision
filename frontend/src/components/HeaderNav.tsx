@@ -52,6 +52,7 @@ export default function HeaderNav() {
         <nav className="flex items-center space-x-4 bg-gray-50/80 rounded-xl p-2 backdrop-blur-sm">
           {navItems.map(({ to, label, Icon }) => {
             const isActive = location.pathname === to || 
+              (to === '/upload' && location.pathname === '/') ||
               (to === '/explore' && location.pathname.startsWith('/map/'));
             return (
               <div key={to} className="relative">
@@ -94,9 +95,13 @@ export default function HeaderNav() {
 
         <Button
           name="help"
-          variant="tertiary"
+          variant={location.pathname === '/help' ? "primary" : "tertiary"}
           size={1}
-          className="transition-all duration-200 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md hover:scale-105"
+          className={`transition-all duration-200 ${
+            location.pathname === '/help'
+              ? 'shadow-lg shadow-ifrcRed/20 transform scale-105'
+              : 'hover:bg-blue-50 hover:text-blue-600 hover:shadow-md hover:scale-105'
+          }`}
           onClick={() => {
             if (location.pathname === "/upload") {
               if ((window as any).confirmNavigationIfNeeded) {
