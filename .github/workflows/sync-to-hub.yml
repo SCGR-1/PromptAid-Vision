@@ -1,3 +1,4 @@
+# .github/workflows/sync-to-hf.yml
 name: Sync to Hugging Face hub
 on:
   push:
@@ -12,8 +13,48 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
+
+      - name: Install git-lfs (just in case)
+        run: git lfs install --local
+
+      - name: Configure git identity
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name  "GitHub Actions"
+
+      # --- Set your real HF username & space slug here ---
+      - name: Set vars
+        run: |
+          echo "HF_USERNAME=SCGR" >> $GITHUB_ENV
+          echo "SPACE_NAME=Promptaid_Vision" >> $GITHUB_ENV
+
+      # --- Sanity checks so we fail with helpful messages ---
+      - name: Check token & space reachability
+        env:
+          HF_TOKEN: ${{ secrets.HF_API_KEY }}   # or rename your secret to HF_TOKEN and change here
+        run: |
+          set -euo pipefail
+          test -n "$HF_TOKEN" || (echo "Missing GitHub secret HF_API_KEY" && exit 1)
+          echo "Checking whoami…"
+          curl -sS -H "Authorization: Bearer $HF_TOKEN" https://huggingface.co/api/whoami-v2 || exit 1
+          echo
+          echo "Checking space URL…"
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" https://huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}
+
+      - name: Test auth to HF Space (prints a precise git error if any)
+        env:
+          HF_TOKEN: ${{ secrets.HF_API_KEY }}
+        run: |
+          set -euo pipefail
+          git ls-remote https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}.git
+
       - name: Push to HF Space
         env:
-          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_API_KEY }}
         run: |
-          git push https://SCGR:${HF_API_KEY}@huggingface.co/spaces/SCGR/Promptaid_Vision main
+          set -euo pipefail
+          # clean remote if re-running
+          git remote remove space 2>/dev/null || true
+          git remote add space https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}.git
+          echo "Pushing HEAD to space main…"
+          git push space HEAD:main --force --verbose
