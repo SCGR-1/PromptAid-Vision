@@ -35,7 +35,7 @@ export default function DevPage() {
           }
         }
       })
-      .catch(err => {
+      .catch(() => {
 
       });
   };
@@ -183,10 +183,10 @@ export default function DevPage() {
                   onClick={() => {
                     fetch('/api/models')
                       .then(r => r.json())
-                      .then(data => {
+                      .then(() => {
                         alert('Models API response received successfully');
                       })
-                      .catch(err => {
+                      .catch(() => {
                         alert('Models API error occurred');
                       });
                   }}
@@ -202,10 +202,10 @@ export default function DevPage() {
                     if (!selectedModel) return;
                     fetch(`/api/models/${selectedModel}/test`)
                       .then(r => r.json())
-                      .then(data => {
+                      .then(() => {
                         alert('Model test completed successfully');
                       })
-                      .catch(err => {
+                      .catch(() => {
                         alert('Model test failed');
                       });
                   }}

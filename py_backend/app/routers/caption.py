@@ -17,47 +17,43 @@ if settings.OPENAI_API_KEY:
     try:
         gpt4v_service = GPT4VService(settings.OPENAI_API_KEY)
         vlm_manager.register_service(gpt4v_service)
-        print(f"DEBUG: Registered GPT-4 Vision service: {gpt4v_service.model_name}")
+        print(f"✓ GPT-4 Vision service registered")
     except Exception as e:
-        print(f"DEBUG: Failed to register GPT-4 Vision service: {e}")
+        print(f"✗ GPT-4 Vision service failed: {e}")
 else:
-    print("DEBUG: No OpenAI API key found")
+    print("○ GPT-4 Vision service not configured")
 
 if settings.GOOGLE_API_KEY:
     try:
         gemini_service = GeminiService(settings.GOOGLE_API_KEY)
         vlm_manager.register_service(gemini_service)
-        print(f"DEBUG: Registered Gemini service: {gemini_service.model_name}")
+        print(f"✓ Gemini service registered")
     except Exception as e:
-        print(f"DEBUG: Failed to register Gemini service: {e}")
+        print(f"✗ Gemini service failed: {e}")
 else:
-    print("DEBUG: No Google API key found")
+    print("○ Gemini service not configured")
 
 if settings.HF_API_KEY:
-    print(f"DEBUG: Hugging Face API key found: {settings.HF_API_KEY[:10]}...")
     try:
         llava_service = LLaVAService(settings.HF_API_KEY)
         vlm_manager.register_service(llava_service)
-        print(f"DEBUG: Registered LLaVA service: {llava_service.model_name}")
         
         blip2_service = BLIP2Service(settings.HF_API_KEY)
         vlm_manager.register_service(blip2_service)
-        print(f"DEBUG: Registered BLIP2 service: {blip2_service.model_name}")
         
         instructblip_service = InstructBLIPService(settings.HF_API_KEY)
         vlm_manager.register_service(instructblip_service)
-        print(f"DEBUG: Registered InstructBLIP service: {instructblip_service.model_name}")
         
-        print("DEBUG: Successfully registered Hugging Face services")
+        print(f"✓ Hugging Face services registered (LLaVA, BLIP2, InstructBLIP)")
     except Exception as e:
-        print(f"DEBUG: Failed to register Hugging Face services: {e}")
+        print(f"✗ Hugging Face services failed: {e}")
         import traceback
         traceback.print_exc()
 else:
-    print("DEBUG: No Hugging Face API key found")
+    print("○ Hugging Face services not configured")
 
-print(f"DEBUG: Registered services: {list(vlm_manager.services.keys())}")
-print(f"DEBUG: Available models: {vlm_manager.get_available_models()}")
+print(f"✓ Available models: {', '.join(vlm_manager.get_available_models())}")
+print(f"✓ Total services: {len(vlm_manager.services)}")
 
 router = APIRouter()
 
@@ -70,7 +66,7 @@ def get_db():
 
 @router.post(
     "/images/{image_id}/caption",
-    response_model=schemas.CaptionOut,
+    response_model=schemas.ImageOut,
 )
 async def create_caption(
     image_id: str,
@@ -98,20 +94,17 @@ async def create_caption(
 
     metadata = {}
     try:
-        print(f"DEBUG: calling VLM with model={model_name}")
         result = await vlm_manager.generate_caption(
             image_bytes=img_bytes,
             prompt=prompt,
             model_name=model_name,
         )
         text = result.get("caption", "")
-        used_model = result.get("model", "UNKNOWN_MODEL")
+        used_model = model_name or "STUB_MODEL"
         raw = result.get("raw_response", {})
         metadata = result.get("metadata", {})
-        print(f"DEBUG: got caption: {text[:100]}… (model={used_model})")
-        print(f"DEBUG: extracted metadata: {metadata}")
     except Exception as e:
-        print(f"DEBUG: VLM error, falling back: {e}")
+        print(f"VLM error, using fallback: {e}")
         text = "This is a fallback caption due to VLM service error."
         used_model = "STUB_MODEL"
         raw = {"error": str(e), "fallback": True}
@@ -127,67 +120,130 @@ async def create_caption(
         text=text,
         metadata=metadata,
     )
-    return c
+    
+    db.refresh(c)
+    
+    from .upload import convert_image_to_dict
+    try:
+        url = storage.generate_presigned_url(c.file_key, expires_in=3600)
+    except Exception:
+        url = f"/api/images/{c.image_id}/file"
+    
+    img_dict = convert_image_to_dict(c, url)
+    return schemas.ImageOut(**img_dict)
 
 @router.get(
-    "/captions/{cap_id}",
-    response_model=schemas.CaptionOut,
+    "/images/{image_id}/caption",
+    response_model=schemas.ImageOut,
 )
 def get_caption(
-    cap_id: str,
+    image_id: str,
     db: Session = Depends(get_db),
 ):
-    caption = crud.get_caption(db, cap_id)
-    if not caption:
+    caption = crud.get_caption(db, image_id)
+    if not caption or not caption.title:
         raise HTTPException(404, "caption not found")
-    return caption
+    
+    db.refresh(caption)
+    
+    from .upload import convert_image_to_dict
+    try:
+        url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
+    except Exception:
+        url = f"/api/images/{caption.image_id}/file"
+    
+    img_dict = convert_image_to_dict(caption, url)
+    return schemas.ImageOut(**img_dict)
 
 @router.get(
     "/images/{image_id}/captions",
-    response_model=List[schemas.CaptionOut],
+    response_model=List[schemas.ImageOut],
 )
 def get_captions_by_image(
     image_id: str,
     db: Session = Depends(get_db),
 ):
-    """Get all captions for a specific image"""
+    """Get caption data for a specific image"""
     captions = crud.get_captions_by_image(db, image_id)
-    return captions
+    
+    from .upload import convert_image_to_dict
+    result = []
+    for caption in captions:
+        db.refresh(caption)
+        
+        try:
+            url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
+        except Exception:
+            url = f"/api/images/{caption.image_id}/file"
+        
+        img_dict = convert_image_to_dict(caption, url)
+        result.append(schemas.ImageOut(**img_dict))
+    
+    return result
 
 @router.get(
     "/captions",
-    response_model=List[schemas.CaptionWithImageOut],
+    response_model=List[schemas.ImageOut],
 )
 def get_all_captions_with_images(
     db: Session = Depends(get_db),
 ):
-    """Get all captions with their associated image data"""
+    """Get all images that have caption data"""
+    print(f"DEBUG: Fetching all captions with images...")
     captions = crud.get_all_captions_with_images(db)
-    return captions
+    print(f"DEBUG: Found {len(captions)} images with caption data")
+    
+    from .upload import convert_image_to_dict
+    result = []
+    for caption in captions:
+        print(f"DEBUG: Processing image {caption.image_id}, title: {caption.title}, generated: {caption.generated}, model: {caption.model}")
+        
+        db.refresh(caption)
+        
+        try:
+            url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
+        except Exception:
+            url = f"/api/images/{caption.image_id}/file"
+        
+        img_dict = convert_image_to_dict(caption, url)
+        result.append(schemas.ImageOut(**img_dict))
+    
+    print(f"DEBUG: Returning {len(result)} formatted results")
+    return result
 
 @router.put(
-    "/captions/{cap_id}",
-    response_model=schemas.CaptionOut,
+    "/images/{image_id}/caption",
+    response_model=schemas.ImageOut,
 )
 def update_caption(
-    cap_id: str,
+    image_id: str,
     update: schemas.CaptionUpdate,
     db: Session = Depends(get_db),
 ):
-    caption = crud.update_caption(db, cap_id, update)
+    caption = crud.update_caption(db, image_id, update)
     if not caption:
         raise HTTPException(404, "caption not found")
-    return caption
+    
+    db.refresh(caption)
+    
+    from .upload import convert_image_to_dict
+    try:
+        url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
+    except Exception:
+        url = f"/api/images/{caption.image_id}/file"
+    
+    img_dict = convert_image_to_dict(caption, url)
+    return schemas.ImageOut(**img_dict)
 
 @router.delete(
-    "/captions/{cap_id}",
+    "/images/{image_id}/caption",
 )
 def delete_caption(
-    cap_id: str,
+    image_id: str,
     db: Session = Depends(get_db),
 ):
-    """Delete a caption by ID"""
-    success = crud.delete_caption(db, cap_id)
+    """Delete caption data for an image"""
+    success = crud.delete_caption(db, image_id)
     if not success:
         raise HTTPException(404, "caption not found")
     return {"message": "Caption deleted successfully"}

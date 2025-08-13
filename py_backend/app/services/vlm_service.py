@@ -58,45 +58,35 @@ class VLMServiceManager:
             return self.services.get(self.default_service)
         return None
     
-    def get_available_models(self) -> Dict[str, Dict[str, Any]]:
-        """Get information about all available models"""
-        return {
-            name: service.get_model_info() 
-            for name, service in self.services.items()
-        }
+    def get_available_models(self) -> list:
+        """Get list of available model names"""
+        return list(self.services.keys())
     
-    async def generate_caption(self, image_bytes: bytes, prompt: str, model_name: str = None) -> Dict[str, Any]:
-        """Generate caption using specified or default model"""
-        print(f"DEBUG: VLM Manager: Looking for model_name: {model_name}")
-        print(f"DEBUG: VLM Manager: Available services: {list(self.services.keys())}")
+    async def generate_caption(self, image_bytes: bytes, prompt: str, model_name: str | None = None) -> dict:
+        """Generate caption using the specified model or fallback to available service."""
         
+        # Find appropriate service
         service = None
         if model_name:
-            service = self.get_service(model_name)
-            print(f"DEBUG: VLM Manager: Found service for {model_name}: {service is not None}")
+            service = self.services.get(model_name)
             if not service:
-                raise ValueError(f"Model {model_name} not found")
-        else:
-            service = self.get_default_service()
-            if not service:
-                raise ValueError("No default model available")
+                print(f"Model '{model_name}' not found, using fallback")
         
-        if not service.is_available:
-            raise ValueError(f"Model {service.model_name} is not available")
+        # Fallback to first available service
+        if not service and self.services:
+            service = next(iter(self.services.values()))
+            print(f"Using fallback service: {service.model_name}")
         
-        print(f"DEBUG: VLM Manager: Using service: {service.model_name}")
+        if not service:
+            raise ValueError("No VLM services available")
         
         try:
-            print(f"DEBUG: VLM Manager: Calling generate_caption on {service.model_name}")
             result = await service.generate_caption(image_bytes, prompt)
-            result["model"] = service.model_name
-            print(f"DEBUG: VLM Manager: Successfully generated caption with {service.model_name}")
+            if isinstance(result, dict):
+                result["model"] = service.model_name
             return result
         except Exception as e:
-            print(f"DEBUG: VLM Manager: Error generating caption with {service.model_name}: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            logger.error(f"Error generating caption with {service.model_name}: {str(e)}")
+            print(f"Error generating caption: {str(e)}")
             raise
 
 vlm_manager = VLMServiceManager() 

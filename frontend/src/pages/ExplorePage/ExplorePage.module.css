@@ -1,3 +1,7 @@
+.tabSelector {
+  margin-bottom: var(--go-ui-spacing-lg);
+}
+
 .metadataTags {
   display: flex;
   flex-wrap: wrap;
@@ -7,7 +11,7 @@
 
 .metadataTag {
   padding: var(--go-ui-spacing-xs) var(--go-ui-spacing-sm);
-  background-color: var(--go-ui-color-red-10);
+  background-color: var(--go-ui-color-red-5);
   color: var(--go-ui-color-red-90);
   font-size: var(--go-ui-font-size-xs);
   border-radius: var(--go-ui-border-radius-md);
@@ -18,30 +22,29 @@
 }
 
 .metadataTag:hover {
-  background-color: var(--go-ui-color-red-20);
-  transform: translateY(-1px);
-  box-shadow: var(--go-ui-box-shadow-xs);
+  background-color: var(--go-ui-color-red-10);
+  border-color: var(--go-ui-color-red-30);
 }
 
 .metadataTagSource {
   padding: var(--go-ui-spacing-xs) var(--go-ui-spacing-sm);
-  background-color: var(--go-ui-color-blue-10);
-  color: var(--go-ui-color-blue-90);
+  background-color: var(--go-ui-color-red-5);
+  color: var(--go-ui-color-red-90);
   font-size: var(--go-ui-font-size-xs);
   border-radius: var(--go-ui-border-radius-md);
   font-weight: var(--go-ui-font-weight-medium);
-  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-blue-20);
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-red-20);
   white-space: nowrap;
 }
 
 .metadataTagType {
   padding: var(--go-ui-spacing-xs) var(--go-ui-spacing-sm);
-  background-color: var(--go-ui-color-red-90);
-  color: var(--go-ui-color-white);
+  background-color: var(--go-ui-color-red-5);
+  color: var(--go-ui-color-red-90);
   font-size: var(--go-ui-font-size-xs);
   border-radius: var(--go-ui-border-radius-md);
   font-weight: var(--go-ui-font-weight-medium);
-  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-red-90);
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-red-20);
   white-space: nowrap;
 }
 

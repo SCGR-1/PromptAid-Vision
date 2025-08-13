@@ -176,9 +176,9 @@ def test_database_consistency():
         images = db.query(models.Images).all()
         print(f"  + Total images in database: {len(images)}")
         
-        # Check if captions exist
-        captions = db.query(models.Captions).all()
-        print(f"  + Total captions in database: {len(captions)}")
+        # Check if images have caption data
+        images_with_captions = db.query(models.Images).filter(models.Images.title.isnot(None)).all()
+        print(f"  + Images with caption data: {len(images_with_captions)}")
         
         # Check metadata tables
         sources = db.query(models.Source).all()
@@ -191,9 +191,6 @@ def test_database_consistency():
         print(f"  + Total countries: {len(countries)}")
         
         # Check relationships
-        images_with_captions = db.query(models.Images).join(models.Captions).all()
-        print(f"  + Images with captions: {len(images_with_captions)}")
-        
         images_with_countries = db.query(models.Images).join(models.Images.countries).all()
         print(f"  + Images with countries: {len(images_with_countries)}")
         
@@ -234,7 +231,7 @@ def create_test_data():
             raw_json={"test": True},
             text="This is a test caption for the explore page."
         )
-        print(f"  + Created test caption: {caption.cap_id}")
+        print(f"  + Created test caption: {caption.image_id}")
         
         return img.image_id
         

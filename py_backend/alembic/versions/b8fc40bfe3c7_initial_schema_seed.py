@@ -42,6 +42,7 @@ def _guess_region(alpha2: str) -> str:
 def upgrade():
     op.execute('CREATE EXTENSION IF NOT EXISTS pgcrypto;')
     
+    # Drop any old tables if they exist (idempotent for initial setup)
     op.execute("DROP TABLE IF EXISTS captions CASCADE;")
     op.execute("DROP TABLE IF EXISTS image_countries CASCADE;")
     op.execute("DROP TABLE IF EXISTS images CASCADE;")
@@ -188,7 +189,6 @@ def upgrade():
         ('BLIP2_OPT_2_7B','BLIP Image Captioning','custom',true,'{"provider":"huggingface","model_id":"Salesforce/blip-image-captioning-base"}'),
         ('VIT_GPT2','Vit gpt2 image captioning','custom',true,'{"provider":"huggingface","model_id":"nlpconnect/vit-gpt2-image-captioning"}')
     """)
-
     op.execute("""
       INSERT INTO json_schemas (schema_id,title,schema,version) VALUES
         ('default_caption@1.0.0','Default Caption Schema',
@@ -205,6 +205,7 @@ def upgrade():
         )
     op.execute("INSERT INTO countries (c_code,label,r_code) VALUES ('XX','Not Applicable','OTHER')")
 
+    # ---- Images table now includes the single caption/interpretation fields ----
     op.create_table(
         'images',
         sa.Column('image_id', postgresql.UUID(as_uuid=True),
@@ -218,7 +219,26 @@ def upgrade():
         sa.Column('image_type', sa.String(), sa.ForeignKey('image_types.image_type'), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('NOW()'), nullable=False),
         sa.Column('captured_at', sa.TIMESTAMP(timezone=True), nullable=True),
+
+        # --- merged caption fields ---
+        sa.Column('title', sa.String(), nullable=True),
+        sa.Column('prompt', sa.String(), nullable=True),
+        sa.Column('model', sa.String(), sa.ForeignKey('models.m_code'), nullable=True),
+        sa.Column('schema_id', sa.String(), sa.ForeignKey('json_schemas.schema_id'), nullable=True),
+        sa.Column('raw_json', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('generated', sa.Text(), nullable=True),
+        sa.Column('edited', sa.Text(), nullable=True),
+        sa.Column('accuracy', sa.SmallInteger()),
+        sa.Column('context', sa.SmallInteger()),
+        sa.Column('usability', sa.SmallInteger()),
+        sa.Column('starred', sa.Boolean(), server_default=sa.text('false')),
+        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
+
+        sa.CheckConstraint('accuracy  IS NULL OR (accuracy  BETWEEN 0 AND 100)', name='chk_images_accuracy'),
+        sa.CheckConstraint('context   IS NULL OR (context   BETWEEN 0 AND 100)', name='chk_images_context'),
+        sa.CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_images_usability')
     )
+
     op.create_table(
         'image_countries',
         sa.Column('image_id', postgresql.UUID(as_uuid=True), nullable=False),
@@ -227,42 +247,12 @@ def upgrade():
         sa.ForeignKeyConstraint(['image_id'], ['images.image_id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['c_code'], ['countries.c_code'])
     )
-    op.create_table(
-        'captions',
-        sa.Column('cap_id', postgresql.UUID(as_uuid=True),
-                  server_default=sa.text('gen_random_uuid()'),
-                  primary_key=True),
-        sa.Column('image_id', postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey('images.image_id', ondelete='CASCADE'),
-                  nullable=False),
-        sa.Column('title', sa.String(), nullable=False),
-        sa.Column('prompt', sa.String(), nullable=False),
-        sa.Column('model', sa.String(), sa.ForeignKey('models.m_code'), nullable=False),
-        sa.Column('schema_id', sa.String(), sa.ForeignKey('json_schemas.schema_id'), nullable=False),
-        sa.Column('raw_json', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column('generated', sa.Text(), nullable=False),
-        sa.Column('edited', sa.Text(), nullable=True),
-        sa.Column('accuracy', sa.SmallInteger()),
-        sa.Column('context', sa.SmallInteger()),
-        sa.Column('usability', sa.SmallInteger()),
-        sa.Column('starred', sa.Boolean(), server_default=sa.text('false')),
-        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('NOW()'), nullable=False),
-        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.CheckConstraint('accuracy  IS NULL OR (accuracy  BETWEEN 0 AND 100)', name='chk_captions_accuracy'),
-        sa.CheckConstraint('context   IS NULL OR (context   BETWEEN 0 AND 100)', name='chk_captions_context'),
-        sa.CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_captions_usability')
-    )
 
     op.create_index('ix_images_created_at', 'images', ['created_at'])
-    op.create_index('ix_captions_created_at', 'captions', ['created_at'])
-    op.create_index('ix_captions_image_id', 'captions', ['image_id'])
 
 
 def downgrade():
-    op.drop_index('ix_captions_image_id', table_name='captions')
-    op.drop_index('ix_captions_created_at', table_name='captions')
     op.drop_index('ix_images_created_at', table_name='images')
-    op.drop_table('captions')
     op.drop_table('image_countries')
     op.drop_table('images')
     op.drop_table('json_schemas')

@@ -12,13 +12,13 @@ def get_db():
     finally:
         db.close()
 
-@router.put("/maps/{map_id}/metadata", response_model=schemas.CaptionOut)
+@router.put("/maps/{map_id}/metadata", response_model=schemas.ImageOut)
 def update_metadata(
     map_id: str,
     update: schemas.CaptionUpdate,
     db: Session = Depends(get_db)
 ):
-    c = crud.update_caption(db, map_id, **update.model_dump(exclude_unset=True))
+    c = crud.update_caption(db, map_id, update)
     if not c:
         raise HTTPException(404, "caption not found")
     return c

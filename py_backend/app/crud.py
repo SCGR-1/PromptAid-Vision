@@ -2,6 +2,7 @@ import io, hashlib
 from typing import Optional
 from sqlalchemy.orm import Session, joinedload
 from . import models, schemas
+from fastapi import HTTPException
 
 def hash_bytes(data: bytes) -> str:
     """Compute SHA-256 hex digest of the data."""
@@ -26,29 +27,25 @@ def create_image(db: Session, src, type_code, key, sha, countries: list[str], ep
     return img
 
 def get_images(db: Session):
-    """Get all images with their captions"""
+    """Get all images with their countries"""
     return (
         db.query(models.Images)
         .options(
-            joinedload(models.Images.captions),
             joinedload(models.Images.countries),
         )
         .all()
     )
 
 def get_image(db: Session, image_id: str):
-    """Get a single image by ID with its captions"""
+    """Get a single image by ID with its countries"""
     return (
         db.query(models.Images)
         .options(
-            joinedload(models.Images.captions),
             joinedload(models.Images.countries),
         )
         .filter(models.Images.image_id == image_id)
         .first()
     )
-
-
 
 def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None):
     print(f"Creating caption for image_id: {image_id}")
@@ -59,93 +56,99 @@ def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, t
     if metadata:
         raw_json["extracted_metadata"] = metadata
     
-    c = models.Captions(
-        image_id=image_id,
-        title=title,
-        prompt=prompt,
-        model=model_code,
-        schema_id="default_caption@1.0.0",
-        raw_json=raw_json,
-        generated=text,
-        edited=text
-    )
-    db.add(c)
+    img = db.get(models.Images, image_id)
+    if not img:
+        raise HTTPException(404, "Image not found")
+    
+    img.title = title
+    img.prompt = prompt
+    img.model = model_code
+    img.schema_id = "default_caption@1.0.0"
+    img.raw_json = raw_json
+    img.generated = text
+    img.edited = text
+    
     print(f"About to commit caption to database...")
     db.commit()
     print(f"Caption commit successful!")
-    db.refresh(c)
-    print(f"Caption created successfully with ID: {c.cap_id}")
-    return c
+    db.refresh(img)
+    print(f"Caption created successfully for image: {img.image_id}")
+    return img
 
-def get_caption(db: Session, cap_id: str):
-    return db.get(models.Captions, cap_id)
+def get_caption(db: Session, image_id: str):
+    """Get caption data for a specific image"""
+    return db.get(models.Images, image_id)
 
 def get_captions_by_image(db: Session, image_id: str):
-    """Get all captions for a specific image"""
-    return db.query(models.Captions).filter(models.Captions.image_id == image_id).all()
+    """Get caption data for a specific image (now just returns the image)"""
+    img = db.get(models.Images, image_id)
+    if img and img.title:
+        return [img]
+    return []
 
 def get_all_captions_with_images(db: Session):
-    """Get all captions with their associated image data"""
-    results = db.query(
-        models.Captions,
-        models.Images.file_key,
-        models.Images.source,
-        models.Images.event_type,
-        models.Images.epsg,
-        models.Images.image_type
-    ).join(
-        models.Images, models.Captions.image_id == models.Images.image_id
+    """Get all images that have caption data"""
+    print(f"DEBUG: Querying database for images with caption data...")
+    
+    total_images = db.query(models.Images).count()
+    print(f"DEBUG: Total images in database: {total_images}")
+
+    images_with_title = db.query(models.Images).filter(
+        models.Images.title.isnot(None)
+    ).count()
+    print(f"DEBUG: Images with title field: {images_with_title}")
+    
+    images_with_generated = db.query(models.Images).filter(
+        models.Images.generated.isnot(None)
+    ).count()
+    print(f"DEBUG: Images with generated field: {images_with_generated}")
+    
+    images_with_model = db.query(models.Images).filter(
+        models.Images.model.isnot(None)
+    ).count()
+    print(f"DEBUG: Images with model field: {images_with_model}")
+    
+    results = db.query(models.Images).filter(
+        models.Images.title.isnot(None)
     ).all()
     
-    captions_with_images = []
-    for caption, file_key, source, event_type, epsg, image_type in results:
-        caption_dict = {
-            "cap_id": caption.cap_id,
-            "image_id": caption.image_id,
-            "title": caption.title,
-            "prompt": caption.prompt,
-            "model": caption.model,
-            "schema_id": caption.schema_id,
-            "raw_json": caption.raw_json,
-            "generated": caption.generated,
-            "edited": caption.edited,
-            "accuracy": caption.accuracy,
-            "context": caption.context,
-            "usability": caption.usability,
-            "starred": caption.starred,
-            "created_at": caption.created_at,
-            "updated_at": caption.updated_at,
-            "file_key": file_key,
-            "image_url": f"/api/images/{caption.image_id}/file",
-            "source": source,
-            "event_type": event_type,
-            "epsg": epsg,
-            "image_type": image_type,
-            "countries": []
-        }
-        captions_with_images.append(caption_dict)
+    print(f"DEBUG: Query returned {len(results)} results")
+    for img in results:
+        print(f"DEBUG: Image {img.image_id}: title='{img.title}', generated='{img.generated}', model='{img.model}'")
     
-    return captions_with_images
+    return results
 
-def update_caption(db: Session, cap_id: str, update: schemas.CaptionUpdate):
-    c = get_caption(db, cap_id)
-    if not c:
+def update_caption(db: Session, image_id: str, update: schemas.CaptionUpdate):
+    """Update caption data for an image"""
+    img = db.get(models.Images, image_id)
+    if not img:
         return None
     
     for field, value in update.dict(exclude_unset=True).items():
-        setattr(c, field, value)
+        setattr(img, field, value)
     
     db.commit()
-    db.refresh(c)
-    return c
+    db.refresh(img)
+    return img
 
-def delete_caption(db: Session, cap_id: str):
-    """Delete a caption by ID"""
-    c = get_caption(db, cap_id)
-    if not c:
+def delete_caption(db: Session, image_id: str):
+    """Delete caption data for an image (sets caption fields to None)"""
+    img = db.get(models.Images, image_id)
+    if not img:
         return False
     
-    db.delete(c)
+    img.title = None
+    img.prompt = None
+    img.model = None
+    img.schema_id = None
+    img.raw_json = None
+    img.generated = None
+    img.edited = None
+    img.accuracy = None
+    img.context = None
+    img.usability = None
+    img.starred = False
+    
     db.commit()
     return True
 

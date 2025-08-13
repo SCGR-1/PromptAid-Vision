@@ -1,3 +1,7 @@
+.tabSelector {
+  margin-bottom: var(--go-ui-spacing-lg);
+}
+
 .backButton {
   margin-bottom: var(--go-ui-spacing-lg);
 }
@@ -43,7 +47,7 @@
 
 .metadataTag {
   padding: var(--go-ui-spacing-xs) var(--go-ui-spacing-sm);
-  background-color: var(--go-ui-color-red-10);
+  background-color: var(--go-ui-color-red-5);
   color: var(--go-ui-color-red-90);
   font-size: var(--go-ui-font-size-sm);
   border-radius: var(--go-ui-border-radius-md);
@@ -53,9 +57,8 @@
 }
 
 .metadataTag:hover {
-  background-color: var(--go-ui-color-red-20);
-  transform: translateY(-1px);
-  box-shadow: var(--go-ui-box-shadow-xs);
+  background-color: var(--go-ui-color-red-10);
+  border-color: var(--go-ui-color-red-30);
 }
 
 .captionContainer {

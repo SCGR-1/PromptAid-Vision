@@ -1,11 +1,9 @@
-import { PageContainer, TextInput, SelectInput, MultiSelectInput, Button, Container } from '@ifrc-go/ui';
+import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput } from '@ifrc-go/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { StarLineIcon } from '@ifrc-go/icons';
 import styles from './ExplorePage.module.css';
 
-interface CaptionWithImageOut {
-  cap_id: string;
+interface ImageWithCaptionOut {
   image_id: string;
   title: string;
   prompt: string;
@@ -31,18 +29,24 @@ interface CaptionWithImageOut {
 
 export default function ExplorePage() {
   const navigate = useNavigate();
-  const [captions, setCaptions] = useState<CaptionWithImageOut[]>([]);
+  const [view, setView] = useState<'explore' | 'mapDetails'>('explore');
+  const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
   const [search, setSearch] = useState('');
   const [srcFilter, setSrcFilter] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
-  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
   const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
   const [regions, setRegions] = useState<{r_code: string, label: string}[]>([]);
   const [countries, setCountries] = useState<{c_code: string, label: string, r_code: string}[]>([]);
+  const [imageTypes, setImageTypes] = useState<{image_type: string, label: string}[]>([]);
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
+
+  const viewOptions = [
+    { key: 'explore' as const, label: 'Explore' },
+    { key: 'mapDetails' as const, label: 'Map Details' }
+  ];
 
   const fetchCaptions = () => {
     setIsLoadingFilters(true);
@@ -55,10 +59,12 @@ export default function ExplorePage() {
       })
       .then(data => {
         if (Array.isArray(data)) {
-          setCaptions(data);
-
+          const imagesWithCaptions = data.filter((item: any) => {
+            const hasCaption = item.title && item.generated && item.model;
+            return hasCaption;
+          });
+          setCaptions(imagesWithCaptions);
         } else {
-  
           setCaptions([]);
         }
       })
@@ -107,191 +113,147 @@ export default function ExplorePage() {
       fetch('/api/countries').then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
         return r.json();
-      })
-    ]).then(([sourcesData, typesData, regionsData, countriesData]) => {
-
-      
-      if (Array.isArray(sourcesData)) {
-        setSources(sourcesData);
-      } else {
-
-        setSources([]);
-      }
-      
-      if (Array.isArray(typesData)) {
-        setTypes(typesData);
-      } else {
-
-        setTypes([]);
-      }
-      
-      if (Array.isArray(regionsData)) {
-        setRegions(regionsData);
-      } else {
-
-        setRegions([]);
-      }
-      
-      if (Array.isArray(countriesData)) {
-        setCountries(countriesData);
-      } else {
-
-        setCountries([]);
-      }
-      
-      setIsLoadingFilters(false);
+      }),
+      fetch('/api/image-types').then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        return r.json();
+      }),
+    ]).then(([sourcesData, typesData, regionsData, countriesData, imageTypesData]) => {
+      setSources(sourcesData);
+      setTypes(typesData);
+      setRegions(regionsData);
+      setCountries(countriesData);
+      setImageTypes(imageTypesData);
     }).catch(() => {
-
-      setSources([]);
-      setTypes([]);
-      setRegions([]);
-      setCountries([]);
+    }).finally(() => {
       setIsLoadingFilters(false);
     });
   }, []);
 
   const filtered = useMemo(() => {
-    if (!Array.isArray(captions)) {
-      
-      return [];
-    }
-    
     return captions.filter(c => {
-      const searchLower = search.toLowerCase();
-      const searchMatch = !search || 
-        c.file_key.toLowerCase().includes(searchLower) ||
-        c.source.toLowerCase().includes(searchLower) ||
-        c.event_type.toLowerCase().includes(searchLower) ||
-        c.title.toLowerCase().includes(searchLower) ||
-        (c.edited && c.edited.toLowerCase().includes(searchLower)) ||
-        (c.generated && c.generated.toLowerCase().includes(searchLower));
+      const matchesSearch = !search || 
+        c.title?.toLowerCase().includes(search.toLowerCase()) ||
+        c.generated?.toLowerCase().includes(search.toLowerCase()) ||
+        c.source?.toLowerCase().includes(search.toLowerCase()) ||
+        c.event_type?.toLowerCase().includes(search.toLowerCase());
       
-      const sourceMatch = !srcFilter || c.source === srcFilter;
-      const typeMatch = !catFilter || c.event_type === catFilter;
-      const regionMatch = !regionFilter || (c.countries && c.countries.some(c => c.r_code === regionFilter));
-      const countryMatch = !countryFilter || (c.countries && c.countries.some(c => c.c_code === countryFilter));
-      const starredMatch = !showStarredOnly || c.starred === true;
+      const matchesSource = !srcFilter || c.source === srcFilter;
+      const matchesCategory = !catFilter || c.event_type === catFilter;
+      const matchesRegion = !regionFilter || 
+        c.countries.some(country => country.r_code === regionFilter);
+      const matchesCountry = !countryFilter || 
+        c.countries.some(country => country.c_code === countryFilter);
       
-      return searchMatch && sourceMatch && typeMatch && regionMatch && countryMatch && starredMatch;
+      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry;
     });
   }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter]);
+
+  const toggleStarred = (imageId: string) => {
+    setCaptions(prev => prev.map(c => 
+      c.image_id === imageId ? { ...c, starred: !c.starred } : c
+    ));
+    
+    fetch(`/api/images/${imageId}/caption`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ starred: !captions.find(c => c.image_id === imageId)?.starred })
+    }).catch(() => {
+      setCaptions(prev => prev.map(c => 
+        c.image_id === imageId ? { ...c, starred: !c.starred } : c
+      ));
+    });
+  };
 
   return (
     <PageContainer>
       <Container
-        heading="Explore Examples"
+        heading="Explore"
         headingLevel={2}
         withHeaderBorder
         withInternalPadding
         className="max-w-7xl mx-auto"
       >
-        <div className="space-y-6">
-          {/* Header Section */}
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-600 mt-1">Browse and search through uploaded crisis maps</p>
+        <div className={styles.tabSelector}>
+          <SegmentInput
+            name="explore-view"
+            value={view}
+            onChange={(value) => {
+              if (value === 'explore' || value === 'mapDetails') {
+                setView(value);
+                if (value === 'mapDetails' && captions.length > 0) {
+                  navigate(`/map/${captions[0].image_id}`);
+                }
+              }
+            }}
+            options={viewOptions}
+            keySelector={(o) => o.key}
+            labelSelector={(o) => o.label}
+          />
+        </div>
+
+        {view === 'explore' ? (
+          <div className="space-y-6">
+            {/* Search and Filters */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <TextInput
+                  name="search"
+                  placeholder="Search examples..."
+                  value={search}
+                  onChange={(v) => setSearch(v || '')}
+                />
+
+                <SelectInput
+                  name="source"
+                  placeholder={isLoadingFilters ? "Loading..." : "All Sources"}
+                  options={sources}
+                  value={srcFilter || null}
+                  onChange={(v) => setSrcFilter(v as string || '')}
+                  keySelector={(o) => o.s_code}
+                  labelSelector={(o) => o.label}
+                  required={false}
+                  disabled={isLoadingFilters}
+                />
+
+                <SelectInput
+                  name="category"
+                  placeholder={isLoadingFilters ? "Loading..." : "All Categories"}
+                  options={types}
+                  value={catFilter || null}
+                  onChange={(v) => setCatFilter(v as string || '')}
+                  keySelector={(o) => o.t_code}
+                  labelSelector={(o) => o.label}
+                  required={false}
+                  disabled={isLoadingFilters}
+                />
+
+                <SelectInput
+                  name="region"
+                  placeholder={isLoadingFilters ? "Loading..." : "All Regions"}
+                  options={regions}
+                  value={regionFilter || null}
+                  onChange={(v) => setRegionFilter(v as string || '')}
+                  keySelector={(o) => o.r_code}
+                  labelSelector={(o) => o.label}
+                  required={false}
+                  disabled={isLoadingFilters}
+                />
+
+                <MultiSelectInput
+                  name="country"
+                  placeholder={isLoadingFilters ? "Loading..." : "All Countries"}
+                  options={countries}
+                  value={countryFilter ? [countryFilter] : []}
+                  onChange={(v) => setCountryFilter((v as string[])[0] || '')}
+                  keySelector={(o) => o.c_code}
+                  labelSelector={(o) => o.label}
+                  disabled={isLoadingFilters}
+                />
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                name="reference-examples"
-                variant={showStarredOnly ? "primary" : "secondary"}
-                onClick={() => setShowStarredOnly(!showStarredOnly)}
-              >
-                <StarLineIcon className="w-4 h-4" />
-                <span className="inline ml-2">Reference Examples</span>
-              </Button>
-              <Button
-                name="export"
-                variant="secondary"
-                onClick={() => {
-                  const data = {
-                    captions: captions,
-                    filters: {
-                      sources: sources,
-                      types: types,
-                      regions: regions,
-                      countries: countries
-                    },
-                    timestamp: new Date().toISOString()
-                  };
-                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `promptaid-vision-captions-${new Date().toISOString().split('T')[0]}.json`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                Export
-              </Button>
-            </div>
-          </div>
 
-          {/* Filters Bar */}
-          <Container heading="Search & Filters" headingLevel={3} withHeaderBorder withInternalPadding>
-            <div className="flex flex-wrap gap-4 items-center">
-              <TextInput
-                name="search"
-                placeholder="Search by filename, title…"
-                value={search}
-                onChange={(e) => setSearch(e || '')}
-                className="flex-1 min-w-[12rem]"
-              />
-
-              <SelectInput
-                name="source"
-                placeholder={isLoadingFilters ? "Loading..." : "All Sources"}
-                options={sources}
-                value={srcFilter || null}
-                onChange={(v) => setSrcFilter(v as string || '')}
-                keySelector={(o) => o.s_code}
-                labelSelector={(o) => o.label}
-                required={false}
-                disabled={isLoadingFilters}
-              />
-
-              <SelectInput
-                name="type"
-                placeholder={isLoadingFilters ? "Loading..." : "All Types"}
-                options={types}
-                value={catFilter || null}
-                onChange={(v) => setCatFilter(v as string || '')}
-                keySelector={(o) => o.t_code}
-                labelSelector={(o) => o.label}
-                required={false}
-                disabled={isLoadingFilters}
-              />
-
-              <SelectInput
-                name="region"
-                placeholder={isLoadingFilters ? "Loading..." : "All Regions"}
-                options={regions}
-                value={regionFilter || null}
-                onChange={(v) => setRegionFilter(v as string || '')}
-                keySelector={(o) => o.r_code}
-                labelSelector={(o) => o.label}
-                required={false}
-                disabled={isLoadingFilters}
-              />
-
-              <MultiSelectInput
-                name="country"
-                placeholder={isLoadingFilters ? "Loading..." : "All Countries"}
-                options={countries}
-                value={countryFilter ? [countryFilter] : []}
-                onChange={(v) => setCountryFilter((v as string[])[0] || '')}
-                keySelector={(o) => o.c_code}
-                labelSelector={(o) => o.label}
-                disabled={isLoadingFilters}
-              />
-            </div>
-          </Container>
-
-          {/* Results Section */}
-          <Container heading="Results" headingLevel={3} withHeaderBorder withInternalPadding>
+            {/* Results Section */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <p className="text-sm text-gray-600">
@@ -302,7 +264,7 @@ export default function ExplorePage() {
               {/* List */}
               <div className="space-y-4">
                 {filtered.map(c => (
-                  <div key={c.cap_id} className={styles.mapItem} onClick={() => navigate(`/map/${c.image_id}?captionId=${c.cap_id}`)}>
+                  <div key={c.image_id} className={styles.mapItem} onClick={() => navigate(`/map/${c.image_id}`)}>
                     <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
                       {c.image_url ? (
                         <img 
@@ -325,17 +287,24 @@ export default function ExplorePage() {
                       <div className={styles.mapItemMetadata}>
                         <div className={styles.metadataTags}>
                           <span className={styles.metadataTagSource}>
-                            {c.source}
+                            {sources.find(s => s.s_code === c.source)?.label || c.source}
                           </span>
                           <span className={styles.metadataTagType}>
-                            {c.event_type}
+                            {types.find(t => t.t_code === c.event_type)?.label || c.event_type}
                           </span>
                           <span className={styles.metadataTag}>
-                            {c.epsg}
+                            {imageTypes.find(it => it.image_type === c.image_type)?.label || c.image_type}
                           </span>
-                          <span className={styles.metadataTag}>
-                            {c.image_type}
-                          </span>
+                          {c.countries && c.countries.length > 0 && (
+                            <>
+                              <span className={styles.metadataTag}>
+                                {regions.find(r => r.r_code === c.countries[0].r_code)?.label || 'Unknown Region'}
+                              </span>
+                              <span className={styles.metadataTag}>
+                                {c.countries.map(country => country.label).join(', ')}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -349,8 +318,15 @@ export default function ExplorePage() {
                 )}
               </div>
             </div>
-          </Container>
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="text-center py-12">
+              <p className="text-gray-500">Map Details view coming soon...</p>
+              <p className="text-sm text-gray-400 mt-2">This will show detailed information about individual maps</p>
+            </div>
+          </div>
+        )}
       </Container>
     </PageContainer>
   );

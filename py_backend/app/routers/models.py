@@ -57,7 +57,7 @@ def get_model_info(model_code: str, db: Session = Depends(get_db)):
 async def test_model(model_code: str, db: Session = Depends(get_db)):
     """Test a specific model with a sample image"""
     try:
-        service = vlm_manager.get_service(model_code)
+        service = vlm_manager.services.get(model_code)
         if not service:
             raise HTTPException(404, "Model service not found")
         

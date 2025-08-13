@@ -2,9 +2,8 @@ from .vlm_service import VLMService, ModelType
 from typing import Dict, Any
 import openai
 import base64
-import io
 import asyncio
-from PIL import Image
+import json
 
 class GPT4VService(VLMService):
     """GPT-4 Vision service implementation"""
@@ -56,45 +55,44 @@ class GPT4VService(VLMService):
             )
             
             content = response.choices[0].message.content
-            print(f"DEBUG: Raw AI response: {content[:200]}...")
             
-            import json
-            import re
+            cleaned_content = content.strip()
+            if cleaned_content.startswith("```json"):
+                cleaned_content = cleaned_content[7:]
+            if cleaned_content.endswith("```"):
+                cleaned_content = cleaned_content[:-3]
+            cleaned_content = cleaned_content.strip()
             
-            cleaned_content = content
-            if content.startswith('```json'):
-                cleaned_content = re.sub(r'^```json\s*', '', content)
-                cleaned_content = re.sub(r'\s*```$', '', cleaned_content)
-                print(f"DEBUG: Cleaned content: {cleaned_content[:200]}...")
-            
+            metadata = {}
             try:
-                parsed = json.loads(cleaned_content)
-                caption = parsed.get("analysis", content)
-                metadata = parsed.get("metadata", {})
-                
-                if metadata.get("epsg"):
-                    epsg_value = metadata["epsg"]
-                    allowed_epsg = ["4326", "3857", "32617", "32633", "32634", "OTHER"]
-                    if epsg_value not in allowed_epsg:
-                        print(f"DEBUG: Invalid EPSG value '{epsg_value}', setting to 'OTHER'")
-                        metadata["epsg"] = "OTHER"
-                
-                print(f"DEBUG: Successfully parsed JSON, metadata: {metadata}")
-            except json.JSONDecodeError as e:
-                print(f"DEBUG: JSON parse error: {e}")
-                caption = content
-                metadata = {}
+                metadata = json.loads(cleaned_content)
+            except json.JSONDecodeError:
+                if "```json" in content:
+                    json_start = content.find("```json") + 7
+                    json_end = content.find("```", json_start)
+                    if json_end > json_start:
+                        json_str = content[json_start:json_end].strip()
+                        try:
+                            metadata = json.loads(json_str)
+                        except json.JSONDecodeError as e:
+                            print(f"JSON parse error: {e}")
+                else:
+                    import re
+                    json_match = re.search(r'\{[^{}]*"metadata"[^{}]*\{[^{}]*\}', content)
+                    if json_match:
+                        try:
+                            metadata = json.loads(json_match.group())
+                        except json.JSONDecodeError:
+                            pass
             
             return {
-                "caption": caption,
-                "metadata": metadata,
-                "confidence": 0.9,
-                "processing_time": 0.0,
+                "caption": cleaned_content,
                 "raw_response": {
-                    "model": "gpt-4o",
-                    "usage": response.usage.dict() if response.usage else None,
-                    "finish_reason": response.choices[0].finish_reason
-                }
+                    "content": content, 
+                    "metadata": metadata,
+                    "extracted_metadata": metadata
+                },
+                "metadata": metadata
             }
             
         except Exception as e:

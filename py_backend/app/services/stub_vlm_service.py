@@ -8,24 +8,12 @@ class StubVLMService(VLMService):
     def __init__(self):
         super().__init__("STUB_MODEL", ModelType.CUSTOM)
     
-    async def generate_caption(self, image_bytes: bytes, prompt: str) -> Dict[str, Any]:
-        """Generate a stub caption"""
-        print(f"DEBUG: StubVLMService: Generating stub caption")
-        print(f"DEBUG: StubVLMService: Image size: {len(image_bytes)}")
-        print(f"DEBUG: StubVLMService: Prompt: {prompt[:100]}...")
-        
-        await asyncio.sleep(0.1)
-        
-        caption = "This is a stub caption generated for testing purposes. The image appears to contain geographic or crisis-related information."
-        print(f"DEBUG: StubVLMService: Generated caption: {caption}")
+    async def generate_caption(self, image_bytes: bytes, prompt: str) -> dict:
+        """Generate a stub caption for testing purposes."""
+        caption = f"This is a stub caption for testing. Image size: {len(image_bytes)} bytes. Prompt: {prompt[:50]}..."
         
         return {
             "caption": caption,
-            "confidence": 0.85,
-            "processing_time": 0.1,
-            "raw_response": {
-                "stub": True,
-                "prompt": prompt,
-                "image_size": len(image_bytes)
-            }
+            "raw_response": {"stub": True, "caption": caption},
+            "metadata": {}
         } 

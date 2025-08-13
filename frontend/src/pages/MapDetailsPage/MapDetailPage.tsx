@@ -1,38 +1,53 @@
-import { PageContainer, Button, Container, Spinner } from '@ifrc-go/ui';
+import { PageContainer, Container, Button, Spinner, SegmentInput } from '@ifrc-go/ui';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from './MapDetailPage.module.css';
 
 interface MapOut {
   image_id: string;
   file_key: string;
-  image_url: string;
+  sha256: string;
   source: string;
   event_type: string;
   epsg: string;
   image_type: string;
-  countries?: Array<{
+  image_url: string;
+  countries: Array<{
     c_code: string;
     label: string;
     r_code: string;
   }>;
-  captions?: Array<{
-    title: string;
-    generated: string;
-    edited?: string;
-            cap_id?: string;
-  }>;
+  title?: string;
+  prompt?: string;
+  model?: string;
+  schema_id?: string;
+  raw_json?: any;
+  generated?: string;
+  edited?: string;
+  accuracy?: number;
+  context?: number;
+  usability?: number;
+  starred?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function MapDetailPage() {
   const { mapId } = useParams<{ mapId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const captionId = searchParams.get('captionId');
+  const [view, setView] = useState<'explore' | 'mapDetails'>('mapDetails');
   const [map, setMap] = useState<MapOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
+  const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
+  const [imageTypes, setImageTypes] = useState<{image_type: string, label: string}[]>([]);
+  const [regions, setRegions] = useState<{r_code: string, label: string}[]>([]);
 
+  const viewOptions = [
+    { key: 'explore' as const, label: 'Explore' },
+    { key: 'mapDetails' as const, label: 'Map Details' }
+  ];
 
   useEffect(() => {
     if (!mapId) {
@@ -58,14 +73,76 @@ export default function MapDetailPage() {
       });
   }, [mapId]);
 
-  const handleContribute = () => {
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/sources').then(r => r.json()),
+      fetch('/api/types').then(r => r.json()),
+      fetch('/api/image-types').then(r => r.json()),
+      fetch('/api/regions').then(r => r.json()),
+    ]).then(([sourcesData, typesData, imageTypesData, regionsData]) => {
+      setSources(sourcesData);
+      setTypes(typesData);
+      setImageTypes(imageTypesData);
+      setRegions(regionsData);
+    }).catch(console.error);
+  }, []);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleContribute = async () => {
     if (!map) return;
     
-    const url = captionId ? 
-      `/upload?mapId=${map.image_id}&step=2&captionId=${captionId}` : 
-      `/upload?mapId=${map.image_id}&step=2`;
-    navigate(url);
+    setIsGenerating(true);
+    
+    try {
+      const res = await fetch('/api/contribute/from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: map.image_url,
+          source: map.source,
+          event_type: map.event_type,
+          epsg: map.epsg,
+          image_type: map.image_type,
+          countries: map.countries.map(c => c.c_code),
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create contribution');
+      }
+      
+      const json = await res.json();
+      const newId = json.image_id as string;
+      
+      const modelName = localStorage.getItem('selectedVlmModel');
+      const capRes = await fetch(`/api/images/${newId}/caption`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          title: 'Generated Caption',
+          prompt: 'Analyze this crisis map and provide a detailed description of the emergency situation, affected areas, and key information shown in the map.',
+          ...(modelName && { model_name: modelName }),
+        }),
+      });
+      
+      if (!capRes.ok) {
+        const errorData = await capRes.json();
+        throw new Error(errorData.error || 'Failed to generate caption');
+      }
+      
+      const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}`;
+      navigate(url);
+      
+    } catch (error: any) {
+      console.error('Contribution failed:', error);
+      alert(`Contribution failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
+ 
 
   if (loading) {
     return (
@@ -103,123 +180,121 @@ export default function MapDetailPage() {
 
   return (
     <PageContainer>
-      <div className={styles.backButton}>
-        <Button
-          name="back"
-          variant="secondary"
-          onClick={() => navigate('/explore')}
-        >
-          ← Back to Explore
-        </Button>
-      </div>
+      <Container
+        heading="Explore"
+        headingLevel={2}
+        withHeaderBorder
+        withInternalPadding
+        className="max-w-7xl mx-auto"
+      >
+        <div className={styles.tabSelector}>
+          <SegmentInput
+            name="map-details-view"
+            value={view}
+            onChange={(value) => {
+              if (value === 'mapDetails' || value === 'explore') {
+                setView(value);
+                if (value === 'explore') {
+                  navigate('/explore');
+                }
+              }
+            }}
+            options={viewOptions}
+            keySelector={(o) => o.key}
+            labelSelector={(o) => o.label}
+          />
+        </div>
 
-      <div className={styles.gridLayout}>
-        {/* Image Section */}
-        <Container
-          heading="Map Image"
-          headingLevel={3}
-          withHeaderBorder
-          withInternalPadding
-          spacing="comfortable"
-        >
-          <div className={styles.imageContainer}>
-            {map.image_url ? (
-              <img
-                src={map.image_url}
-                alt={map.file_key}
-              />
-            ) : (
-              <div className={styles.imagePlaceholder}>
-                No image available
-              </div>
-            )}
-          </div>
-        </Container>
+        {view === 'mapDetails' ? (
+          <>
+            <div className={styles.gridLayout}>
+              {/* Image Section */}
+              <Container
+                heading={map.title || "Map Image"}
+                headingLevel={2}
+                withHeaderBorder
+                withInternalPadding
+                spacing="comfortable"
+              >
+                <div className={styles.imageContainer}>
+                  {map.image_url ? (
+                    <img
+                      src={map.image_url}
+                      alt={map.file_key}
+                    />
+                  ) : (
+                    <div className={styles.imagePlaceholder}>
+                      No image available
+                    </div>
+                  )}
+                </div>
+              </Container>
 
-        {/* Details Section */}
-        <div className={styles.detailsSection}>
-          <Container
-            heading="Title"
-            headingLevel={3}
-            withHeaderBorder
-            withInternalPadding
-            spacing="comfortable"
-          >
-            <div className="text-gray-700">
-              {map.captions && map.captions.length > 0 ? map.captions[0].title : '— no title —'}
-            </div>
-          </Container>
-
-          <Container
-            heading="Metadata"
-            headingLevel={3}
-            withHeaderBorder
-            withInternalPadding
-            spacing="comfortable"
-          >
-            <div className={styles.metadataTags}>
-              <span className={styles.metadataTag}>
-                {map.source}
-              </span>
-              <span className={styles.metadataTag}>
-                {map.event_type}
-              </span>
-              <span className={styles.metadataTag}>
-                {map.epsg}
-              </span>
-              <span className={styles.metadataTag}>
-                {map.image_type}
-              </span>
-            </div>
-          </Container>
-
-          <Container
-            heading="Generated Caption"
-            headingLevel={3}
-            withHeaderBorder
-            withInternalPadding
-            spacing="comfortable"
-          >
-            <div className={styles.captionContainer}>
-              {map.captions && map.captions.length > 0 ? (
-                map.captions.map((caption, index) => (
-                  <div 
-                    key={index} 
-                    className={`${styles.captionText} ${
-                      captionId && map.captions && map.captions[index] && 
-                      'cap_id' in map.captions[index] && 
-                      map.captions[index].cap_id === captionId ? 
-                      styles.highlightedCaption : ''
-                    }`}
-                  >
-                    <p>{caption.edited || caption.generated}</p>
-                    {captionId && map.captions && map.captions[index] && 
-                     'cap_id' in map.captions[index] && 
-                     map.captions[index].cap_id === captionId && (
-                      <div className={styles.captionHighlight}>
-                        ← This is the caption you selected
-                      </div>
+              {/* Details Section */}
+              <div className={styles.detailsSection}>
+                <Container
+                  heading="Tags"
+                  headingLevel={3}
+                  withHeaderBorder
+                  withInternalPadding
+                  spacing="comfortable"
+                >
+                  <div className={styles.metadataTags}>
+                    <span className={styles.metadataTag}>
+                      {sources.find(s => s.s_code === map.source)?.label || map.source}
+                    </span>
+                    <span className={styles.metadataTag}>
+                      {types.find(t => t.t_code === map.event_type)?.label || map.event_type}
+                    </span>
+                    <span className={styles.metadataTag}>
+                      {imageTypes.find(it => it.image_type === map.image_type)?.label || map.image_type}
+                    </span>
+                    {map.countries && map.countries.length > 0 && (
+                      <>
+                        <span className={styles.metadataTag}>
+                          {regions.find(r => r.r_code === map.countries[0].r_code)?.label || 'Unknown Region'}
+                        </span>
+                        <span className={styles.metadataTag}>
+                          {map.countries.map(country => country.label).join(', ')}
+                        </span>
+                      </>
                     )}
                   </div>
-                ))
-              ) : (
-                <p>— no caption yet —</p>
-              )}
-            </div>
-          </Container>
-        </div>
-      </div>
+                </Container>
 
-      {/* Contribute Section */}
-      <div className={styles.contributeSection}>
-        <Button
-          name="contribute"
-          onClick={handleContribute}
-          className={styles.contributeButton}
-        >
-          Contribute
-        </Button>
-      </div>
+                <Container
+                  heading="Description"
+                  headingLevel={3}
+                  withHeaderBorder
+                  withInternalPadding
+                  spacing="comfortable"
+                >
+                  <div className={styles.captionContainer}>
+                    {map.generated ? (
+                      <div className={styles.captionText}>
+                        <p>{map.edited || map.generated}</p>
+                      </div>
+                    ) : (
+                      <p>— no caption yet —</p>
+                    )}
+                  </div>
+                </Container>
+              </div>
+            </div>
+
+            {/* Contribute Section */}
+            <div className="flex justify-center mt-8">
+              <Button
+                name="contribute"
+                onClick={handleContribute}
+                disabled={isGenerating}
+              >
+                {isGenerating ? 'Generating...' : 'Contribute'}
+              </Button>
+            </div>
+          </>
+        ) : null}
+      </Container>
     </PageContainer>
   );
 } 

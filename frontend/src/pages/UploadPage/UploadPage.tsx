@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { DragEvent } from 'react';
 import {
   PageContainer, Heading, Button,
@@ -9,15 +9,17 @@ import {
   ArrowRightLineIcon,
   DeleteBinLineIcon,
 } from '@ifrc-go/icons';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './UploadPage.module.css';
 
 const SELECTED_MODEL_KEY = 'selectedVlmModel';
 
 export default function UploadPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [step, setStep] = useState<1 | '2a' | '2b' | 3>(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingContribution, setIsLoadingContribution] = useState(false);
   const stepRef = useRef(step);
   const uploadedImageIdRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -59,7 +61,10 @@ export default function UploadPage() {
       fetch('/api/image-types').then(r => r.json()),
       fetch('/api/countries').then(r => r.json()),
       fetch('/api/models').then(r => r.json())
-    ]).then(([sourcesData, typesData, spatialData, imageTypesData, countriesData]) => {
+    ]).then(([sourcesData, typesData, spatialData, imageTypesData, countriesData, modelsData]) => {
+      if (!localStorage.getItem(SELECTED_MODEL_KEY) && modelsData?.length) {
+        localStorage.setItem(SELECTED_MODEL_KEY, modelsData[0].m_code);
+      }
       setSources(sourcesData);
       setTypes(typesData);
       setSpatialReferences(spatialData);
@@ -73,73 +78,143 @@ export default function UploadPage() {
     });
   }, []);
 
+
+
+  const handleNavigation = (to: string) => {
+    if (uploadedImageIdRef.current) {
+      if (confirm("Leave page? Your uploaded image will be deleted.")) {
+        fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" })
+          .then(() => {
+            navigate(to);
+          })
+          .catch(console.error);
+      }
+    } else {
+      navigate(to);
+    }
+  };
+
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (uploadedImageIdRef.current && stepRef.current !== 3) {
+    (window as any).confirmNavigationIfNeeded = (to: string) => {
+      handleNavigation(to);
+    };
+    
+    return () => {
+      delete (window as any).confirmNavigationIfNeeded;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (uploadedImageIdRef.current) {
+        const message = 'You have an uploaded image that will be deleted if you leave this page. Are you sure you want to leave?';
+        event.preventDefault();
+        event.returnValue = message;
+        return message;
+      }
+    };
+
+    const handleCleanup = () => {
+      if (uploadedImageIdRef.current) {
         fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
+      }
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const link = target.closest('a[href]') || target.closest('[data-navigate]');
+      
+      if (link && uploadedImageIdRef.current) {
+        const href = link.getAttribute('href') || link.getAttribute('data-navigate');
+        if (href && href !== '#' && !href.startsWith('javascript:') && !href.startsWith('mailto:')) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleNavigation(href);
+        }
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleGlobalClick, true);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (uploadedImageIdRef.current && stepRef.current !== 3) {
-        fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
-      }
+      document.removeEventListener('click', handleGlobalClick, true);
+      handleCleanup();
     };
   }, []);
 
-  const [captionId, setCaptionId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string|null>(null);
   const [draft, setDraft] = useState('');
   
   useEffect(() => {
-    const mapId = searchParams.get('mapId');
+    const imageUrlParam = searchParams.get('imageUrl');
     const stepParam = searchParams.get('step');
-    const captionIdParam = searchParams.get('captionId');
+    const imageIdParam = searchParams.get('imageId');
     
-    if (mapId && stepParam === '2') {
-      fetch(`/api/images/${mapId}`)
-        .then(response => response.json())
-        .then(mapData => {
-          setImageUrl(mapData.image_url);
-          setSource(mapData.source);
-          setEventType(mapData.event_type);
-          setEpsg(mapData.epsg);
-          setImageType(mapData.image_type);
-          
-          setUploadedImageId(mapId);
-          
-          if (captionIdParam) {
-            setCaptionId(captionIdParam);
-            const existingCaption = mapData.captions?.find((c: any) => c.cap_id === captionIdParam);
-            if (existingCaption) {
-              setDraft(existingCaption.edited || existingCaption.generated);
-              setTitle(existingCaption.title || 'Generated Caption');
-            }
-            
-            if (mapData.countries && Array.isArray(mapData.countries)) {
-              setCountries(mapData.countries.map((c: any) => c.c_code));
-            }
-            
-            handleStepChange('2a');
-          } else {
-            setCaptionId(null);
-            setDraft('');
-            setTitle('');
-
-            
-            if (mapData.countries && Array.isArray(mapData.countries)) {
-              setCountries(mapData.countries.map((c: any) => c.c_code));
-            }
-            
-            handleStepChange('2a');
-          }
-        })
-        .catch(err => {
-          alert('Failed to load map data. Please try again.');
-        });
-    }
+                if (imageUrlParam) {
+        setImageUrl(imageUrlParam);
+        
+        if (stepParam === '2a' && imageIdParam) {
+          setIsLoadingContribution(true);
+          setUploadedImageId(imageIdParam);
+          fetch(`/api/images/${imageIdParam}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.image_type) setImageType(data.image_type);
+              
+              if (data.generated) setDraft(data.generated);
+              
+              let extractedMetadata = data.raw_json?.extracted_metadata;
+              console.log('Raw extracted_metadata:', extractedMetadata);
+              
+              if (!extractedMetadata && data.generated) {
+                try {
+                  const parsedGenerated = JSON.parse(data.generated);
+                  console.log('Parsed generated field:', parsedGenerated);
+                  if (parsedGenerated.metadata) {
+                    extractedMetadata = parsedGenerated;
+                    console.log('Using metadata from generated field');
+                  }
+                } catch (e) {
+                  console.log('Could not parse generated field as JSON:', e);
+                }
+              }
+              
+              if (extractedMetadata) {
+                const metadata = extractedMetadata.metadata || extractedMetadata;
+                console.log('Final metadata to apply:', metadata);
+                if (metadata.title) {
+                  console.log('Setting title to:', metadata.title);
+                  setTitle(metadata.title);
+                }
+                if (metadata.source) {
+                  console.log('Setting source to:', metadata.source);
+                  setSource(metadata.source);
+                }
+                if (metadata.type) {
+                  console.log('Setting event type to:', metadata.type);
+                  setEventType(metadata.type);
+                }
+                if (metadata.epsg) {
+                  console.log('Setting EPSG to:', metadata.epsg);
+                  setEpsg(metadata.epsg);
+                }
+                if (metadata.countries && Array.isArray(metadata.countries)) {
+                  console.log('Setting countries to:', metadata.countries);
+                  setCountries(metadata.countries);
+                }
+              } else {
+                console.log('No metadata found to extract');
+              }
+              
+              setStep('2a');
+              setIsLoadingContribution(false);
+            })
+            .catch(console.error)
+            .finally(() => setIsLoadingContribution(false));
+        }
+      }
   }, [searchParams]);
 
   const resetToStep1 = () => {
@@ -147,7 +222,7 @@ export default function UploadPage() {
     setFile(null);
     setPreview(null);
     setImageUrl(null);
-    setCaptionId(null);
+    
     setDraft('');
     setTitle('');
     setScores({ accuracy: 50, context: 50, usability: 50 });
@@ -162,15 +237,15 @@ export default function UploadPage() {
   const [isFullSizeModalOpen, setIsFullSizeModalOpen] = useState(false);
 
 
-  const onDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const dropped = e.dataTransfer.files?.[0];
     if (dropped) setFile(dropped);
-  }, []);
+  };
 
-  const onFileChange = useCallback((file: File | undefined, _name: string) => {
+  const onFileChange = (file: File | undefined, _name: string) => {
     if (file) setFile(file);
-  }, []);
+  };
 
   useEffect(() => {
     if (!file) {
@@ -242,16 +317,18 @@ export default function UploadPage() {
       );
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
-      setCaptionId(capJson.cap_id);
+      setUploadedImageId(mapIdVal);                     
+
 
       const extractedMetadata = capJson.raw_json?.extracted_metadata;
       if (extractedMetadata) {
-        if (extractedMetadata.title) setTitle(extractedMetadata.title);
-        if (extractedMetadata.source) setSource(extractedMetadata.source);
-        if (extractedMetadata.type) setEventType(extractedMetadata.type);
-        if (extractedMetadata.epsg) setEpsg(extractedMetadata.epsg);
-        if (extractedMetadata.countries && Array.isArray(extractedMetadata.countries)) {
-          setCountries(extractedMetadata.countries);
+        const metadata = extractedMetadata.metadata || extractedMetadata;
+        if (metadata.title) setTitle(metadata.title);
+        if (metadata.source) setSource(metadata.source);
+        if (metadata.type) setEventType(metadata.type);
+        if (metadata.epsg) setEpsg(metadata.epsg);
+        if (metadata.countries && Array.isArray(metadata.countries)) {
+          setCountries(metadata.countries);
         }
       }
 
@@ -264,8 +341,69 @@ export default function UploadPage() {
     }
   }
 
+  async function handleGenerateFromUrl() {
+    if (!imageUrl) return;
+    setIsLoading(true);
+    try {
+      // 1) Create a NEW image from server-side URL fetch
+      const res = await fetch('/api/contribute/from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: imageUrl,
+          source,
+          event_type: eventType,
+          epsg,
+          image_type: imageType,
+          countries,
+        }),
+      });
+      const json = await readJsonSafely(res);
+      if (!res.ok) throw new Error(json.error || 'Upload failed');
+  
+      const newId = json.image_id as string;
+      setUploadedImageId(newId);
+      setImageUrl(json.image_url);
+  
+      const modelName = localStorage.getItem(SELECTED_MODEL_KEY) || undefined;
+      const capRes = await fetch(`/api/images/${newId}/caption`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          title: 'Generated Caption',
+          prompt:
+            'Analyze this crisis map and provide a detailed description of the emergency situation, affected areas, and key information shown in the map.',
+          ...(modelName && { model_name: modelName }),
+        }),
+      });
+      const capJson = await readJsonSafely(capRes);
+      if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
+  
+      const extractedMetadata = capJson.raw_json?.extracted_metadata;
+      if (extractedMetadata) {
+        const metadata = extractedMetadata.metadata || extractedMetadata;
+        if (metadata.title) setTitle(metadata.title);
+        if (metadata.source) setSource(metadata.source);
+        if (metadata.type) setEventType(metadata.type);
+        if (metadata.epsg) setEpsg(metadata.epsg);
+        if (metadata.countries && Array.isArray(metadata.countries)) {
+          setCountries(metadata.countries);
+        }
+      }
+  
+      setDraft(capJson.generated || '');
+      handleStepChange('2a');
+    } catch (err) {
+      handleApiError(err, 'Upload');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+  
+
   async function handleSubmit() {
-    if (!captionId) return alert("No caption to submit");
+    console.log('handleSubmit called with:', { uploadedImageId, title, draft });
+    if (!uploadedImageId) return alert("No image to submit");
     
     try {
       const metadataBody = {
@@ -275,6 +413,7 @@ export default function UploadPage() {
         image_type: imageType,
         countries: countries,
       };
+      console.log('Updating metadata:', metadataBody);
       const metadataRes = await fetch(`/api/images/${uploadedImageId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -290,7 +429,8 @@ export default function UploadPage() {
         context: scores.context,
         usability: scores.usability,
       };
-      const captionRes = await fetch(`/api/captions/${captionId}`, {
+      console.log('Updating caption:', captionBody);
+      const captionRes = await fetch(`/api/images/${uploadedImageId}/caption`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(captionBody),
@@ -306,115 +446,50 @@ export default function UploadPage() {
   }
 
   async function handleDelete() {
+    console.log('handleDelete called with uploadedImageId:', uploadedImageId);
     if (!uploadedImageId) {
-      
-      alert('No caption to delete. Please try refreshing the page.');
+      alert('No image to delete. Please try refreshing the page.');
       return;
     }
     
-    if (confirm("Are you sure you want to delete this caption? This action cannot be undone.")) {
+    if (confirm("Delete this image? This cannot be undone.")) {
       try {
-        const captionsResponse = await fetch(`/api/images/${uploadedImageId}/captions`);
-        let hasOtherCaptions = false;
+        console.log('Deleting image with ID:', uploadedImageId);
+        const res = await fetch(`/api/images/${uploadedImageId}`, {
+          method: "DELETE",
+        });
         
-        if (captionsResponse.ok) {
-          const captions = await captionsResponse.json();
-          hasOtherCaptions = captions.some((cap: any) => cap.cap_id !== captionId);
+        if (!res.ok) {
+          const json = await readJsonSafely(res);
+          throw new Error(json.error || `Delete failed with status ${res.status}`);
         }
         
-        if (hasOtherCaptions) {
-          if (captionId) {
-            const capRes = await fetch(`/api/captions/${captionId}`, {
-              method: "DELETE",
-            });
-            if (!capRes.ok) {
-              throw new Error('Failed to delete caption');
-            }
-          }
+        // If this was a contribution, navigate to explore page
+        if (searchParams.get('isContribution') === 'true') {
+          navigate('/explore');
         } else {
-          const res = await fetch(`/api/images/${uploadedImageId}`, {
-            method: "DELETE",
-          });
-          
-          if (!res.ok) {
-            const json = await readJsonSafely(res);
-    
-            throw new Error(json.error || `Delete failed with status ${res.status}`);
-          }
+          resetToStep1();
         }
-        
-        resetToStep1();
       } catch (err) {
-
         handleApiError(err, 'Delete');
       }
     }
   }
 
-  const handleProcessCaption = useCallback(async () => {
-    if (!uploadedImageId) {
-      alert('No image ID available to create a new caption.');
-      return;
-    }
 
-    setIsLoading(true);
-
-    try {
-      if (captionId) {
-        const captionBody = {
-          title: title,
-          edited: draft || '',
-        };
-        const captionRes = await fetch(`/api/captions/${captionId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(captionBody),
-        });
-        if (!captionRes.ok) throw new Error('Failed to update caption');
-      } else {
-        const capRes = await fetch(
-          `/api/images/${uploadedImageId}/caption`, 
-          { 
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              title: 'New Contribution Caption',
-              prompt: 'Describe this crisis map in detail',
-              ...(localStorage.getItem(SELECTED_MODEL_KEY) && {
-                model_name: localStorage.getItem(SELECTED_MODEL_KEY)!
-              })
-            })
-          }
-        );
-        const capJson = await readJsonSafely(capRes);
-        if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
-
-        setCaptionId(capJson.cap_id);
-        setDraft(capJson.generated);
-      }
-      
-      handleStepChange('2b');
-    } catch (err) {
-      handleApiError(err, 'Create New Caption');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [uploadedImageId, title, captionId, draft]);
 
   return (
     <PageContainer>
-      <div className={styles.uploadContainer} data-step={step}>
-        {/* Drop-zone */}
-        {step === 1 && (
-          <Container
-            heading="Upload Your Image"
-            headingLevel={2}
-            withHeaderBorder
-            withInternalPadding
-            headingClassName="text-center"
-          >
+      <Container
+        heading="Upload Your Image"
+        headingLevel={2}
+        withHeaderBorder
+        withInternalPadding
+        className="max-w-7xl mx-auto"
+      >
+        <div className={styles.uploadContainer} data-step={step}>
+          {/* Drop-zone */}
+          {step === 1 && !searchParams.get('step') && (
             <div className="space-y-6">
               <p className="text-gray-700 leading-relaxed max-w-2xl mx-auto">
                 This app evaluates how well multimodal AI models turn emergency maps
@@ -479,8 +554,7 @@ export default function UploadPage() {
               </label>
               </div>
             </div>
-          </Container>
-        )}
+          )}
 
         {/* Loading state */}
         {isLoading && (
@@ -490,16 +564,33 @@ export default function UploadPage() {
           </div>
         )}
 
+        {/* Loading contribution data */}
+        {isLoadingContribution && (
+          <div className={styles.loadingContainer}>
+            <Spinner className="text-ifrcRed" />
+            <p className={styles.loadingText}>Loading contribution...</p>
+          </div>
+        )}
+
         {/* Generate button */}
         {step === 1 && !isLoading && (
           <div className={styles.generateButtonContainer}>
-            <Button
-              name="generate"
-              disabled={!file}
-              onClick={handleGenerate}
-            >
-              Generate
-            </Button>
+            {imageUrl ? (
+              <Button
+                name="generate-from-url"
+                onClick={handleGenerateFromUrl}
+              >
+                Generate Caption
+              </Button>
+            ) : (
+              <Button
+                name="generate"
+                disabled={!file}
+                onClick={handleGenerate}
+              >
+                Generate
+              </Button>
+            )}
           </div>
         )}
 
@@ -612,18 +703,17 @@ export default function UploadPage() {
                     </IconButton>
                     <Button
                       name="confirm-metadata"
-                      onClick={() => {
-                        if (imageUrl && !file) {
-                          handleProcessCaption();
+                      onClick={async () => {
+                        if (imageUrl && !uploadedImageId) {
+                          await handleGenerateFromUrl();
+                        } else if (imageUrl && !file) {
+                          handleStepChange('2b');
                         } else {
                           handleStepChange('2b');
                         }
                       }}
                     >
-                      {imageUrl && !file ? 
-                        (captionId ? 'Edit Caption' : 'Create New Caption') : 
-                        'Next'
-                      }
+                      Next
                     </Button>
                   </div>
                 </Container>
@@ -778,7 +868,9 @@ export default function UploadPage() {
             </div>
           </div>
         )}
-      </div>
+
+        </div>
+      </Container>
     </PageContainer>
   );
 }

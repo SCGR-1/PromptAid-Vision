@@ -27,20 +27,12 @@ class ImageOut(BaseModel):
     image_type: str
     image_url: str
     countries: List["CountryOut"] = []
-    captions: List["CaptionOut"] = []
-
-    class Config:
-        from_attributes = True
-
-class CaptionOut(BaseModel):
-    cap_id: UUID
-    image_id: UUID
-    title: str
-    prompt: str
-    model: str
-    schema_id: str
-    raw_json: dict
-    generated: str
+    title: Optional[str] = None
+    prompt: Optional[str] = None
+    model: Optional[str] = None
+    schema_id: Optional[str] = None
+    raw_json: Optional[dict] = None
+    generated: Optional[str] = None
     edited: Optional[str] = None
     accuracy: Optional[int] = None
     context: Optional[int] = None
@@ -48,39 +40,17 @@ class CaptionOut(BaseModel):
     starred: bool = False
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-
-class CaptionWithImageOut(BaseModel):
-    cap_id: UUID
-    image_id: UUID
-    title: str
-    prompt: str
-    model: str
-    schema_id: str
-    raw_json: dict
-    generated: str
-    edited: Optional[str] = None
-    accuracy: Optional[int] = None
-    context: Optional[int] = None
-    usability: Optional[int] = None
-    starred: bool = False
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    file_key: str
-    image_url: str
-    source: str
-    event_type: str
-    epsg: str
-    image_type: str
-    countries: List["CountryOut"] = []
 
     class Config:
         from_attributes = True
 
 class CaptionUpdate(BaseModel):
     title: Optional[str] = None
+    prompt: Optional[str] = None
+    model: Optional[str] = None
+    schema_id: Optional[str] = None
+    raw_json: Optional[dict] = None
+    generated: Optional[str] = None
     edited: Optional[str] = None
     accuracy: Optional[int] = None
     context: Optional[int] = None

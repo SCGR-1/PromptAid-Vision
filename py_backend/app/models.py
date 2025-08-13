@@ -74,44 +74,35 @@ class JSONSchema(Base):
 
 class Images(Base):
     __tablename__ = "images"
-
-    image_id   = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    file_key   = Column(String, nullable=False)
-    sha256     = Column(String, nullable=False)
-    source     = Column(String, ForeignKey("sources.s_code"), nullable=False)
-    event_type = Column(String, ForeignKey("event_types.t_code"), nullable=False)
-    epsg       = Column(String, ForeignKey("spatial_references.epsg"), nullable=True)
-    image_type = Column(String, ForeignKey("image_types.image_type"), nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
-    captured_at = Column(TIMESTAMP(timezone=True))
-
-    countries = relationship("Country", secondary=image_countries, backref="images")
-    captions  = relationship("Captions", back_populates="image", cascade="all, delete-orphan")
-
-class Captions(Base):
-    __tablename__ = "captions"
     __table_args__ = (
-        CheckConstraint('accuracy  IS NULL OR (accuracy  BETWEEN 0 AND 100)', name='chk_captions_accuracy'),
-        CheckConstraint('context   IS NULL OR (context   BETWEEN 0 AND 100)', name='chk_captions_context'),
-        CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_captions_usability'),
+        CheckConstraint('accuracy  IS NULL OR (accuracy  BETWEEN 0 AND 100)', name='chk_images_accuracy'),
+        CheckConstraint('context   IS NULL OR (context   BETWEEN 0 AND 100)', name='chk_images_context'),
+        CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_images_usability'),
     )
 
-    cap_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    image_id   = Column(UUID(as_uuid=True), ForeignKey("images.image_id", ondelete="CASCADE"), nullable=False)
-    title      = Column(String, nullable=False)
-    prompt     = Column(String, nullable=False)
-    model      = Column(String, ForeignKey("models.m_code"), nullable=False)
-    schema_id  = Column(String, ForeignKey("json_schemas.schema_id"), nullable=False)
-    raw_json   = Column(JSONB, nullable=False)
-    generated  = Column(Text, nullable=False)
+    image_id    = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    file_key    = Column(String, nullable=False)
+    sha256      = Column(String, nullable=False)
+    source      = Column(String, ForeignKey("sources.s_code"), nullable=False)
+    event_type  = Column(String, ForeignKey("event_types.t_code"), nullable=False)
+    epsg        = Column(String, ForeignKey("spatial_references.epsg"), nullable=False)
+    image_type  = Column(String, ForeignKey("image_types.image_type"), nullable=False)
+    created_at  = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
+    captured_at = Column(TIMESTAMP(timezone=True))
+
+    title      = Column(String, nullable=True)
+    prompt     = Column(String, nullable=True)
+    model      = Column(String, ForeignKey("models.m_code"), nullable=True)
+    schema_id  = Column(String, ForeignKey("json_schemas.schema_id"), nullable=True)
+    raw_json   = Column(JSONB, nullable=True)
+    generated  = Column(Text, nullable=True)
     edited     = Column(Text)
     accuracy   = Column(SmallInteger)
     context    = Column(SmallInteger)
     usability  = Column(SmallInteger)
     starred    = Column(Boolean, default=False)
-    created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
     updated_at = Column(TIMESTAMP(timezone=True), onupdate=datetime.datetime.utcnow)
 
-    image   = relationship("Images", back_populates="captions")
-    schema  = relationship("JSONSchema")
-    model_r = relationship("Models", foreign_keys=[model])
+    countries = relationship("Country", secondary=image_countries, backref="images")
+    schema    = relationship("JSONSchema")
+    model_r   = relationship("Models", foreign_keys=[model])
