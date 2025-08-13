@@ -32,10 +32,10 @@ jobs:
           test -n "$HF_API_KEY" || (echo "Missing GitHub secret HF_API_KEY" && exit 1)
           echo "WHOAMI:"
           curl -sS -H "Authorization: Bearer $HF_API_KEY" https://huggingface.co/api/whoami-v2 || exit 1
-          echo; echo "Check space URL:"
-          curl -sS -o /dev/null -w "HTTP %{http_code}\n" \
+          echo; echo "Check space exists (needs auth for private spaces):"
+          curl -sS -D - -o /dev/null \
             -H "Authorization: Bearer $HF_API_KEY" \
-            https://huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}
+            https://huggingface.co/api/spaces/${HF_USERNAME}/${SPACE_NAME}
 
       - name: Test git auth to HF Space
         env:
