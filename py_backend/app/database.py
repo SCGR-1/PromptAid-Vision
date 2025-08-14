@@ -8,6 +8,10 @@ from .config import settings
 
 raw_db_url = settings.DATABASE_URL
 
+# Clean the URL if it starts with 'psql ' (common in some environments)
+if raw_db_url.startswith("psql '") and raw_db_url.endswith("'"):
+    raw_db_url = raw_db_url[6:-1]  # Remove "psql '" prefix and "'" suffix
+
 # Only add sslmode=require for remote connections, not localhost
 if "sslmode=" not in raw_db_url and "localhost" not in raw_db_url and "127.0.0.1" not in raw_db_url:
     raw_db_url = f"{raw_db_url}{'&' if '?' in raw_db_url else '?'}sslmode=require"
