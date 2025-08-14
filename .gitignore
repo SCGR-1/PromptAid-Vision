@@ -46,3 +46,11 @@ Thumbs.db
 /generated/prisma
 
 backend/postgres-data/
+# Python
+.venv/
+venv/
+**/__pycache__/
+*.pyc
+# Project
+py_backend/.venv/
+backend/postgres-data/
