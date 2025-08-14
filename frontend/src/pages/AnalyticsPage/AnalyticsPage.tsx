@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
         count,
         percentage: Math.round((count / data.totalCaptions) * 100)
       }));
-  }, [data, typesLookup, getTypeLabel]);
+  }, [data, getTypeLabel]);
 
   const sourcesTableData = useMemo(() => {
     if (!data) return [];
@@ -250,7 +250,7 @@ export default function AnalyticsPage() {
         count,
         percentage: Math.round((count / data.totalCaptions) * 100)
       }));
-  }, [data, sourcesLookup, getSourceLabel]);
+  }, [data, getSourceLabel]);
 
   const modelsTableData = useMemo(() => {
     if (!data) return [];

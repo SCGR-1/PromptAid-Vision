@@ -43,11 +43,11 @@ export default function UploadPage() {
   stepRef.current = step;
   uploadedImageIdRef.current = uploadedImageId;
 
-  const handleSourceChange = (value: any) => setSource(String(value));
-  const handleEventTypeChange = (value: any) => setEventType(String(value));
-  const handleEpsgChange = (value: any) => setEpsg(String(value));
-  const handleImageTypeChange = (value: any) => setImageType(String(value));
-  const handleCountriesChange = (value: any) => setCountries(Array.isArray(value) ? value.map(String) : []);
+  const handleSourceChange = (value: string | undefined) => setSource(value || '');
+  const handleEventTypeChange = (value: string | undefined) => setEventType(value || '');
+  const handleEpsgChange = (value: string | undefined) => setEpsg(value || '');
+  const handleImageTypeChange = (value: string | undefined) => setImageType(value || '');
+  const handleCountriesChange = (value: string[] | undefined) => setCountries(Array.isArray(value) ? value : []);
 
   const handleStepChange = (newStep: 1 | '2a' | '2b' | 3) => {
     setStep(newStep);
@@ -243,7 +243,7 @@ export default function UploadPage() {
     if (dropped) setFile(dropped);
   };
 
-  const onFileChange = (file: File | undefined, _name: string) => {
+  const onFileChange = (file: File | undefined) => {
     if (file) setFile(file);
   };
 
@@ -258,7 +258,7 @@ export default function UploadPage() {
   }, [file]); 
 
 
-  async function readJsonSafely(res: Response): Promise<any> {
+  async function readJsonSafely(res: Response): Promise<Record<string, unknown>> {
     const text = await res.text();
     try {
       return text ? JSON.parse(text) : {};
@@ -267,9 +267,8 @@ export default function UploadPage() {
     }
   }
 
-  function handleApiError(err: any, operation: string) {
-    
-    const message = err.message || `Failed to ${operation.toLowerCase()}`;
+  function handleApiError(err: unknown, operation: string) {
+    const message = err instanceof Error ? err.message : `Failed to ${operation.toLowerCase()}`;
     alert(message);
   }
 
@@ -542,7 +541,7 @@ export default function UploadPage() {
                   type="file"
                   accept="image/*"
                   className="sr-only"
-                  onChange={e => onFileChange(e.target.files?.[0], "file")}
+                                     onChange={e => onFileChange(e.target.files?.[0])}
                 />
                 <Button 
                   name="upload" 
