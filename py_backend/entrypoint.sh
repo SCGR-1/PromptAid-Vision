@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-# show the DB host (redacts password automatically in our echo)
 echo "Running alembic upgrade head..."
-alembic upgrade head || { echo "Alembic failed"; exit 1; }
+alembic upgrade head
 
-# start app (use the port Spaces injects)
-exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}
+PORT_TO_USE="${PORT:-7860}"
+echo "Starting server on port ${PORT_TO_USE}"
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT_TO_USE}"
