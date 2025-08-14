@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AlertContext, type AlertContextProps, type AlertParams, LanguageContext, type LanguageContextProps } from '@ifrc-go/ui/contexts';
 import { useCallback, useMemo, useState } from 'react';
 import { unique } from '@togglecorp/fujs';
@@ -11,7 +11,7 @@ import MapDetailPage from './pages/MapDetailsPage';
 import DemoPage from './pages/DemoPage';
 import DevPage from './pages/DevPage';
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     element: <RootLayout />,
     children: [
