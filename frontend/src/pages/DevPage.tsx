@@ -26,10 +26,10 @@ export default function DevPage() {
         
         const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
         if (modelsData.models && modelsData.models.length > 0) {
-          if (persistedModel && modelsData.models.find((m: any) => m.m_code === persistedModel && m.is_available)) {
+          if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
             setSelectedModel(persistedModel);
           } else {
-            const firstAvailableModel = modelsData.models.find((m: any) => m.is_available) || modelsData.models[0];
+            const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || modelsData.models[0];
             setSelectedModel(firstAvailableModel.m_code);
             localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
           }
@@ -64,7 +64,7 @@ export default function DevPage() {
         const errorData = await response.json();
         alert(`Failed to toggle model availability: ${errorData.error || 'Unknown error'}`);
       }
-    } catch (error) {
+    } catch {
       alert('Error toggling model availability');
     }
   };

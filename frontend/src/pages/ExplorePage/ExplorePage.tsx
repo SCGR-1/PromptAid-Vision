@@ -9,7 +9,7 @@ interface ImageWithCaptionOut {
   prompt: string;
   model: string;
   schema_id: string;
-  raw_json: any;
+  raw_json: Record<string, unknown>;
   generated: string;
   edited?: string;
   accuracy?: number;
@@ -59,7 +59,7 @@ export default function ExplorePage() {
       })
       .then(data => {
         if (Array.isArray(data)) {
-          const imagesWithCaptions = data.filter((item: any) => {
+          const imagesWithCaptions = data.filter((item: { title?: string; generated?: string; model?: string }) => {
             const hasCaption = item.title && item.generated && item.model;
             return hasCaption;
           });

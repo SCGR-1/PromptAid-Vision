@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
       setTypesLookup(types);
       setRegionsLookup(regions);
     } catch {
-      
+      // Silently handle errors for lookup data
     }
   }, []);
 
@@ -218,7 +218,7 @@ export default function AnalyticsPage() {
 
     return Object.entries(allRegions)
       .sort(([,a], [,b]) => b.count - a.count)
-      .map(([_, { name, count }], index) => ({
+      .map(([, { name, count }], index) => ({
         id: index + 1,
         name,
         count,
@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
         count,
         percentage: Math.round((count / data.totalCaptions) * 100)
       }));
-  }, [data, typesLookup]);
+  }, [data, typesLookup, getTypeLabel]);
 
   const sourcesTableData = useMemo(() => {
     if (!data) return [];
@@ -250,7 +250,7 @@ export default function AnalyticsPage() {
         count,
         percentage: Math.round((count / data.totalCaptions) * 100)
       }));
-  }, [data, sourcesLookup]);
+  }, [data, sourcesLookup, getSourceLabel]);
 
   const modelsTableData = useMemo(() => {
     if (!data) return [];

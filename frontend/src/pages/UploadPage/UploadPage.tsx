@@ -142,7 +142,7 @@ export default function UploadPage() {
       document.removeEventListener('click', handleGlobalClick, true);
       handleCleanup();
     };
-  }, []);
+  }, [handleNavigation]);
 
   const [imageUrl, setImageUrl] = useState<string|null>(null);
   const [draft, setDraft] = useState('');

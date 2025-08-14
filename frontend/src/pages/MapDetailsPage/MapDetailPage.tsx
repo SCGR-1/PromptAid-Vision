@@ -22,7 +22,7 @@ interface MapOut {
   prompt?: string;
   model?: string;
   schema_id?: string;
-  raw_json?: any;
+  raw_json?: Record<string, unknown>;
   generated?: string;
   edited?: string;
   accuracy?: number;
@@ -77,8 +77,8 @@ export default function MapDetailPage() {
       
       // Check for previous/next items
       await checkNavigationAvailability(id);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
       setIsNavigating(false);
@@ -101,7 +101,7 @@ export default function MapDetailPage() {
       const response = await fetch('/api/images');
       if (response.ok) {
         const images = await response.json();
-        const currentIndex = images.findIndex((img: any) => img.image_id === currentId);
+        const currentIndex = images.findIndex((img: { image_id: string }) => img.image_id === currentId);
         
         setHasPrevious(images.length > 1 && currentIndex > 0);
         setHasNext(images.length > 1 && currentIndex < images.length - 1);
@@ -119,7 +119,7 @@ export default function MapDetailPage() {
       if (!response.ok) return;
       
       const images = await response.json();
-      const currentIndex = images.findIndex((img: any) => img.image_id === mapId);
+      const currentIndex = images.findIndex((img: { image_id: string }) => img.image_id === mapId);
       
       let targetIndex: number;
       if (direction === 'previous') {
@@ -223,9 +223,9 @@ export default function MapDetailPage() {
       const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}`;
       navigate(url);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Contribution failed:', error);
-      alert(`Contribution failed: ${error.message || 'Unknown error'}`);
+      alert(`Contribution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
