@@ -293,10 +293,10 @@ export default function UploadPage() {
     try {
       const mapRes = await fetch('/api/images/', { method: 'POST', body: fd });
       const mapJson = await readJsonSafely(mapRes);
-      if (!mapRes.ok) throw new Error(mapJson.error || 'Upload failed');
-      setImageUrl(mapJson.image_url);
+      if (!mapRes.ok) throw new Error((mapJson.error as string) || 'Upload failed');
+      setImageUrl(mapJson.image_url as string);
 
-      const mapIdVal = mapJson.image_id;
+      const mapIdVal = mapJson.image_id as string;
       if (!mapIdVal) throw new Error('Upload failed: image_id not found');
       setUploadedImageId(mapIdVal);
     
@@ -315,23 +315,23 @@ export default function UploadPage() {
         },
       );
       const capJson = await readJsonSafely(capRes);
-      if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
+      if (!capRes.ok) throw new Error((capJson.error as string) || 'Caption failed');
       setUploadedImageId(mapIdVal);                     
 
 
-      const extractedMetadata = capJson.raw_json?.extracted_metadata;
+      const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
       if (extractedMetadata) {
-        const metadata = extractedMetadata.metadata || extractedMetadata;
-        if (metadata.title) setTitle(metadata.title);
-        if (metadata.source) setSource(metadata.source);
-        if (metadata.type) setEventType(metadata.type);
-        if (metadata.epsg) setEpsg(metadata.epsg);
-        if (metadata.countries && Array.isArray(metadata.countries)) {
-          setCountries(metadata.countries);
+        const metadata = (extractedMetadata as Record<string, unknown>).metadata || extractedMetadata;
+        if ((metadata as Record<string, unknown>).title) setTitle((metadata as Record<string, unknown>).title as string);
+        if ((metadata as Record<string, unknown>).source) setSource((metadata as Record<string, unknown>).source as string);
+        if ((metadata as Record<string, unknown>).type) setEventType((metadata as Record<string, unknown>).type as string);
+        if ((metadata as Record<string, unknown>).epsg) setEpsg((metadata as Record<string, unknown>).epsg as string);
+        if ((metadata as Record<string, unknown>).countries && Array.isArray((metadata as Record<string, unknown>).countries)) {
+          setCountries((metadata as Record<string, unknown>).countries as string[]);
         }
       }
 
-      setDraft(capJson.generated);
+      setDraft(capJson.generated as string);
       handleStepChange('2a');
     } catch (err) {
       handleApiError(err, 'Upload');
@@ -358,11 +358,11 @@ export default function UploadPage() {
         }),
       });
       const json = await readJsonSafely(res);
-      if (!res.ok) throw new Error(json.error || 'Upload failed');
+      if (!res.ok) throw new Error((json.error as string) || 'Upload failed');
   
       const newId = json.image_id as string;
       setUploadedImageId(newId);
-      setImageUrl(json.image_url);
+      setImageUrl(json.image_url as string);
   
       const modelName = localStorage.getItem(SELECTED_MODEL_KEY) || undefined;
       const capRes = await fetch(`/api/images/${newId}/caption`, {
@@ -376,21 +376,21 @@ export default function UploadPage() {
         }),
       });
       const capJson = await readJsonSafely(capRes);
-      if (!capRes.ok) throw new Error(capJson.error || 'Caption failed');
+      if (!capRes.ok) throw new Error((capJson.error as string) || 'Caption failed');
   
-      const extractedMetadata = capJson.raw_json?.extracted_metadata;
+            const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
       if (extractedMetadata) {
-        const metadata = extractedMetadata.metadata || extractedMetadata;
-        if (metadata.title) setTitle(metadata.title);
-        if (metadata.source) setSource(metadata.source);
-        if (metadata.type) setEventType(metadata.type);
-        if (metadata.epsg) setEpsg(metadata.epsg);
-        if (metadata.countries && Array.isArray(metadata.countries)) {
-          setCountries(metadata.countries);
+        const metadata = (extractedMetadata as Record<string, unknown>).metadata || extractedMetadata;
+        if ((metadata as Record<string, unknown>).title) setTitle((metadata as Record<string, unknown>).title as string);
+        if ((metadata as Record<string, unknown>).source) setSource((metadata as Record<string, unknown>).source as string);
+        if ((metadata as Record<string, unknown>).type) setEventType((metadata as Record<string, unknown>).type as string);
+        if ((metadata as Record<string, unknown>).epsg) setEpsg((metadata as Record<string, unknown>).epsg as string);
+        if ((metadata as Record<string, unknown>).countries && Array.isArray((metadata as Record<string, unknown>).countries)) {
+          setCountries((metadata as Record<string, unknown>).countries as string[]);
         }
       }
-  
-      setDraft(capJson.generated || '');
+
+      setDraft((capJson.generated as string) || '');
       handleStepChange('2a');
     } catch (err) {
       handleApiError(err, 'Upload');
@@ -419,7 +419,7 @@ export default function UploadPage() {
         body: JSON.stringify(metadataBody),
       });
       const metadataJson = await readJsonSafely(metadataRes);
-      if (!metadataRes.ok) throw new Error(metadataJson.error || "Metadata update failed");
+      if (!metadataRes.ok) throw new Error((metadataJson.error as string) || "Metadata update failed");
       
       const captionBody = {
         title: title,
@@ -435,7 +435,7 @@ export default function UploadPage() {
         body: JSON.stringify(captionBody),
       });
       const captionJson = await readJsonSafely(captionRes);
-      if (!captionRes.ok) throw new Error(captionJson.error || "Caption update failed");
+      if (!captionRes.ok) throw new Error((captionJson.error as string) || "Caption update failed");
       
       setUploadedImageId(null);
       handleStepChange(3);
@@ -460,7 +460,7 @@ export default function UploadPage() {
         
         if (!res.ok) {
           const json = await readJsonSafely(res);
-          throw new Error(json.error || `Delete failed with status ${res.status}`);
+          throw new Error((json.error as string) || `Delete failed with status ${res.status}`);
         }
         
         // If this was a contribution, navigate to explore page
