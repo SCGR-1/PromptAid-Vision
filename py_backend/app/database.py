@@ -13,7 +13,8 @@ print(f"database: {clean_db_url.split('@')[-1].split('/')[-1]}")
 engine = create_engine(
     clean_db_url,
     echo=True,
-    future=True
+    future=True,
+    pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(
