@@ -67,11 +67,10 @@ async def debug():
 @app.get("/debug-static")
 async def debug_static():
     import os
-    static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
     return {
-        "static_dir": static_dir,
-        "exists": os.path.exists(static_dir),
-        "is_dir": os.path.isdir(static_dir) if os.path.exists(static_dir) else False,
+        "static_dir": STATIC_DIR,
+        "exists": os.path.exists(STATIC_DIR),
+        "is_dir": os.path.isdir(STATIC_DIR) if os.path.exists(STATIC_DIR) else False,
         "current_dir": os.getcwd(),
         "app_dir": os.path.dirname(__file__),
         "parent_dir": os.path.dirname(os.path.dirname(__file__))
