@@ -1,5 +1,6 @@
 # py_backend/app/main.py
 import os
+from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -39,8 +40,14 @@ def root():
 <p><a href="/app/">Open UI</a> • <a href="/docs">API Docs</a></p>"""
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "static")
+print(f"🔍 Looking for static files in: {STATIC_DIR}")  # Debug line
+
 if os.path.isdir(STATIC_DIR):
+    print(f"✅ Static directory found: {STATIC_DIR}")
     app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+else:
+    print(f"❌ Static directory NOT found: {STATIC_DIR}")
+    print(f"📁 Current directory contents: {os.listdir(os.path.dirname(__file__))}")
 
 @app.get("/app/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
@@ -55,6 +62,19 @@ async def debug():
         "message": "Backend is working",
         "timestamp": datetime.now().isoformat(),
         "routes": [route.path for route in app.routes]
+    }
+
+@app.get("/debug-static")
+async def debug_static():
+    import os
+    static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+    return {
+        "static_dir": static_dir,
+        "exists": os.path.exists(static_dir),
+        "is_dir": os.path.isdir(static_dir) if os.path.exists(static_dir) else False,
+        "current_dir": os.getcwd(),
+        "app_dir": os.path.dirname(__file__),
+        "parent_dir": os.path.dirname(os.path.dirname(__file__))
     }
 
 print("🚀 PromptAid Vision API server ready")
