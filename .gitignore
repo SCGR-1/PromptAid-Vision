@@ -69,3 +69,4 @@ venv/
 # Your project
 py_backend/.venv/
 backend/postgres-data/
+backend/uploads/
