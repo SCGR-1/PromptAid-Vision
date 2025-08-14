@@ -63,10 +63,19 @@ jobs:
           echo; echo "LFS objects present locally (should list your media):"
           git lfs ls-files || true
 
+      # Get all LFS files from GitHub before mirroring to the Space
+      - name: Fetch LFS objects from origin
+        run: |
+          git lfs fetch --all origin
+          git lfs checkout   # materialize pointers -> files (optional but safe)
+          git lfs ls-files   # show what LFS will upload
+
+      # Now upload LFS to the Space and push the refs
       - name: Push to HF Space
         run: |
           set -euo pipefail
           git remote remove space 2>/dev/null || true
           git remote add space https://huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}.git
-          # Force to ensure Space main matches GitHub main exactly
+          git lfs push --all space         # upload all LFS objects to the Space remote
           git push space HEAD:main --force
+
