@@ -49,6 +49,13 @@ def spa_fallback(full_path: str):
         return FileResponse(index)
     raise HTTPException(status_code=404, detail="Not Found")
 
+@app.get("/debug")
+async def debug():
+    return {
+        "message": "Backend is working",
+        "timestamp": datetime.now().isoformat(),
+        "routes": [route.path for route in app.routes]
+    }
 
 print("🚀 PromptAid Vision API server ready")
 print("📊 Endpoints: /api/images, /api/captions, /api/metadata, /api/models")
