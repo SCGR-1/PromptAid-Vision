@@ -13,8 +13,13 @@ raw_db_url = settings.DATABASE_URL
 if "sslmode=" not in raw_db_url and "localhost" not in raw_db_url and "127.0.0.1" not in raw_db_url:
     raw_db_url = f"{raw_db_url}{'&' if '?' in raw_db_url else '?'}sslmode=require"
 
-safe_url = make_url(raw_db_url).set(password="***")
-print(f"database url: {safe_url}")  
+# Safely display database URL for logging
+try:
+    safe_url = make_url(raw_db_url).set(password="***")
+    print(f"database url: {safe_url}")
+except Exception as e:
+    print(f"database url: {raw_db_url}")
+    print(f"Warning: Could not parse URL for display: {e}")  
 
 engine = create_engine(
     raw_db_url,            
