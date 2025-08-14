@@ -44,3 +44,5 @@ Thumbs.db
 
 # ─── Prisma (if you’re using it) ────────────────
 /generated/prisma
+
+backend/postgres-data/
