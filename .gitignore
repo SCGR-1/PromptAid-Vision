@@ -56,3 +56,16 @@ py_backend/.venv/
 backend/postgres-data/
 py_backend/.venv/
 backend/postgres-data/
+# Python junk
+.venv/
+venv/
+**/__pycache__/
+*.pyc
+*.pyd
+*.so
+*.dll
+*.exe
+
+# Your project
+py_backend/.venv/
+backend/postgres-data/
