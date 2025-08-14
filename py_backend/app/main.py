@@ -39,7 +39,7 @@ def root():
 <p>OK</p>
 <p><a href="/app/">Open UI</a> • <a href="/docs">API Docs</a></p>"""
 
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "..", "static")
+STATIC_DIR = "/app/static"
 print(f"🔍 Looking for static files in: {STATIC_DIR}")  # Debug line
 
 if os.path.isdir(STATIC_DIR):
