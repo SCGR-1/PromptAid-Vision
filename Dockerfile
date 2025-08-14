@@ -26,4 +26,6 @@ ENV HF_HOME=/data/.cache/huggingface
 # Hugging Face Spaces will set PORT, default to 7860
 ENV PORT=7860
 EXPOSE 7860
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${PORT:-7860}"]
+
+# Use shell form to allow environment variable substitution
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
