@@ -1,3 +1,4 @@
+# .github/workflows/sync-to-hf.yml
 name: Sync to Hugging Face hub
 on:
   push:
@@ -13,42 +14,59 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Configure git
+      - name: Configure git & Git LFS
         run: |
           git config user.name  "GitHub Actions"
           git config user.email "actions@github.com"
           git lfs install --local
 
-      - name: Set vars
+      - name: Set Space path
         run: |
           echo "HF_USERNAME=SCGR" >> $GITHUB_ENV
           echo "SPACE_NAME=Promptaid_Vision" >> $GITHUB_ENV
 
-      - name: Check token & space reachability
+      # Use .netrc so we never print the token in a URL
+      - name: Authenticate to Hugging Face via netrc
+        env:
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+        run: |
+          test -n "$HF_API_KEY" || (echo "❌ Missing GitHub secret HF_API_KEY" && exit 1)
+          cat > ~/.netrc <<EOF
+          machine huggingface.co
+            login ${HF_USERNAME}
+            password ${HF_API_KEY}
+          EOF
+          chmod 600 ~/.netrc
+
+      # Diagnostics — this step will explain any failure (auth/URL/offending files)
+      - name: Diagnose before push
         env:
           HF_API_KEY: ${{ secrets.HF_API_KEY }}
         run: |
           set -euo pipefail
-          test -n "$HF_API_KEY" || (echo "Missing GitHub secret HF_API_KEY" && exit 1)
           echo "WHOAMI:"
           curl -sS -H "Authorization: Bearer $HF_API_KEY" https://huggingface.co/api/whoami-v2 || exit 1
-          echo; echo "Check space exists (needs auth for private spaces):"
-          curl -sS -D - -o /dev/null \
+          echo; echo "Space API check:"
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" \
             -H "Authorization: Bearer $HF_API_KEY" \
             https://huggingface.co/api/spaces/${HF_USERNAME}/${SPACE_NAME}
 
-      - name: Test git auth to HF Space
-        env:
-          HF_API_KEY: ${{ secrets.HF_API_KEY }}
-        run: |
-          set -euo pipefail
-          git ls-remote https://${HF_USERNAME}:${HF_API_KEY}@huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}.git
+          echo; echo "git ls-remote on Space:"
+          git ls-remote https://huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}.git
+
+          echo; echo "Large files (>10MB) in working tree (should be none unless via LFS):"
+          find . -type f -size +10M -not -path "./.git/*" -printf "%p\t%k KB\n" || true
+
+          echo; echo "LFS-tracked patterns:"
+          git lfs track || true
+
+          echo; echo "LFS objects present locally (should list your media):"
+          git lfs ls-files || true
 
       - name: Push to HF Space
-        env:
-          HF_API_KEY: ${{ secrets.HF_API_KEY }}
         run: |
           set -euo pipefail
           git remote remove space 2>/dev/null || true
-          git remote add space https://${HF_USERNAME}:${HF_API_KEY}@huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}.git
-          git push space HEAD:main --force --verbose
+          git remote add space https://huggingface.co/spaces/${HF_USERNAME}/${SPACE_NAME}.git
+          # Force to ensure Space main matches GitHub main exactly
+          git push space HEAD:main --force
