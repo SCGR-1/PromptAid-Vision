@@ -9,6 +9,12 @@ import {
   SettingsIcon,
 } from "@ifrc-go/icons";
 
+declare global {
+  interface Window {
+    confirmNavigationIfNeeded?: (to: string) => void;
+  }
+}
+
 const navItems = [
   { to: "/upload",    label: "Upload",    Icon: UploadCloudLineIcon },
   { to: "/explore",   label: "Explore",   Icon: SearchLineIcon },
@@ -30,8 +36,8 @@ export default function HeaderNav() {
           className="flex items-center gap-4 min-w-0 cursor-pointer group transition-all duration-200 hover:scale-105" 
           onClick={() => {
             if (location.pathname === "/upload") {
-              if ((window as any).confirmNavigationIfNeeded) {
-                (window as any).confirmNavigationIfNeeded('/');
+              if (window.confirmNavigationIfNeeded) {
+                window.confirmNavigationIfNeeded('/');
                 return;
               }
               if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
@@ -68,8 +74,8 @@ export default function HeaderNav() {
                     }`}
                                       onClick={() => {
                     if (location.pathname === "/upload") {
-                      if ((window as any).confirmNavigationIfNeeded) {
-                        (window as any).confirmNavigationIfNeeded(to);
+                      if (window.confirmNavigationIfNeeded) {
+                        window.confirmNavigationIfNeeded(to);
                         return;
                       }
                       if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
@@ -104,8 +110,8 @@ export default function HeaderNav() {
           }`}
           onClick={() => {
             if (location.pathname === "/upload") {
-              if ((window as any).confirmNavigationIfNeeded) {
-                (window as any).confirmNavigationIfNeeded('/help');
+              if (window.confirmNavigationIfNeeded) {
+                window.confirmNavigationIfNeeded('/help');
                 return;
               }
               if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {

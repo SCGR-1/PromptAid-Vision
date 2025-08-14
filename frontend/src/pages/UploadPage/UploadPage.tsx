@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { DragEvent } from 'react';
 import {
   PageContainer, Heading, Button,
@@ -80,7 +80,7 @@ export default function UploadPage() {
 
 
 
-  const handleNavigation = (to: string) => {
+  const handleNavigation = useCallback((to: string) => {
     if (uploadedImageIdRef.current) {
       if (confirm("Leave page? Your uploaded image will be deleted.")) {
         fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" })
@@ -92,17 +92,17 @@ export default function UploadPage() {
     } else {
       navigate(to);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
-    (window as any).confirmNavigationIfNeeded = (to: string) => {
+    window.confirmNavigationIfNeeded = (to: string) => {
       handleNavigation(to);
     };
     
     return () => {
-      delete (window as any).confirmNavigationIfNeeded;
+      delete window.confirmNavigationIfNeeded;
     };
-  }, []);
+  }, [handleNavigation]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

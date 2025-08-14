@@ -1,6 +1,6 @@
 import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput } from '@ifrc-go/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon } from '@ifrc-go/icons';
 import styles from './MapDetailPage.module.css';
 
@@ -63,17 +63,7 @@ export default function MapDetailPage() {
     { key: 'mapDetails' as const, label: 'Map Details' }
   ];
 
-  useEffect(() => {
-    if (!mapId) {
-      setError('Map ID is required');
-      setLoading(false);
-      return;
-    }
-
-    fetchMapData(mapId);
-  }, [mapId]);
-
-  const fetchMapData = async (id: string) => {
+  const fetchMapData = useCallback(async (id: string) => {
     setIsNavigating(true);
     setLoading(true);
     
@@ -93,7 +83,17 @@ export default function MapDetailPage() {
       setLoading(false);
       setIsNavigating(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!mapId) {
+      setError('Map ID is required');
+      setLoading(false);
+      return;
+    }
+
+    fetchMapData(mapId);
+  }, [mapId, fetchMapData]);
 
   const checkNavigationAvailability = async (currentId: string) => {
     try {

@@ -13,7 +13,7 @@ import {
   createNumberColumn,
   numericIdSelector
 } from '@ifrc-go/ui/utils';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import styles from './AnalyticsPage.module.css';
 
 interface AnalyticsData {
@@ -70,6 +70,18 @@ interface ModelData {
   totalScore: number;
 }
 
+interface MapData {
+  source?: string;
+  event_type?: string;
+  countries?: Array<{ r_code?: string }>;
+  captions?: Array<{
+    model?: string;
+    accuracy?: number;
+    context?: number;
+    usability?: number;
+  }>;
+}
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,12 +95,7 @@ export default function AnalyticsPage() {
     { key: 'vlm' as const, label: 'VLM Analytics' }
   ];
 
-  useEffect(() => {
-    fetchAnalytics();
-    fetchLookupData();
-  }, []);
-
-  async function fetchAnalytics() {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/images/');
@@ -102,11 +109,11 @@ export default function AnalyticsPage() {
         models: {},
       };
 
-      maps.forEach((map: any) => {
+      maps.forEach((map: MapData) => {
         if (map.source) analytics.sources[map.source] = (analytics.sources[map.source] || 0) + 1;
         if (map.event_type) analytics.types[map.event_type] = (analytics.types[map.event_type] || 0) + 1;
         if (map.countries) {
-          map.countries.forEach((c: any) => {
+          map.countries.forEach((c) => {
             if (c.r_code) analytics.regions[c.r_code] = (analytics.regions[c.r_code] || 0) + 1;
           });
         }
@@ -155,15 +162,15 @@ export default function AnalyticsPage() {
       });
 
       setData(analytics);
-    } catch (e) {
+    } catch {
       
       setData(null);
     } finally {
       setLoading(false);
     }
-  }
+  }, [sourcesLookup, typesLookup, regionsLookup]);
 
-  async function fetchLookupData() {
+  const fetchLookupData = useCallback(async () => {
     try {
       const [sourcesRes, typesRes, regionsRes] = await Promise.all([
         fetch('/api/sources'),
@@ -176,20 +183,25 @@ export default function AnalyticsPage() {
       setSourcesLookup(sources);
       setTypesLookup(types);
       setRegionsLookup(regions);
-    } catch (e) {
+    } catch {
       
     }
-  }
+  }, []);
 
-  const getSourceLabel = (code: string) => {
+  useEffect(() => {
+    fetchAnalytics();
+    fetchLookupData();
+  }, [fetchAnalytics, fetchLookupData]);
+
+  const getSourceLabel = useCallback((code: string) => {
     const source = sourcesLookup.find(s => s.s_code === code);
     return source ? source.label : code;
-  };
+  }, [sourcesLookup]);
 
-  const getTypeLabel = (code: string) => {
+  const getTypeLabel = useCallback((code: string) => {
     const type = typesLookup.find(t => t.t_code === code);
     return type ? type.label : code;
-  };
+  }, [typesLookup]);
 
   const regionsTableData = useMemo(() => {
     if (!data || !regionsLookup.length) return [];
