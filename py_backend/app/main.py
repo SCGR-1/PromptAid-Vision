@@ -102,18 +102,35 @@ def run_migrations():
         except Exception as e:
             print(f"⚠️ Could not check alembic location: {e}")
         
-        # Check if py_backend directory exists
-        print(f"📁 Checking if /app/py_backend exists: {os.path.exists('/app/py_backend')}")
-        if os.path.exists('/app/py_backend'):
+        # Check the correct directory structure
+        print(f"📁 Checking if /app exists: {os.path.exists('/app')}")
+        if os.path.exists('/app'):
             print(f"📁 Contents of /app: {os.listdir('/app')}")
-            print(f"📁 Contents of /app/py_backend: {os.listdir('/app/py_backend')}")
+        
+        # Find where alembic.ini is located
+        alembic_paths = [
+            "/app/alembic.ini",
+            "/app/py_backend/alembic.ini", 
+            "/app/app/alembic.ini"
+        ]
+        
+        alembic_dir = None
+        for path in alembic_paths:
+            if os.path.exists(path):
+                alembic_dir = os.path.dirname(path)
+                print(f"✅ Found alembic.ini at: {path}")
+                break
+        
+        if not alembic_dir:
+            print("❌ Could not find alembic.ini - checking current directory")
+            alembic_dir = "/app"
         
         # Try to run alembic
         try:
-            print("🔍 Running alembic upgrade head...")
+            print(f"🔍 Running alembic upgrade head from: {alembic_dir}")
             result = subprocess.run(
                 ["alembic", "upgrade", "head"],
-                cwd="/app/py_backend",
+                cwd=alembic_dir,
                 capture_output=True,
                 text=True,
                 timeout=60
