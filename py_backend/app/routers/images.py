@@ -35,17 +35,17 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         
         try:
             # Try to get image content using storage functions
-            if hasattr(storage, 's3') and storage.settings.STORAGE_PROVIDER != "local":
+            if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
                 # S3/MinIO path
                 response = storage.s3.get_object(
-                    Bucket=storage.settings.S3_BUCKET,
+                    Bucket=settings.S3_BUCKET,
                     Key=existing_image.file_key,
                 )
                 data = response["Body"].read()
             else:
                 # Local storage path - read file directly
                 import os
-                file_path = os.path.join(storage.settings.STORAGE_DIR, existing_image.file_key)
+                file_path = os.path.join(settings.STORAGE_DIR, existing_image.file_key)
                 with open(file_path, 'rb') as f:
                     data = f.read()
             

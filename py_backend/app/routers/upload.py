@@ -142,17 +142,17 @@ async def copy_image_for_contribution(
     
     try:
         # Try to get image content using storage functions
-        if hasattr(storage, 's3') and storage.settings.STORAGE_PROVIDER != "local":
+        if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
             # S3/MinIO path
             response = storage.s3.get_object(
-                Bucket=storage.settings.S3_BUCKET,
+                Bucket=settings.S3_BUCKET,
                 Key=source_img.file_key,
             )
             image_content = response["Body"].read()
         else:
             # Local storage path - read file directly
             import os
-            file_path = os.path.join(storage.settings.STORAGE_DIR, source_img.file_key)
+            file_path = os.path.join(settings.STORAGE_DIR, source_img.file_key)
             with open(file_path, 'rb') as f:
                 image_content = f.read()
         
@@ -198,16 +198,16 @@ async def get_image_file(image_id: str, db: Session = Depends(get_db)):
     
     try:
         # Try to get image content using storage functions
-        if hasattr(storage, 's3') and storage.settings.STORAGE_PROVIDER != "local":
+        if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
             # S3/MinIO path
             print(f"🔍 Using S3 storage")
-            response = storage.s3.get_object(Bucket=storage.settings.S3_BUCKET, Key=img.file_key)
+            response = storage.s3.get_object(Bucket=settings.S3_BUCKET, Key=img.file_key)
             content = response['Body'].read()
         else:
             # Local storage path - read file directly
             print(f"🔍 Using local storage")
             import os
-            file_path = os.path.join(storage.settings.STORAGE_DIR, img.file_key)
+            file_path = os.path.join(settings.STORAGE_DIR, img.file_key)
             print(f"📁 Reading from: {file_path}")
             print(f"📁 File exists: {os.path.exists(file_path)}")
             
