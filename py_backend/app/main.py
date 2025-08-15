@@ -94,35 +94,48 @@ def run_migrations():
     try:
         print("🔄 Running database migrations...")
         
-        alembic_paths = [
-            "/usr/local/bin/alembic",
-            "/usr/bin/alembic", 
-            "alembic"
-        ]
+        # Check what's available in the container
+        print("🔍 Checking container environment...")
+        try:
+            result = subprocess.run(["which", "alembic"], capture_output=True, text=True)
+            print(f"📍 Alembic location: {result.stdout.strip() if result.stdout else 'Not found'}")
+        except Exception as e:
+            print(f"⚠️ Could not check alembic location: {e}")
         
-        for alembic_path in alembic_paths:
-            try:
-                print(f"🔍 Trying alembic at: {alembic_path}")
-                result = subprocess.run(
-                    [alembic_path, "upgrade", "head"],
-                    cwd="/app/py_backend",
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                if result.returncode == 0:
-                    print("✅ Database migrations completed successfully")
-                    return
-                else:
-                    print(f"❌ Migration failed with {alembic_path}: {result.stderr}")
-            except FileNotFoundError:
-                print(f"⚠️ Alembic not found at: {alembic_path}")
-                continue
-            except Exception as e:
-                print(f"⚠️ Error with {alembic_path}: {e}")
-                continue
+        # Check if py_backend directory exists
+        print(f"📁 Checking if /app/py_backend exists: {os.path.exists('/app/py_backend')}")
+        if os.path.exists('/app/py_backend'):
+            print(f"📁 Contents of /app: {os.listdir('/app')}")
+            print(f"📁 Contents of /app/py_backend: {os.listdir('/app/py_backend')}")
         
-        print("❌ All alembic paths failed - migrations not completed")
+        # Try to run alembic
+        try:
+            print("🔍 Running alembic upgrade head...")
+            result = subprocess.run(
+                ["alembic", "upgrade", "head"],
+                cwd="/app/py_backend",
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            print(f"📊 Alembic return code: {result.returncode}")
+            print(f"📊 Alembic stdout: {result.stdout}")
+            print(f"📊 Alembic stderr: {result.stderr}")
+            
+            if result.returncode == 0:
+                print("✅ Database migrations completed successfully")
+            else:
+                print(f"❌ Database migrations failed")
+                print("🔄 Trying fallback: create tables directly...")
+                try:
+                    from app.database import engine
+                    from app.models import Base
+                    Base.metadata.create_all(bind=engine)
+                    print("✅ Tables created directly via SQLAlchemy")
+                except Exception as fallback_error:
+                    print(f"❌ Fallback also failed: {fallback_error}")
+        except Exception as e:
+            print(f"❌ Error running alembic: {e}")
         
     except Exception as e:
         print(f"⚠️ Could not run migrations: {e}")
