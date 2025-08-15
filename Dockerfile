@@ -6,6 +6,7 @@
     COPY frontend/ .
     RUN npm run build   # produces /fe/dist
     RUN echo "Frontend built at $(date)" > /fe/build-timestamp.txt
+    RUN echo "Backend updated at $(date)" > /app/backend-timestamp.txt
     
     # ---------- Backend image ----------
     FROM python:3.11-slim

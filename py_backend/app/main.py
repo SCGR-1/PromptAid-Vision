@@ -77,6 +77,35 @@ async def debug_static():
         "parent_dir": os.path.dirname(os.path.dirname(__file__))
     }
 
+@app.get("/debug-storage")
+async def debug_storage():
+    """Debug storage configuration and files"""
+    import os
+    from app.config import settings
+    
+    storage_dir = settings.STORAGE_DIR
+    storage_exists = os.path.exists(storage_dir)
+    
+    files = []
+    if storage_exists:
+        try:
+            for root, dirs, filenames in os.walk(storage_dir):
+                for filename in filenames[:10]:  # Limit to first 10 files
+                    rel_path = os.path.relpath(os.path.join(root, filename), storage_dir)
+                    files.append(rel_path)
+        except Exception as e:
+            files = [f"Error listing files: {e}"]
+    
+    return {
+        "storage_provider": settings.STORAGE_PROVIDER,
+        "storage_dir": storage_dir,
+        "storage_exists": storage_exists,
+        "storage_is_dir": os.path.isdir(storage_dir) if storage_exists else False,
+        "current_dir": os.getcwd(),
+        "sample_files": files[:10],
+        "total_files": len(files) if isinstance(files, list) else 0
+    }
+
 @app.get("/uploads/{file_path:path}")
 async def serve_upload(file_path: str):
     """Serve uploaded files from local storage"""

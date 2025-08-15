@@ -187,30 +187,50 @@ async def copy_image_for_contribution(
 @router.get("/{image_id}/file")
 async def get_image_file(image_id: str, db: Session = Depends(get_db)):
     """Serve the actual image file"""
+    print(f"🔍 Serving image file for image_id: {image_id}")
+    
     img = crud.get_image(db, image_id)
     if not img:
+        print(f"❌ Image not found: {image_id}")
         raise HTTPException(404, "Image not found")
+    
+    print(f"✅ Found image: {img.image_id}, file_key: {img.file_key}")
     
     try:
         # Try to get image content using storage functions
         if hasattr(storage, 's3') and storage.settings.STORAGE_PROVIDER != "local":
             # S3/MinIO path
+            print(f"🔍 Using S3 storage")
             response = storage.s3.get_object(Bucket=storage.settings.S3_BUCKET, Key=img.file_key)
             content = response['Body'].read()
         else:
             # Local storage path - read file directly
+            print(f"🔍 Using local storage")
             import os
             file_path = os.path.join(storage.settings.STORAGE_DIR, img.file_key)
+            print(f"📁 Reading from: {file_path}")
+            print(f"📁 File exists: {os.path.exists(file_path)}")
+            
+            if not os.path.exists(file_path):
+                print(f"❌ File not found at: {file_path}")
+                raise FileNotFoundError(f"Image file not found: {file_path}")
+            
             with open(file_path, 'rb') as f:
                 content = f.read()
+            
+            print(f"✅ Read {len(content)} bytes from file")
         
         import mimetypes
         content_type, _ = mimetypes.guess_type(img.file_key)
         if not content_type:
             content_type = 'application/octet-stream'
         
+        print(f"✅ Serving image with content-type: {content_type}, size: {len(content)} bytes")
         return Response(content=content, media_type=content_type)
     except Exception as e:
+        print(f"❌ Error serving image: {e}")
+        import traceback
+        print(f"🔍 Full traceback: {traceback.format_exc()}")
         raise HTTPException(500, f"Failed to serve image file: {e}")
 
 @router.put("/{image_id}")
