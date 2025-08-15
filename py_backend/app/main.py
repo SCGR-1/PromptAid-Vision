@@ -1,5 +1,6 @@
 # py_backend/app/main.py
 import os
+import subprocess
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -75,6 +76,39 @@ async def debug_static():
         "app_dir": os.path.dirname(__file__),
         "parent_dir": os.path.dirname(os.path.dirname(__file__))
     }
+
+@app.get("/uploads/{file_path:path}")
+async def serve_upload(file_path: str):
+    """Serve uploaded files from local storage"""
+    if settings.STORAGE_PROVIDER != "local":
+        raise HTTPException(status_code=404, detail="Local storage not enabled")
+    
+    file_path_full = os.path.join(settings.STORAGE_DIR, file_path)
+    if not os.path.exists(file_path_full):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    return FileResponse(file_path_full)
+
+def run_migrations():
+    """Run database migrations on startup"""
+    try:
+        print("🔄 Running database migrations...")
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            cwd="/app/py_backend",
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        if result.returncode == 0:
+            print("✅ Database migrations completed successfully")
+        else:
+            print(f"❌ Database migrations failed: {result.stderr}")
+    except Exception as e:
+        print(f"⚠️ Could not run migrations: {e}")
+
+# Run migrations on startup
+run_migrations()
 
 print("🚀 PromptAid Vision API server ready")
 print("📊 Endpoints: /api/images, /api/captions, /api/metadata, /api/models")

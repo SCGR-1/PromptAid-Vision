@@ -1,20 +1,22 @@
 import io
+import os
 import mimetypes
 from uuid import uuid4
 from typing import BinaryIO, Optional
 
-import boto3
-import botocore
-
 from .config import settings
 
-s3 = boto3.client(
-    "s3",
-    endpoint_url=settings.S3_ENDPOINT,
-    aws_access_key_id=settings.S3_ACCESS_KEY,
-    aws_secret_access_key=settings.S3_SECRET_KEY,
-    region_name=getattr(settings, "S3_REGION", None),
-)
+if settings.STORAGE_PROVIDER != "local":
+    import boto3
+    import botocore
+    
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=settings.S3_ENDPOINT,
+        aws_access_key_id=settings.S3_ACCESS_KEY,
+        aws_secret_access_key=settings.S3_SECRET_KEY,
+        region_name=getattr(settings, "S3_REGION", None),
+    )
 
 # Optional settings you can add to your config:
 # - S3_PUBLIC_URL_BASE: str | None  (e.g. "https://cdn.example.com" or bucket website endpoint)
@@ -24,6 +26,11 @@ def _ensure_bucket() -> None:
     """
     Make sure the bucket exists. Safe to call on every upload.
     """
+    if settings.STORAGE_PROVIDER == "local":
+        # For local storage, ensure the storage directory exists
+        os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+        return
+        
     try:
         s3.head_bucket(Bucket=settings.S3_BUCKET)
     except botocore.exceptions.ClientError as e:
@@ -41,6 +48,10 @@ def get_object_url(key: str, *, expires_in: int = 3600) -> str:
     Return a browser-usable URL for the object.
     If S3_PUBLIC_URL_BASE is set, return a public URL. Otherwise, return a presigned URL.
     """
+    if settings.STORAGE_PROVIDER == "local":
+        # For local storage, return a relative path that can be served by FastAPI
+        return f"/uploads/{key}"
+    
     public_base = getattr(settings, "S3_PUBLIC_URL_BASE", None)
     if public_base:
         return f"{public_base.rstrip('/')}/{key}"
@@ -51,6 +62,10 @@ def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
     """
     Returns a presigned URL for GETting the object.
     """
+    if settings.STORAGE_PROVIDER == "local":
+        # For local storage, return a direct URL
+        return f"/uploads/{key}"
+    
     return s3.generate_presigned_url(
         ClientMethod="get_object",
         Params={"Bucket": settings.S3_BUCKET, "Key": key},
@@ -66,9 +81,45 @@ def upload_fileobj(
     cache_control: Optional[str] = "public, max-age=31536000, immutable",
 ) -> str:
     """
-    Upload a file-like object to the configured S3 bucket.
+    Upload a file-like object to the configured storage.
     Returns the object key (not the URL).
     """
+    if settings.STORAGE_PROVIDER == "local":
+        return _upload_local(fileobj, filename, content_type)
+    else:
+        return _upload_s3(fileobj, filename, content_type, cache_control)
+
+def _upload_local(
+    fileobj: BinaryIO,
+    filename: str,
+    content_type: Optional[str] = None,
+) -> str:
+    """Upload to local filesystem"""
+    # Ensure storage directory exists
+    os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+    
+    # Build a namespaced key
+    safe_name = filename or "upload.bin"
+    key = f"maps/{uuid4()}_{safe_name}"
+    filepath = os.path.join(settings.STORAGE_DIR, key)
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
+    # Write file
+    with open(filepath, 'wb') as f:
+        fileobj.seek(0)
+        f.write(fileobj.read())
+    
+    return key
+
+def _upload_s3(
+    fileobj: BinaryIO,
+    filename: str,
+    content_type: Optional[str] = None,
+    cache_control: Optional[str] = "public, max-age=31536000, immutable",
+) -> str:
+    """Upload to S3/MinIO"""
     _ensure_bucket()
 
     # Build a namespaced key; keep original filename tail if helpful
@@ -120,6 +171,32 @@ def copy_object(
     Useful for 'duplicate' endpoints if you already know the source key.
     Returns the NEW object key.
     """
+    if settings.STORAGE_PROVIDER == "local":
+        return _copy_local(src_key, new_filename)
+    else:
+        return _copy_s3(src_key, new_filename, cache_control)
+
+def _copy_local(src_key: str, new_filename: Optional[str] = None) -> str:
+    """Copy file locally"""
+    src_path = os.path.join(settings.STORAGE_DIR, src_key)
+    if not os.path.exists(src_path):
+        raise FileNotFoundError(f"Source file not found: {src_key}")
+    
+    tail = new_filename or src_key.split("/")[-1]
+    dest_key = f"maps/{uuid4()}_{tail}"
+    dest_path = os.path.join(settings.STORAGE_DIR, dest_key)
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    
+    # Copy file
+    with open(src_path, 'rb') as src, open(dest_path, 'wb') as dest:
+        dest.write(src.read())
+    
+    return dest_key
+
+def _copy_s3(src_key: str, new_filename: Optional[str] = None, cache_control: Optional[str] = None) -> str:
+    """Copy file in S3"""
     _ensure_bucket()
     tail = new_filename or src_key.split("/")[-1]
     dest_key = f"maps/{uuid4()}_{tail}"
@@ -143,6 +220,23 @@ def delete_object(key: str) -> None:
     """
     Delete an object (best-effort).
     """
+    if settings.STORAGE_PROVIDER == "local":
+        _delete_local(key)
+    else:
+        _delete_s3(key)
+
+def _delete_local(key: str) -> None:
+    """Delete file locally"""
+    try:
+        file_path = os.path.join(settings.STORAGE_DIR, key)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except (OSError, FileNotFoundError):
+        # Swallow to keep deletes idempotent for callers
+        pass
+
+def _delete_s3(key: str) -> None:
+    """Delete file in S3"""
     try:
         s3.delete_object(Bucket=settings.S3_BUCKET, Key=key)
     except botocore.exceptions.ClientError:
