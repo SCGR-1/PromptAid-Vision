@@ -93,17 +93,37 @@ def run_migrations():
     """Run database migrations on startup"""
     try:
         print("🔄 Running database migrations...")
-        result = subprocess.run(
-            ["alembic", "upgrade", "head"],
-            cwd="/app/py_backend",
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
-        if result.returncode == 0:
-            print("✅ Database migrations completed successfully")
-        else:
-            print(f"❌ Database migrations failed: {result.stderr}")
+        
+        alembic_paths = [
+            "/usr/local/bin/alembic",
+            "/usr/bin/alembic", 
+            "alembic"
+        ]
+        
+        for alembic_path in alembic_paths:
+            try:
+                print(f"🔍 Trying alembic at: {alembic_path}")
+                result = subprocess.run(
+                    [alembic_path, "upgrade", "head"],
+                    cwd="/app/py_backend",
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                if result.returncode == 0:
+                    print("✅ Database migrations completed successfully")
+                    return
+                else:
+                    print(f"❌ Migration failed with {alembic_path}: {result.stderr}")
+            except FileNotFoundError:
+                print(f"⚠️ Alembic not found at: {alembic_path}")
+                continue
+            except Exception as e:
+                print(f"⚠️ Error with {alembic_path}: {e}")
+                continue
+        
+        print("❌ All alembic paths failed - migrations not completed")
+        
     except Exception as e:
         print(f"⚠️ Could not run migrations: {e}")
 
