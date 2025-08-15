@@ -7,6 +7,7 @@
     RUN npm run build   # produces /fe/dist
     RUN echo "Frontend built at $(date)" > /fe/build-timestamp.txt
     RUN echo "Backend updated at $(date)" > /fe/backend-timestamp.txt
+    RUN echo "Complete rebuild forced at $(date)" > /fe/force-rebuild.txt
     
     # ---------- Backend image ----------
     FROM python:3.11-slim
