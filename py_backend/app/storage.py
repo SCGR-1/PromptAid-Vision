@@ -6,6 +6,7 @@ from typing import BinaryIO, Optional
 
 from .config import settings
 
+# Initialize s3 client based on storage provider
 if settings.STORAGE_PROVIDER != "local":
     import boto3
     import botocore
@@ -17,6 +18,19 @@ if settings.STORAGE_PROVIDER != "local":
         aws_secret_access_key=settings.S3_SECRET_KEY,
         region_name=getattr(settings, "S3_REGION", None),
     )
+else:
+    # Create a dummy s3 object for local storage to avoid AttributeError
+    class DummyS3Client:
+        def __init__(self):
+            pass
+        
+        def get_object(self, **kwargs):
+            raise RuntimeError("S3 client not available in local storage mode")
+        
+        def generate_presigned_url(self, **kwargs):
+            raise RuntimeError("S3 client not available in local storage mode")
+    
+    s3 = DummyS3Client()
 
 # Optional settings you can add to your config:
 # - S3_PUBLIC_URL_BASE: str | None  (e.g. "https://cdn.example.com" or bucket website endpoint)

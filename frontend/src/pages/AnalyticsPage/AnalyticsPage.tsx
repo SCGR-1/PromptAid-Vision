@@ -189,9 +189,14 @@ export default function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    fetchAnalytics();
     fetchLookupData();
-  }, [fetchAnalytics, fetchLookupData]);
+  }, []);
+
+  useEffect(() => {
+    if (sourcesLookup.length > 0 && typesLookup.length > 0 && regionsLookup.length > 0) {
+      fetchAnalytics();
+    }
+  }, [sourcesLookup, typesLookup, regionsLookup, fetchAnalytics]);
 
   const getSourceLabel = useCallback((code: string) => {
     const source = sourcesLookup.find(s => s.s_code === code);

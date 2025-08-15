@@ -8,6 +8,7 @@ from ..models import Images, image_countries
 from ..images import CreateImageFromUrlIn, CreateImageFromUrlOut
 from .. import storage
 from ..storage import upload_bytes, get_object_url
+from ..config import settings
 
 router = APIRouter()
 
