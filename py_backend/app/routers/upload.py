@@ -141,11 +141,20 @@ async def copy_image_for_contribution(
         raise HTTPException(404, "Source image not found")
     
     try:
-        response = storage.s3.get_object(
-            Bucket=storage.settings.S3_BUCKET,
-            Key=source_img.file_key,
-        )
-        image_content = response["Body"].read()
+        # Try to get image content using storage functions
+        if hasattr(storage, 's3') and storage.settings.STORAGE_PROVIDER != "local":
+            # S3/MinIO path
+            response = storage.s3.get_object(
+                Bucket=storage.settings.S3_BUCKET,
+                Key=source_img.file_key,
+            )
+            image_content = response["Body"].read()
+        else:
+            # Local storage path - read file directly
+            import os
+            file_path = os.path.join(storage.settings.STORAGE_DIR, source_img.file_key)
+            with open(file_path, 'rb') as f:
+                image_content = f.read()
         
         new_filename = f"contribution_{request.source_image_id}_{int(time.time())}.jpg"
         new_key = storage.upload_fileobj(io.BytesIO(image_content), new_filename)
@@ -183,8 +192,17 @@ async def get_image_file(image_id: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Image not found")
     
     try:
-        response = storage.s3.get_object(Bucket=storage.settings.S3_BUCKET, Key=img.file_key)
-        content = response['Body'].read()
+        # Try to get image content using storage functions
+        if hasattr(storage, 's3') and storage.settings.STORAGE_PROVIDER != "local":
+            # S3/MinIO path
+            response = storage.s3.get_object(Bucket=storage.settings.S3_BUCKET, Key=img.file_key)
+            content = response['Body'].read()
+        else:
+            # Local storage path - read file directly
+            import os
+            file_path = os.path.join(storage.settings.STORAGE_DIR, img.file_key)
+            with open(file_path, 'rb') as f:
+                content = f.read()
         
         import mimetypes
         content_type, _ = mimetypes.guess_type(img.file_key)
@@ -193,7 +211,7 @@ async def get_image_file(image_id: str, db: Session = Depends(get_db)):
         
         return Response(content=content, media_type=content_type)
     except Exception as e:
-        raise HTTPException(500, "Failed to serve image file")
+        raise HTTPException(500, f"Failed to serve image file: {e}")
 
 @router.put("/{image_id}")
 def update_image_metadata(
