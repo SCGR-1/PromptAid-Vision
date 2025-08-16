@@ -1,4 +1,4 @@
-# backend/app/schemas/images.py
+
 from pydantic import BaseModel, AnyHttpUrl, Field
 from typing import List, Optional
 

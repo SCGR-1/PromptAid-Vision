@@ -42,7 +42,6 @@ def _guess_region(alpha2: str) -> str:
 def upgrade():
     op.execute('CREATE EXTENSION IF NOT EXISTS pgcrypto;')
     
-    # Drop any old tables if they exist (idempotent for initial setup)
     op.execute("DROP TABLE IF EXISTS captions CASCADE;")
     op.execute("DROP TABLE IF EXISTS image_countries CASCADE;")
     op.execute("DROP TABLE IF EXISTS images CASCADE;")
@@ -205,7 +204,6 @@ def upgrade():
         )
     op.execute("INSERT INTO countries (c_code,label,r_code) VALUES ('XX','Not Applicable','OTHER')")
 
-    # ---- Images table now includes the single caption/interpretation fields ----
     op.create_table(
         'images',
         sa.Column('image_id', postgresql.UUID(as_uuid=True),
@@ -220,7 +218,6 @@ def upgrade():
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('NOW()'), nullable=False),
         sa.Column('captured_at', sa.TIMESTAMP(timezone=True), nullable=True),
 
-        # --- merged caption fields ---
         sa.Column('title', sa.String(), nullable=True),
         sa.Column('prompt', sa.String(), nullable=True),
         sa.Column('model', sa.String(), sa.ForeignKey('models.m_code'), nullable=True),

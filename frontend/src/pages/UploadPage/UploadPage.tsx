@@ -344,7 +344,6 @@ export default function UploadPage() {
     if (!imageUrl) return;
     setIsLoading(true);
     try {
-      // 1) Create a NEW image from server-side URL fetch
       const res = await fetch('/api/contribute/from-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -463,7 +462,6 @@ export default function UploadPage() {
           throw new Error((json.error as string) || `Delete failed with status ${res.status}`);
         }
         
-        // If this was a contribution, navigate to explore page
         if (searchParams.get('isContribution') === 'true') {
           navigate('/explore');
         } else {

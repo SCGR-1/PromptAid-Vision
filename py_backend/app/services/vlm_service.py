@@ -65,14 +65,12 @@ class VLMServiceManager:
     async def generate_caption(self, image_bytes: bytes, prompt: str, model_name: str | None = None) -> dict:
         """Generate caption using the specified model or fallback to available service."""
         
-        # Find appropriate service
         service = None
         if model_name:
             service = self.services.get(model_name)
             if not service:
                 print(f"Model '{model_name}' not found, using fallback")
         
-        # Fallback to first available service
         if not service and self.services:
             service = next(iter(self.services.values()))
             print(f"Using fallback service: {service.model_name}")

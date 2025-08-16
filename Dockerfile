@@ -28,13 +28,11 @@
     # Copy built frontend into the image (served by FastAPI)
     COPY --from=fe /fe/dist /app/static
     
-    # Data dirs & sensible defaults (you can keep sqlite fallback if you want)
+    # Data dirs & sensible defaults
     RUN mkdir -p /data/uploads && chmod -R 777 /data
-    ENV STORAGE_PROVIDER=local
     ENV STORAGE_DIR=/data/uploads
     ENV HF_HOME=/data/.cache/huggingface
     
-    # Spaces provides PORT; default to 7860 locally
     ENV PORT=7860
     EXPOSE 7860
     

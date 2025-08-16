@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 import sys
 
-# Add the app directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
 from app.services.gpt4v_service import GPT4VService
@@ -20,7 +19,6 @@ async def test_gpt4v_service():
     print("🧪 OpenAI GPT-4 Vision Integration Test")
     print("=" * 60)
     
-    # Check API key
     if not settings.OPENAI_API_KEY:
         print("❌ OPENAI_API_KEY environment variable not set!")
         print("Please set your OpenAI API key in .env:")
@@ -29,7 +27,6 @@ async def test_gpt4v_service():
     
     print(f"✅ OpenAI API Key found: {settings.OPENAI_API_KEY[:10]}...")
     
-    # Find test image
     test_image_path = Path("tests/test.jpg")
     if not test_image_path.exists():
         print(f"❌ Test image not found at: {test_image_path}")
@@ -38,7 +35,6 @@ async def test_gpt4v_service():
     
     print(f"✅ Test image found: {test_image_path}")
     
-    # Initialize GPT4V service
     try:
         gpt4v_service = GPT4VService(settings.OPENAI_API_KEY)
         print(f"✅ GPT4V service initialized: {gpt4v_service.model_name}")
@@ -46,13 +42,11 @@ async def test_gpt4v_service():
         print(f"❌ Failed to initialize GPT4V service: {e}")
         return
     
-    # Read test image
     with open(test_image_path, 'rb') as f:
         image_bytes = f.read()
     
     print(f"📸 Image size: {len(image_bytes)} bytes")
     
-    # Test caption generation
     prompt = "Analyze this crisis map and provide a detailed description of the emergency situation, affected areas, and key information shown in the map."
     
     print(f"\n🎯 Testing with prompt: {prompt}")

@@ -1,4 +1,4 @@
-# py_backend/app/main.py
+
 import os
 import subprocess
 from datetime import datetime
@@ -15,7 +15,7 @@ app = FastAPI(title="PromptAid Vision")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000","http://localhost:5173"],
+    allow_origins=["http://localhost:3000","http://localhost:5173","http://localhost:8000"],
     allow_origin_regex=r"https://.*\.hf\.space$",
     allow_credentials=False,
     allow_methods=["*"],
@@ -40,15 +40,20 @@ def root():
 <p>OK</p>
 <p><a href="/app/">Open UI</a> • <a href="/docs">API Docs</a></p>"""
 
-STATIC_DIR = "/app/static"
-print(f"🔍 Looking for static files in: {STATIC_DIR}")  # Debug line
+if os.path.exists("/app"):
+    STATIC_DIR = "/app/static"
+else:
+    STATIC_DIR = "../frontend/dist"
+
+print(f"Looking for static files in: {STATIC_DIR}")
 
 if os.path.isdir(STATIC_DIR):
-    print(f"✅ Static directory found: {STATIC_DIR}")
+    print(f"Static directory found: {STATIC_DIR}")
     app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 else:
-    print(f"❌ Static directory NOT found: {STATIC_DIR}")
-    print(f"📁 Current directory contents: {os.listdir(os.path.dirname(__file__))}")
+    print(f"Static directory NOT found: {STATIC_DIR}")
+    print(f"Current directory contents: {os.listdir(os.path.dirname(__file__))}")
+    print(f"Parent directory contents: {os.listdir(os.path.dirname(os.path.dirname(__file__)))}")
 
 @app.get("/app/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
@@ -90,7 +95,7 @@ async def debug_storage():
     if storage_exists:
         try:
             for root, dirs, filenames in os.walk(storage_dir):
-                for filename in filenames[:10]:  # Limit to first 10 files
+                for filename in filenames[:10]:
                     rel_path = os.path.relpath(os.path.join(root, filename), storage_dir)
                     files.append(rel_path)
         except Exception as e:
@@ -121,42 +126,42 @@ async def serve_upload(file_path: str):
 def run_migrations():
     """Run database migrations on startup"""
     try:
-        print("🔄 Running database migrations...")
+        print("Running database migrations...")
         
-        # Check what's available in the container
-        print("🔍 Checking container environment...")
+        current_dir = os.getcwd()
+        print(f"Current working directory: {current_dir}")
+        
+        print("Checking container environment...")
         try:
             result = subprocess.run(["which", "alembic"], capture_output=True, text=True)
-            print(f"📍 Alembic location: {result.stdout.strip() if result.stdout else 'Not found'}")
+            print(f"Alembic location: {result.stdout.strip() if result.stdout else 'Not found'}")
         except Exception as e:
-            print(f"⚠️ Could not check alembic location: {e}")
+            print(f"Could not check alembic location: {e}")
         
-        # Check the correct directory structure
-        print(f"📁 Checking if /app exists: {os.path.exists('/app')}")
+        print(f"Checking if /app exists: {os.path.exists('/app')}")
         if os.path.exists('/app'):
-            print(f"📁 Contents of /app: {os.listdir('/app')}")
+            print(f"Contents of /app: {os.listdir('/app')}")
         
-        # Find where alembic.ini is located
         alembic_paths = [
+            "alembic.ini",
+            "../alembic.ini",
+            "py_backend/alembic.ini",
             "/app/alembic.ini",
-            "/app/py_backend/alembic.ini", 
-            "/app/app/alembic.ini"
         ]
         
         alembic_dir = None
         for path in alembic_paths:
             if os.path.exists(path):
                 alembic_dir = os.path.dirname(path)
-                print(f"✅ Found alembic.ini at: {path}")
+                print(f"Found alembic.ini at: {path}")
                 break
         
         if not alembic_dir:
-            print("❌ Could not find alembic.ini - checking current directory")
-            alembic_dir = "/app"
+            print("Could not find alembic.ini - using current directory")
+            alembic_dir = current_dir
         
-        # Try to run alembic
         try:
-            print(f"🔍 Running alembic upgrade head from: {alembic_dir}")
+            print(f"Running alembic upgrade head from: {alembic_dir}")
             result = subprocess.run(
                 ["alembic", "upgrade", "head"],
                 cwd=alembic_dir,
@@ -164,32 +169,52 @@ def run_migrations():
                 text=True,
                 timeout=60
             )
-            print(f"📊 Alembic return code: {result.returncode}")
-            print(f"📊 Alembic stdout: {result.stdout}")
-            print(f"📊 Alembic stderr: {result.stderr}")
+            print(f"Alembic return code: {result.returncode}")
+            print(f"Alembic stdout: {result.stdout}")
+            print(f"Alembic stderr: {result.stderr}")
             
             if result.returncode == 0:
-                print("✅ Database migrations completed successfully")
+                print("Database migrations completed successfully")
             else:
-                print(f"❌ Database migrations failed")
-                print("🔄 Trying fallback: create tables directly...")
+                print(f"Database migrations failed")
+                print("Trying fallback: create tables directly...")
                 try:
                     from app.database import engine
                     from app.models import Base
                     Base.metadata.create_all(bind=engine)
-                    print("✅ Tables created directly via SQLAlchemy")
+                    print("Tables created directly via SQLAlchemy")
                 except Exception as fallback_error:
-                    print(f"❌ Fallback also failed: {fallback_error}")
+                    print(f"Fallback also failed: {fallback_error}")
         except Exception as e:
-            print(f"❌ Error running alembic: {e}")
+            print(f"Error running alembic: {e}")
         
     except Exception as e:
-        print(f"⚠️ Could not run migrations: {e}")
+        print(f"Could not run migrations: {e}")
 
-# Run migrations on startup
+
+def ensure_storage_ready():
+    """Ensure MinIO storage is ready before starting the app"""
+    print(f"Storage provider from settings: '{settings.STORAGE_PROVIDER}'")
+    print(f"S3 endpoint from settings: '{settings.S3_ENDPOINT}'")
+    print(f"S3 bucket from settings: '{settings.S3_BUCKET}'")
+    
+    if settings.STORAGE_PROVIDER == "s3":
+        try:
+            print("Checking MinIO storage connection...")
+            from app.storage import _ensure_bucket
+            _ensure_bucket()
+            print("MinIO storage ready")
+        except Exception as e:
+            print(f"Warning: MinIO storage not ready: {e}")
+            print("Storage operations may fail until MinIO is available")
+    else:
+        print("Using local storage - no external dependencies")
+
 run_migrations()
 
-print("🚀 PromptAid Vision API server ready")
-print("📊 Endpoints: /api/images, /api/captions, /api/metadata, /api/models")
-print(f"🌍 Environment: {settings.ENVIRONMENT}")
-print("🔗 CORS: localhost + *.hf.space")
+ensure_storage_ready()
+
+print("PromptAid Vision API server ready")
+print("Endpoints: /api/images, /api/captions, /api/metadata, /api/models")
+print(f"Environment: {settings.ENVIRONMENT}")
+print("CORS: localhost + *.hf.space")

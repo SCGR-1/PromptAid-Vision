@@ -6,7 +6,6 @@ import requests
 import sys
 import os
 
-# Add the parent directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from app.database import SessionLocal
@@ -18,7 +17,6 @@ def test_explore_page_endpoints():
     
     base_url = "http://localhost:8000/api"
     
-    # Test metadata endpoints
     endpoints = [
         "/sources",
         "/types", 
@@ -52,7 +50,6 @@ def test_images_list_endpoint():
             data = response.json()
             print(f"  + {len(data)} images returned")
             
-            # Check structure of first image
             if data:
                 first_image = data[0]
                 required_fields = ['image_id', 'file_key', 'source', 'type', 'image_url']
@@ -71,7 +68,6 @@ def test_image_detail_endpoint():
     """Test the image detail endpoint"""
     print("\n=== Testing Image Detail Endpoint ===")
     
-    # First get a list of images
     try:
         response = requests.get("http://localhost:8000/api/images/")
         if response.status_code == 200:
@@ -79,7 +75,6 @@ def test_image_detail_endpoint():
             if images:
                 image_id = images[0]['image_id']
                 
-                # Test getting specific image
                 detail_response = requests.get(f"http://localhost:8000/api/images/{image_id}")
                 print(f"GET /api/images/{image_id}: {detail_response.status_code}")
                 
@@ -103,7 +98,6 @@ def test_image_file_endpoint():
     """Test the image file serving endpoint"""
     print("\n=== Testing Image File Endpoint ===")
     
-    # First get a list of images
     try:
         response = requests.get("http://localhost:8000/api/images/")
         if response.status_code == 200:
@@ -111,7 +105,6 @@ def test_image_file_endpoint():
             if images:
                 image_id = images[0]['image_id']
                 
-                # Test getting image file
                 file_response = requests.get(f"http://localhost:8000/api/images/{image_id}/file")
                 print(f"GET /api/images/{image_id}/file: {file_response.status_code}")
                 
@@ -133,27 +126,22 @@ def test_filtering_functionality():
     """Test the filtering functionality"""
     print("\n=== Testing Filtering Functionality ===")
     
-    # Test filtering by source
     try:
         response = requests.get("http://localhost:8000/api/images/")
         if response.status_code == 200:
             images = response.json()
             if images:
-                # Get unique sources
                 sources = list(set(img['source'] for img in images))
                 print(f"  + Available sources: {sources}")
                 
-                # Test filtering by first source
                 if sources:
                     first_source = sources[0]
                     filtered_images = [img for img in images if img['source'] == first_source]
                     print(f"  + Filtered by source '{first_source}': {len(filtered_images)} images")
                 
-                # Get unique types
                 types = list(set(img['type'] for img in images))
                 print(f"  + Available types: {types}")
                 
-                # Test filtering by first type
                 if types:
                     first_type = types[0]
                     filtered_images = [img for img in images if img['type'] == first_type]
@@ -172,15 +160,12 @@ def test_database_consistency():
     
     db = SessionLocal()
     try:
-        # Check if images exist
         images = db.query(models.Images).all()
         print(f"  + Total images in database: {len(images)}")
         
-        # Check if images have caption data
         images_with_captions = db.query(models.Images).filter(models.Images.title.isnot(None)).all()
         print(f"  + Images with caption data: {len(images_with_captions)}")
         
-        # Check metadata tables
         sources = db.query(models.Source).all()
         print(f"  + Total sources: {len(sources)}")
         
@@ -190,7 +175,6 @@ def test_database_consistency():
         countries = db.query(models.Country).all()
         print(f"  + Total countries: {len(countries)}")
         
-        # Check relationships
         images_with_countries = db.query(models.Images).join(models.Images.countries).all()
         print(f"  + Images with countries: {len(images_with_countries)}")
         
@@ -205,7 +189,6 @@ def create_test_data():
     
     db = SessionLocal()
     try:
-        # Create a test image
         test_content = b"test image data for explore page"
         key = storage.upload_fileobj(io.BytesIO(test_content), "explore_test.jpg")
         
@@ -221,7 +204,6 @@ def create_test_data():
         )
         print(f"  + Created test image: {img.image_id}")
         
-        # Create a test caption
         caption = crud.create_caption(
             db=db,
             image_id=img.image_id,
@@ -259,10 +241,8 @@ def cleanup_test_data(image_id):
 if __name__ == "__main__":
     print("Starting Explore Page Tests...")
     
-    # Create test data
     test_image_id = create_test_data()
     
-    # Run tests
     test_explore_page_endpoints()
     test_images_list_endpoint()
     test_image_detail_endpoint()
@@ -270,7 +250,6 @@ if __name__ == "__main__":
     test_filtering_functionality()
     test_database_consistency()
     
-    # Clean up
     if test_image_id:
         cleanup_test_data(test_image_id)
     

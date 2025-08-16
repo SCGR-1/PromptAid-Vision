@@ -4,7 +4,6 @@
 import sys
 import os
 
-# Add the parent directory to the path so we can import app modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import requests
@@ -19,11 +18,9 @@ def test_database_connection():
     try:
         print("Testing database connection...")
         
-        # Test basic query
         sources = db.query(models.Source).all()
         print(f"Found {len(sources)} sources in database")
         
-        # Test image creation
         test_img = models.Images(
             file_key="test_key",
             sha256="test_sha",
@@ -43,7 +40,6 @@ def test_database_connection():
         db.commit()
         print(f"Created test image with ID: {test_img.image_id}")
         
-        # Clean up
         db.delete(test_img)
         db.commit()
         print("Test completed successfully - database is working")
@@ -60,7 +56,6 @@ def test_crud_functions():
     try:
         print("Testing CRUD functions...")
         
-        # Test create_image
         img = crud.create_image(
             db=db,
             src="OTHER",
@@ -73,7 +68,6 @@ def test_crud_functions():
         )
         print(f"CRUD create_image successful: {img.image_id}")
         
-        # Test create_caption
         caption = crud.create_caption(
             db=db,
             image_id=img.image_id,
@@ -85,7 +79,6 @@ def test_crud_functions():
         )
         print(f"CRUD create_caption successful for image: {caption.image_id}")
         
-        # Clean up
         db.delete(img)
         db.commit()
         print("CRUD test completed successfully")
@@ -100,11 +93,9 @@ def test_complete_upload_flow():
     """Test the complete upload flow: upload → create caption → submit caption"""
     print("=== Testing Complete Upload Flow ===")
     
-    # Create test image data
     test_content = b"test image data for upload flow"
     test_filename = "test_upload.jpg"
     
-    # Step 1: Upload image via API
     print("1. Uploading image via API...")
     files = {'file': (test_filename, io.BytesIO(test_content), 'image/jpeg')}
     data = {
@@ -124,7 +115,6 @@ def test_complete_upload_flow():
             image_id = upload_result['image_id']
             print(f"Upload successful! Image ID: {image_id}")
             
-            # Step 2: Create caption via API
             print("2. Creating caption via API...")
             caption_data = {
                 'title': 'Test Caption',
@@ -139,10 +129,9 @@ def test_complete_upload_flow():
             
             if caption_response.status_code == 200:
                 caption_result = caption_response.json()
-                caption_id = caption_result['image_id']  # Now using image_id instead of cap_id
+                caption_id = caption_result['image_id']
                 print(f"Caption created successfully! Caption ID: {caption_id}")
                 
-                # Step 3: Submit caption via API
                 print("3. Submitting caption via API...")
                 submit_data = {
                     'title': 'Test Caption',
@@ -161,7 +150,6 @@ def test_complete_upload_flow():
                 if submit_response.status_code == 200:
                     print("Caption submitted successfully!")
                     
-                    # Verify in database
                     print("4. Verifying in database...")
                     db = SessionLocal()
                     try:
@@ -191,11 +179,9 @@ def test_deletion_logic():
     """Test the deletion logic for images"""
     print("=== Testing Deletion Logic ===")
     
-    # Create test image data
     test_content = b"test image data for deletion test"
     test_filename = "test_deletion.jpg"
     
-    # Step 1: Upload image via API
     print("1. Uploading image via API...")
     files = {'file': (test_filename, io.BytesIO(test_content), 'image/jpeg')}
     data = {
@@ -215,7 +201,6 @@ def test_deletion_logic():
             image_id = upload_result['image_id']
             print(f"Upload successful! Image ID: {image_id}")
             
-            # Step 2: Create caption via API
             print("2. Creating caption via API...")
             caption_data = {
                 'title': 'Test Caption for Deletion',
@@ -231,7 +216,6 @@ def test_deletion_logic():
             if caption_response.status_code == 200:
                 print("Caption created successfully!")
                 
-                # Step 3: Test image deletion
                 print("3. Testing image deletion...")
                 delete_response = requests.delete(
                     f'http://localhost:8080/api/images/{image_id}'
@@ -241,7 +225,6 @@ def test_deletion_logic():
                 if delete_response.status_code == 200:
                     print("Image deleted successfully!")
                     
-                    # Verify image is completely removed
                     print("4. Verifying image deletion...")
                     db = SessionLocal()
                     try:

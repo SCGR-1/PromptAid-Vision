@@ -80,28 +80,23 @@ async def create_caption(
         raise HTTPException(404, "image not found")
 
     try:
-        # Try to get image bytes using storage functions
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
-            # S3/MinIO path
             response = storage.s3.get_object(
                 Bucket=settings.S3_BUCKET,
                 Key=img.file_key,
             )
             img_bytes = response["Body"].read()
         else:
-            # Local storage path - read file directly
             import os
             file_path = os.path.join(settings.STORAGE_DIR, img.file_key)
             with open(file_path, 'rb') as f:
                 img_bytes = f.read()
     except Exception as e:
         print(f"Error reading image file: {e}")
-        # Fallback: try to get via URL
         try:
             url = storage.generate_presigned_url(img.file_key)
             if url.startswith('/'):
-                # Local storage - construct full URL
-                url = f"http://localhost:7860{url}"
+                url = f"http://localhost:8000{url}"
             import requests
             resp = requests.get(url)
             resp.raise_for_status()
@@ -144,9 +139,8 @@ async def create_caption(
     from .upload import convert_image_to_dict
     try:
         url = storage.generate_presigned_url(c.file_key, expires_in=3600)
-        # For local storage, ensure we have a full URL
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
-            url = f"http://localhost:7860{url}"
+            url = f"http://localhost:8000{url}"
     except Exception:
         url = f"/api/images/{c.image_id}/file"
     
@@ -173,9 +167,8 @@ def get_caption(
     from .upload import convert_image_to_dict
     try:
         url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
-        # For local storage, ensure we have a full URL
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
-            url = f"http://localhost:7860{url}"
+            url = f"http://localhost:8000{url}"
     except Exception:
         url = f"/api/images/{caption.image_id}/file"
     

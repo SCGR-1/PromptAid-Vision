@@ -46,12 +46,10 @@ export default function MapDetailPage() {
   const [regions, setRegions] = useState<{r_code: string, label: string}[]>([]);
   const [countries, setCountries] = useState<{c_code: string, label: string, r_code: string}[]>([]);
   
-  // Carousel state
   const [hasPrevious, setHasPrevious] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   
-  // Search and filter state
   const [search, setSearch] = useState('');
   const [srcFilter, setSrcFilter] = useState('');
   const [catFilter, setCatFilter] = useState('');
@@ -75,7 +73,6 @@ export default function MapDetailPage() {
       const data = await response.json();
       setMap(data);
       
-      // Check for previous/next items
       await checkNavigationAvailability(id);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -97,7 +94,6 @@ export default function MapDetailPage() {
 
   const checkNavigationAvailability = async (currentId: string) => {
     try {
-      // Fetch all image IDs to determine navigation
       const response = await fetch('/api/images');
       if (response.ok) {
         const images = await response.json();
@@ -123,10 +119,8 @@ export default function MapDetailPage() {
       
       let targetIndex: number;
       if (direction === 'previous') {
-        // Wrap around to the last item if at the beginning
         targetIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
       } else {
-        // Wrap around to the first item if at the end
         targetIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1;
       }
       
@@ -155,18 +149,15 @@ export default function MapDetailPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Filter the current map based on search and filter criteria
   const filteredMap = useMemo(() => {
     if (!map) return null;
     
-    // Check if map matches search criteria
     const matchesSearch = !search || 
       map.title?.toLowerCase().includes(search.toLowerCase()) ||
       map.generated?.toLowerCase().includes(search.toLowerCase()) ||
       map.source?.toLowerCase().includes(search.toLowerCase()) ||
       map.event_type?.toLowerCase().includes(search.toLowerCase());
     
-    // Check if map matches filter criteria
     const matchesSource = !srcFilter || map.source === srcFilter;
     const matchesCategory = !catFilter || map.event_type === catFilter;
     const matchesRegion = !regionFilter || 

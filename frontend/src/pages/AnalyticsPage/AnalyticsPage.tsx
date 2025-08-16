@@ -184,7 +184,6 @@ export default function AnalyticsPage() {
       setTypesLookup(types);
       setRegionsLookup(regions);
     } catch {
-      // Silently handle errors for lookup data
     }
   }, []);
 

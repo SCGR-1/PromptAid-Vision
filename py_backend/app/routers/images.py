@@ -21,37 +21,34 @@ def get_db():
 
 @router.post("/from-url", response_model=CreateImageFromUrlOut)
 async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Depends(get_db)):
-    print(f"DEBUG: Received payload: {payload}")
     try:
-        if payload.url.startswith('/api/images/') and '/file' in payload.url:
-            image_id = payload.url.split('/api/images/')[1].split('/file')[0]
-            print(f"DEBUG: Extracted image_id: {image_id}")
+        if '/api/images/' in payload.url and '/file' in payload.url:
+            url_parts = payload.url.split('/api/images/')
+            if len(url_parts) > 1:
+                image_id = url_parts[1].split('/file')[0]
+            else:
+                raise HTTPException(status_code=400, detail="Invalid image URL format")
         else:
             raise HTTPException(status_code=400, detail="Invalid image URL format")
         
         existing_image = db.query(Images).filter(Images.image_id == image_id).first()
         if not existing_image:
             raise HTTPException(status_code=404, detail="Source image not found")
-        print(f"DEBUG: Found existing image: {existing_image.image_id}")
         
         try:
-            # Try to get image content using storage functions
             if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
-                # S3/MinIO path
                 response = storage.s3.get_object(
                     Bucket=settings.S3_BUCKET,
                     Key=existing_image.file_key,
                 )
                 data = response["Body"].read()
             else:
-                # Local storage path - read file directly
                 import os
                 file_path = os.path.join(settings.STORAGE_DIR, existing_image.file_key)
                 with open(file_path, 'rb') as f:
                     data = f.read()
             
             content_type = "image/jpeg"
-            print(f"DEBUG: Downloaded image data: {len(data)} bytes")
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to fetch image from storage: {e}")
         
@@ -61,10 +58,8 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         ext = mimetypes.guess_extension(content_type) or ".jpg"
         key = upload_bytes(data, filename=f"contributed{ext}", content_type=content_type)
         image_url = get_object_url(key, expires_in=86400)
-        print(f"DEBUG: Uploaded new image with key: {key}")
 
         sha = hashlib.sha256(data).hexdigest()
-        print(f"DEBUG: Creating new Images object...")
 
         img = Images(
             file_key=key,
@@ -85,22 +80,17 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
             usability=50,
             starred=False
         )
-        print(f"DEBUG: Images object created: {img}")
         db.add(img)
-        db.flush()  # get image_id
-        print(f"DEBUG: New image_id: {img.image_id}")
+        db.flush()
 
         for c in payload.countries:
             db.execute(image_countries.insert().values(image_id=img.image_id, c_code=c))
 
         db.commit()
-        print(f"DEBUG: Database commit successful")
 
         result = CreateImageFromUrlOut(image_id=str(img.image_id), image_url=image_url)
-        print(f"DEBUG: Returning result: {result}")
         return result
         
     except Exception as e:
-        print(f"DEBUG: Exception occurred: {type(e).__name__}: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create image: {str(e)}")

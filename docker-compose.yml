@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: promptaid
       POSTGRES_DB: promptaid
     ports:
-      - "5433:5432"
+      - "5434:5432"  # Changed from 5433 to avoid conflict
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -31,6 +31,7 @@ services:
     environment:
       MINIO_ROOT_USER: promptaid
       MINIO_ROOT_PASSWORD: promptaid
+      MINIO_DEFAULT_BUCKETS: promptaid
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -38,6 +39,29 @@ services:
       - minio_data:/data
     depends_on:
       - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://promptaid:promptaid@postgres:5432/promptaid
+      - S3_ENDPOINT=http://minio:9000  # Override for container networking
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./py_backend:/app
+      - /app/__pycache__
 
 volumes:
   pgdata:
