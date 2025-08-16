@@ -193,22 +193,24 @@ def run_migrations():
 
 
 def ensure_storage_ready():
-    """Ensure MinIO storage is ready before starting the app"""
+    """Ensure storage is ready before starting the app"""
     print(f"Storage provider from settings: '{settings.STORAGE_PROVIDER}'")
     print(f"S3 endpoint from settings: '{settings.S3_ENDPOINT}'")
     print(f"S3 bucket from settings: '{settings.S3_BUCKET}'")
     
     if settings.STORAGE_PROVIDER == "s3":
         try:
-            print("Checking MinIO storage connection...")
+            print("Checking S3 storage connection...")
             from app.storage import _ensure_bucket
             _ensure_bucket()
-            print("MinIO storage ready")
+            print("S3 storage ready")
         except Exception as e:
-            print(f"Warning: MinIO storage not ready: {e}")
-            print("Storage operations may fail until MinIO is available")
-    else:
+            print(f"Warning: S3 storage not ready: {e}")
+            print("Storage operations may fail until S3 is available")
+    elif settings.STORAGE_PROVIDER == "local":
         print("Using local storage - no external dependencies")
+    else:
+        print(f"Unknown storage provider: {settings.STORAGE_PROVIDER}")
 
 run_migrations()
 
