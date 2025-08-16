@@ -36,7 +36,6 @@ def convert_image_to_dict(img, image_url):
             print(f"Warning: Error processing countries for image {img.image_id}: {e}")
             countries_list = []
     
-    # Handle image URL - if BASE_URL is set, use it; otherwise keep relative URLs
     if image_url and image_url.startswith('/') and settings.BASE_URL:
         image_url = f"{settings.BASE_URL}{image_url}"
     
@@ -123,7 +122,7 @@ async def upload_image(
         raise HTTPException(500, f"Failed to save image to database: {str(e)}")
 
     try:
-        url = storage.generate_presigned_url(key, expires_in=3600)
+        url = storage.get_object_url(key)
     except Exception as e:
         url = f"/api/images/{img.image_id}/file"
 
@@ -171,7 +170,7 @@ async def copy_image_for_contribution(
         )
         
         try:
-            url = storage.generate_presigned_url(new_key, expires_in=3600)
+            url = storage.get_object_url(new_key)
         except Exception as e:
             url = f"/api/images/{new_img.image_id}/file"
         
@@ -196,9 +195,16 @@ async def get_image_file(image_id: str, db: Session = Depends(get_db)):
     
     try:
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
-            print(f"🔍 Using S3 storage")
-            response = storage.s3.get_object(Bucket=settings.S3_BUCKET, Key=img.file_key)
-            content = response['Body'].read()
+            print(f"🔍 Using S3 storage - redirecting to S3 URL")
+            try:
+                url = storage.get_object_url(img.file_key)
+                from fastapi.responses import RedirectResponse
+                return RedirectResponse(url=url, status_code=302)
+            except Exception as e:
+                print(f"❌ Failed to generate S3 URL: {e}")
+                # Fallback to direct S3 object serving
+                response = storage.s3.get_object(Bucket=settings.S3_BUCKET, Key=img.file_key)
+                content = response['Body'].read()
         else:
             print(f"🔍 Using local storage")
             import os
@@ -269,7 +275,7 @@ def update_image_metadata(
         print(f"DEBUG: Metadata update successful for image {image_id}")
         
         try:
-            url = storage.generate_presigned_url(img.file_key, expires_in=3600)
+            url = storage.get_object_url(img.file_key)
         except Exception:
             url = f"/api/images/{img.image_id}/file"
         

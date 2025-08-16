@@ -94,7 +94,7 @@ async def create_caption(
     except Exception as e:
         print(f"Error reading image file: {e}")
         try:
-            url = storage.generate_presigned_url(img.file_key)
+            url = storage.get_object_url(img.file_key)
             if url.startswith('/'):
                 url = f"http://localhost:8000{url}"
             import requests
@@ -138,7 +138,7 @@ async def create_caption(
     
     from .upload import convert_image_to_dict
     try:
-        url = storage.generate_presigned_url(c.file_key, expires_in=3600)
+                    url = storage.get_object_url(c.file_key)
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
             url = f"http://localhost:8000{url}"
     except Exception:
@@ -166,7 +166,7 @@ def get_caption(
     
     from .upload import convert_image_to_dict
     try:
-        url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
+        url = storage.get_object_url(caption.file_key)
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
             url = f"http://localhost:8000{url}"
     except Exception:
@@ -196,7 +196,7 @@ def get_captions_by_image(
         db.refresh(caption)
         
         try:
-            url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
+            url = storage.get_object_url(caption.file_key)
         except Exception:
             url = f"/api/images/{caption.image_id}/file"
         
@@ -228,7 +228,7 @@ def get_all_captions_with_images(
         db.refresh(caption)
         
         try:
-            url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
+            url = storage.get_object_url(caption.file_key)
         except Exception:
             url = f"/api/images/{caption.image_id}/file"
         
@@ -254,13 +254,13 @@ def update_caption(
     db.refresh(caption)
     
     from .upload import convert_image_to_dict
-    try:
-        url = storage.generate_presigned_url(caption.file_key, expires_in=3600)
-    except Exception:
-        url = f"/api/images/{caption.image_id}/file"
-    
-    if url and url.startswith('/') and settings.BASE_URL:
-        url = f"{settings.BASE_URL}{url}"
+            try:
+            url = storage.get_object_url(caption.file_key)
+        except Exception:
+            url = f"/api/images/{caption.image_id}/file"
+        
+        if url and url.startswith('/') and settings.BASE_URL:
+            url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(caption, url)
     return schemas.ImageOut(**img_dict)
