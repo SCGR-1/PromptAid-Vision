@@ -138,7 +138,7 @@ async def create_caption(
     
     from .upload import convert_image_to_dict
     try:
-                    url = storage.get_object_url(c.file_key)
+        url = storage.get_object_url(c.file_key)
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
             url = f"http://localhost:8000{url}"
     except Exception:
@@ -254,13 +254,13 @@ def update_caption(
     db.refresh(caption)
     
     from .upload import convert_image_to_dict
-            try:
-            url = storage.get_object_url(caption.file_key)
-        except Exception:
-            url = f"/api/images/{caption.image_id}/file"
-        
-        if url and url.startswith('/') and settings.BASE_URL:
-            url = f"{settings.BASE_URL}{url}"
+    try:
+        url = storage.get_object_url(caption.file_key)
+    except Exception:
+        url = f"/api/images/{caption.image_id}/file"
+    
+    if url and url.startswith('/') and settings.BASE_URL:
+        url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(caption, url)
     return schemas.ImageOut(**img_dict)
