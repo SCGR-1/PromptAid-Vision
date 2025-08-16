@@ -144,7 +144,7 @@ async def create_caption(
     except Exception:
         url = f"/api/images/{c.image_id}/file"
     
-    if url and url.startswith('/'):
+    if url and url.startswith('/') and settings.BASE_URL:
         url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(c, url)
@@ -173,7 +173,7 @@ def get_caption(
         url = f"/api/images/{caption.image_id}/file"
     
 
-    if url and url.startswith('/'):
+    if url and url.startswith('/') and settings.BASE_URL:
         url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(caption, url)
@@ -200,7 +200,7 @@ def get_captions_by_image(
         except Exception:
             url = f"/api/images/{caption.image_id}/file"
         
-        if url and url.startswith('/'):
+        if url and url.startswith('/') and settings.BASE_URL:
             url = f"{settings.BASE_URL}{url}"
         
         img_dict = convert_image_to_dict(caption, url)
@@ -259,7 +259,7 @@ def update_caption(
     except Exception:
         url = f"/api/images/{caption.image_id}/file"
     
-    if url and url.startswith('/'):
+    if url and url.startswith('/') and settings.BASE_URL:
         url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(caption, url)

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     STORAGE_PROVIDER: str = "local"
     STORAGE_DIR: str = "/data/uploads"
     HF_HOME: str = "/data/.cache/huggingface"
-    BASE_URL: str = "http://localhost:8080"
+    BASE_URL: str = "https://huggingface.co/spaces/promptAId/Promptaid-VIsion" 
     
     class Config:
         env_file = ".env"

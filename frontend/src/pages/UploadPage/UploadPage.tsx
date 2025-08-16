@@ -558,7 +558,7 @@ export default function UploadPage() {
         {isLoading && (
           <div className={styles.loadingContainer}>
             <Spinner className="text-ifrcRed" />
-            <p className={styles.loadingText}>Generating caption...</p>
+                                <p className={styles.loadingText}>Generating...</p>
           </div>
         )}
 
