@@ -74,12 +74,10 @@ interface MapData {
   source?: string;
   event_type?: string;
   countries?: Array<{ r_code?: string }>;
-  captions?: Array<{
-    model?: string;
-    accuracy?: number;
-    context?: number;
-    usability?: number;
-  }>;
+  model?: string;
+  accuracy?: number;
+  context?: number;
+  usability?: number;
 }
 
 export default function AnalyticsPage() {
@@ -117,13 +115,13 @@ export default function AnalyticsPage() {
             if (c.r_code) analytics.regions[c.r_code] = (analytics.regions[c.r_code] || 0) + 1;
           });
         }
-        if (map.captions && map.captions.length > 0 && map.captions[0].model) {
-          const m = map.captions[0].model;
+        if (map.model) {
+          const m = map.model;
           const ctr = analytics.models[m] ||= { count: 0, avgAccuracy: 0, avgContext: 0, avgUsability: 0, totalScore: 0 };
           ctr.count++;
-          if (map.captions[0].accuracy != null) ctr.avgAccuracy += map.captions[0].accuracy;
-          if (map.captions[0].context != null) ctr.avgContext += map.captions[0].context;
-          if (map.captions[0].usability != null) ctr.avgUsability += map.captions[0].usability;
+          if (map.accuracy != null) ctr.avgAccuracy += map.accuracy;
+          if (map.context != null) ctr.avgContext += map.context;
+          if (map.usability != null) ctr.avgUsability += map.usability;
         }
       });
 

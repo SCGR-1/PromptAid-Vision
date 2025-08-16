@@ -1,4 +1,4 @@
-import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput } from '@ifrc-go/ui';
+import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput, Spinner } from '@ifrc-go/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './ExplorePage.module.css';
@@ -42,6 +42,7 @@ export default function ExplorePage() {
   const [countries, setCountries] = useState<{c_code: string, label: string, r_code: string}[]>([]);
   const [imageTypes, setImageTypes] = useState<{image_type: string, label: string}[]>([]);
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
+  const [isLoadingContent, setIsLoadingContent] = useState(true);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'Explore' },
@@ -49,7 +50,7 @@ export default function ExplorePage() {
   ];
 
   const fetchCaptions = () => {
-    setIsLoadingFilters(true);
+    setIsLoadingContent(true);
     fetch('/api/captions')
       .then(r => {
         if (!r.ok) {
@@ -72,7 +73,7 @@ export default function ExplorePage() {
         setCaptions([]);
       })
       .finally(() => {
-        setIsLoadingFilters(false);
+        setIsLoadingContent(false);
       });
   };
 
@@ -256,62 +257,74 @@ export default function ExplorePage() {
                 </p>
               </div>
 
-              {/* List */}
-              <div className="space-y-4">
-                {filtered.map(c => (
-                  <div key={c.image_id} className={styles.mapItem} onClick={() => navigate(`/map/${c.image_id}`)}>
-                    <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
-                      {c.image_url ? (
-                        <img 
-                          src={c.image_url} 
-                          alt={c.file_key}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            target.parentElement!.innerHTML = 'Img';
-                          }}
-                        />
-                      ) : (
-                        'Img'
-                      )}
-                    </div>
-                    <div className={styles.mapItemContent}>
-                      <h3 className={styles.mapItemTitle}>
-                        {c.title}
-                      </h3>
-                      <div className={styles.mapItemMetadata}>
-                        <div className={styles.metadataTags}>
-                          <span className={styles.metadataTagSource}>
-                            {sources.find(s => s.s_code === c.source)?.label || c.source}
-                          </span>
-                          <span className={styles.metadataTagType}>
-                            {types.find(t => t.t_code === c.event_type)?.label || c.event_type}
-                          </span>
-                          <span className={styles.metadataTag}>
-                            {imageTypes.find(it => it.image_type === c.image_type)?.label || c.image_type}
-                          </span>
-                          {c.countries && c.countries.length > 0 && (
-                            <>
-                              <span className={styles.metadataTag}>
-                                {regions.find(r => r.r_code === c.countries[0].r_code)?.label || 'Unknown Region'}
-                              </span>
-                              <span className={styles.metadataTag}>
-                                {c.countries.map(country => country.label).join(', ')}
-                              </span>
-                            </>
-                          )}
+              {/* Loading State */}
+              {isLoadingContent && (
+                <div className="text-center py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <Spinner className="text-ifrcRed" />
+                    <div>Loading examples...</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Content */}
+              {!isLoadingContent && (
+                <div className="space-y-4">
+                  {filtered.map(c => (
+                    <div key={c.image_id} className={styles.mapItem} onClick={() => navigate(`/map/${c.image_id}`)}>
+                      <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
+                        {c.image_url ? (
+                          <img 
+                            src={c.image_url} 
+                            alt={c.file_key}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement!.innerHTML = 'Img';
+                            }}
+                          />
+                        ) : (
+                          'Img'
+                        )}
+                      </div>
+                      <div className={styles.mapItemContent}>
+                        <h3 className={styles.mapItemTitle}>
+                          {c.title}
+                        </h3>
+                        <div className={styles.mapItemMetadata}>
+                          <div className={styles.metadataTags}>
+                            <span className={styles.metadataTagSource}>
+                              {sources.find(s => s.s_code === c.source)?.label || c.source}
+                            </span>
+                            <span className={styles.metadataTagType}>
+                              {types.find(t => t.t_code === c.event_type)?.label || c.event_type}
+                            </span>
+                            <span className={styles.metadataTag}>
+                              {imageTypes.find(it => it.image_type === c.image_type)?.label || c.image_type}
+                            </span>
+                            {c.countries && c.countries.length > 0 && (
+                              <>
+                                <span className={styles.metadataTag}>
+                                  {regions.find(r => r.r_code === c.countries[0].r_code)?.label || 'Unknown Region'}
+                                </span>
+                                <span className={styles.metadataTag}>
+                                  {c.countries.map(country => country.label).join(', ')}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                {!filtered.length && (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500">No examples found.</p>
-                  </div>
-                )}
-              </div>
+                  {!filtered.length && (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500">No examples found.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (
