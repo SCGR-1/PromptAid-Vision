@@ -2,6 +2,7 @@ import hashlib
 import mimetypes
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from ..database import SessionLocal
 from ..models import Images, image_countries
@@ -27,7 +28,7 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         
         # Check database connectivity
         try:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             print("✓ Database connection OK")
         except Exception as db_error:
             print(f"✗ Database connection failed: {db_error}")
@@ -35,10 +36,10 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         
         # Check if required tables exist
         try:
-            db.execute("SELECT 1 FROM sources LIMIT 1")
-            db.execute("SELECT 1 FROM event_types LIMIT 1") 
-            db.execute("SELECT 1 FROM spatial_references LIMIT 1")
-            db.execute("SELECT 1 FROM image_types LIMIT 1")
+            db.execute(text("SELECT 1 FROM sources LIMIT 1"))
+            db.execute(text("SELECT 1 FROM event_types LIMIT 1")) 
+            db.execute(text("SELECT 1 FROM spatial_references LIMIT 1"))
+            db.execute(text("SELECT 1 FROM image_types LIMIT 1"))
             print("✓ Required tables exist")
         except Exception as table_error:
             print(f"✗ Required tables missing: {table_error}")
@@ -148,7 +149,7 @@ async def debug_database_status(db: Session = Depends(get_db)):
         
         # Check basic connectivity
         try:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             status["database_connection"] = "OK"
         except Exception as e:
             status["database_connection"] = f"FAILED: {e}"
@@ -162,7 +163,7 @@ async def debug_database_status(db: Session = Depends(get_db)):
         
         for table in tables_to_check:
             try:
-                result = db.execute(f"SELECT COUNT(*) FROM {table}")
+                result = db.execute(text(f"SELECT COUNT(*) FROM {table}"))
                 count = result.scalar()
                 status[f"table_{table}"] = f"EXISTS ({count} rows)"
             except Exception as e:
