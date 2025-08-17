@@ -22,6 +22,28 @@ def get_db():
 @router.post("/from-url", response_model=CreateImageFromUrlOut)
 async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Depends(get_db)):
     try:
+        print(f"DEBUG: Creating contribution from URL: {payload.url}")
+        print(f"DEBUG: Payload: {payload}")
+        
+        # Check database connectivity
+        try:
+            db.execute("SELECT 1")
+            print("✓ Database connection OK")
+        except Exception as db_error:
+            print(f"✗ Database connection failed: {db_error}")
+            raise HTTPException(status_code=500, detail=f"Database connection failed: {db_error}")
+        
+        # Check if required tables exist
+        try:
+            db.execute("SELECT 1 FROM sources LIMIT 1")
+            db.execute("SELECT 1 FROM event_types LIMIT 1") 
+            db.execute("SELECT 1 FROM spatial_references LIMIT 1")
+            db.execute("SELECT 1 FROM image_types LIMIT 1")
+            print("✓ Required tables exist")
+        except Exception as table_error:
+            print(f"✗ Required tables missing: {table_error}")
+            raise HTTPException(status_code=500, detail=f"Required tables missing: {table_error}")
+        
         if '/api/images/' in payload.url and '/file' in payload.url:
             url_parts = payload.url.split('/api/images/')
             if len(url_parts) > 1:
@@ -31,25 +53,33 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         else:
             raise HTTPException(status_code=400, detail="Invalid image URL format")
         
+        print(f"DEBUG: Extracted image_id: {image_id}")
+        
         existing_image = db.query(Images).filter(Images.image_id == image_id).first()
         if not existing_image:
             raise HTTPException(status_code=404, detail="Source image not found")
         
+        print(f"DEBUG: Found existing image: {existing_image.image_id}")
+        
         try:
             if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
+                print(f"DEBUG: Using S3 storage, bucket: {settings.S3_BUCKET}")
                 response = storage.s3.get_object(
                     Bucket=settings.S3_BUCKET,
                     Key=existing_image.file_key,
                 )
                 data = response["Body"].read()
             else:
+                print(f"DEBUG: Using local storage: {settings.STORAGE_DIR}")
                 import os
                 file_path = os.path.join(settings.STORAGE_DIR, existing_image.file_key)
                 with open(file_path, 'rb') as f:
                     data = f.read()
             
             content_type = "image/jpeg"
+            print(f"DEBUG: Image data size: {len(data)} bytes")
         except Exception as e:
+            print(f"ERROR: Failed to fetch image from storage: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to fetch image from storage: {e}")
         
         if len(data) > 25 * 1024 * 1024:
@@ -58,8 +88,12 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         ext = mimetypes.guess_extension(content_type) or ".jpg"
         key = upload_bytes(data, filename=f"contributed{ext}", content_type=content_type)
         image_url = get_object_url(key, expires_in=86400)
+        
+        print(f"DEBUG: Uploaded to key: {key}")
+        print(f"DEBUG: Generated URL: {image_url}")
 
         sha = hashlib.sha256(data).hexdigest()
+        print(f"DEBUG: Generated SHA256: {sha}")
 
         img = Images(
             file_key=key,
@@ -80,17 +114,77 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
             usability=50,
             starred=False
         )
+        
+        print(f"DEBUG: Created Images object: {img}")
         db.add(img)
         db.flush()
+        print(f"DEBUG: Flushed to database, image_id: {img.image_id}")
 
         for c in payload.countries:
+            print(f"DEBUG: Adding country: {c}")
             db.execute(image_countries.insert().values(image_id=img.image_id, c_code=c))
 
+        print(f"DEBUG: About to commit transaction")
         db.commit()
+        print(f"DEBUG: Transaction committed successfully")
 
         result = CreateImageFromUrlOut(image_id=str(img.image_id), image_url=image_url)
+        print(f"DEBUG: Returning result: {result}")
         return result
         
     except Exception as e:
+        print(f"ERROR: Exception in create_image_from_url: {e}")
+        print(f"ERROR: Exception type: {type(e)}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create image: {str(e)}")
+
+@router.get("/debug/db-status")
+async def debug_database_status(db: Session = Depends(get_db)):
+    """Debug endpoint to check database status"""
+    try:
+        status = {}
+        
+        # Check basic connectivity
+        try:
+            db.execute("SELECT 1")
+            status["database_connection"] = "OK"
+        except Exception as e:
+            status["database_connection"] = f"FAILED: {e}"
+            return status
+        
+        # Check required tables
+        tables_to_check = [
+            "sources", "event_types", "spatial_references", "image_types",
+            "prompts", "models", "json_schemas", "images", "image_countries"
+        ]
+        
+        for table in tables_to_check:
+            try:
+                result = db.execute(f"SELECT COUNT(*) FROM {table}")
+                count = result.scalar()
+                status[f"table_{table}"] = f"EXISTS ({count} rows)"
+            except Exception as e:
+                status[f"table_{table}"] = f"MISSING: {e}"
+        
+        # Check foreign key constraints
+        try:
+            # Check if we can create a simple Images object
+            from ..models import Images
+            test_img = Images(
+                file_key="test",
+                sha256="test",
+                source="OTHER",
+                event_type="OTHER", 
+                epsg="OTHER",
+                image_type="crisis_map"
+            )
+            status["model_creation"] = "OK"
+        except Exception as e:
+            status["model_creation"] = f"FAILED: {e}"
+        
+        return status
+        
+    except Exception as e:
+        return {"error": str(e)}
