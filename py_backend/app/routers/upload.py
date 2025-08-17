@@ -36,9 +36,6 @@ def convert_image_to_dict(img, image_url):
             print(f"Warning: Error processing countries for image {img.image_id}: {e}")
             countries_list = []
     
-    if image_url and image_url.startswith('/') and settings.BASE_URL:
-        image_url = f"{settings.BASE_URL}{image_url}"
-    
     img_dict = {
         "image_id": img.image_id,
         "file_key": img.file_key,

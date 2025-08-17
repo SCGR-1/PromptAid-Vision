@@ -1,16 +1,20 @@
-# PromptAid Vision Tests
+# PromptAid Vision Test Suite
 
-This folder contains all test files for the PromptAid Vision application.
+This directory contains comprehensive tests for the PromptAid Vision application.
 
-## Test Files
+## Test Organization
 
-### Core Application Tests
-- **`test_core.py`** - Core application functionality test
-- **`test_hf.py`** - Hugging Face integration test
+### Core Functionality Tests
+- **`test_core.py`** - Core application functionality, database operations, and basic API endpoints
+- **`test_config.py`** - Configuration validation and storage setup verification
 
-### Test Utilities
-- **`test.jpg`** - Test image for image processing tests
-- **`run_tests.py`** - Run all tests
+### API and Integration Tests
+- **`test_upload_flow.py`** - Complete image upload workflow testing
+- **`test_openai_integration.py`** - OpenAI GPT-4 Vision API integration tests
+- **`test_hf.py`** - Hugging Face Spaces deployment and integration tests
+
+### Frontend and UI Tests
+- **`test_explore_page.py`** - Frontend explore page functionality and data display
 
 ## Running Tests
 
@@ -23,70 +27,38 @@ python tests/run_tests.py
 ### Run Individual Tests
 ```bash
 cd py_backend
-python tests/test_core.py
-python tests/test_hf.py
+python tests/test_config.py          # Test configuration
+python tests/test_core.py           # Test core functionality
+python tests/test_upload_flow.py    # Test upload flow
+python tests/test_openai_integration.py  # Test OpenAI integration
+python tests/test_hf.py             # Test Hugging Face integration
+python tests/test_explore_page.py   # Test explore page
 ```
 
-## Prerequisites
+### Test Configuration
+```bash
+# Test storage configuration
+python tests/test_config.py
+```
 
-Before running the tests, ensure you have:
+## Test Dependencies
 
-1. **Environment Variables Set**:
-   ```bash
-   cp .env.example .env
-   ```
+- **Database**: Tests use a test SQLite database
+- **External APIs**: Some tests require API keys (OpenAI, Hugging Face)
+- **Storage**: Tests verify both local and S3 storage configurations
 
-2. **Required API Keys**:
-   - `HF_API_KEY` - Hugging Face API key
-   - `OPENAI_API_KEY` - OpenAI API key (for GPT-4 Vision)
-   - `GOOGLE_API_KEY` - Google API key (for Gemini Vision)
+## Test Data
 
-3. **Dependencies Installed**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Database Running**:
-   - PostgreSQL database accessible
-   - Environment variables for database connection
-
-## Test Results
-
-Tests will show:
-- **SUCCESS** - Test completed successfully
-- **ERROR** - Test encountered errors
-- **TIMEOUT** - Test took too long
-- **WARNING** - Unexpected error occurred
+- **`test.jpg`** - Sample image file for testing uploads and image processing
 
 ## Troubleshooting
 
-### Common Issues
-1. **Import Errors**: Tests automatically add the parent directory to Python path
-2. **API Key Issues**: Ensure your API keys are valid and have proper permissions
-3. **Database Connection**: Check database credentials and connection
-4. **Timeout Issues**: Some tests may take longer on first run due to model loading
-
-### Debug Mode
-
-For detailed debugging, run individual tests directly:
-```bash
-python tests/test_core.py
-```
-
-### Logs
-
-Check the console output for detailed error messages and debugging information.
+See `TROUBLESHOOTING_HF.md` for common Hugging Face deployment issues.
 
 ## Adding New Tests
 
-When adding new tests:
-
-1. **Place in tests folder** with descriptive filename
-2. **Update run_tests.py** to include the new test
-3. **Fix imports** if importing from app modules
-4. **Add to README** with description
-
-## Related Documentation
-
-- **`TROUBLESHOOTING_HF.md`** - Hugging Face API troubleshooting guide
-- **`HUGGINGFACE_INTEGRATION.md`** - Hugging Face integration documentation 
+1. Create test file in this directory
+2. Follow naming convention: `test_*.py`
+3. Add to `run_tests.py` in appropriate category
+4. Ensure tests can run independently
+5. Include proper error handling and cleanup 

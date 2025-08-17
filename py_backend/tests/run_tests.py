@@ -48,9 +48,19 @@ def main():
     print(f"Python: {sys.executable}")
     print(f"Working Directory: {os.getcwd()}")
     
+    # Organized by category
     tests = [
+        # Core functionality tests
         ("test_core.py", "Core Application Tests"),
-        ("test_hf.py", "Hugging Face Integration Tests")
+        ("test_config.py", "Configuration and Storage Tests"),
+        
+        # API and integration tests
+        ("test_upload_flow.py", "Upload Flow Tests"),
+        ("test_openai_integration.py", "OpenAI Integration Tests"),
+        ("test_hf.py", "Hugging Face Integration Tests"),
+        
+        # Frontend and UI tests
+        ("test_explore_page.py", "Explore Page Tests"),
     ]
     
     passed = 0

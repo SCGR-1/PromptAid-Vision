@@ -144,9 +144,6 @@ async def create_caption(
     except Exception:
         url = f"/api/images/{c.image_id}/file"
     
-    if url and url.startswith('/') and settings.BASE_URL:
-        url = f"{settings.BASE_URL}{url}"
-    
     img_dict = convert_image_to_dict(c, url)
     return schemas.ImageOut(**img_dict)
 
@@ -172,10 +169,6 @@ def get_caption(
     except Exception:
         url = f"/api/images/{caption.image_id}/file"
     
-
-    if url and url.startswith('/') and settings.BASE_URL:
-        url = f"{settings.BASE_URL}{url}"
-    
     img_dict = convert_image_to_dict(caption, url)
     return schemas.ImageOut(**img_dict)
 
@@ -199,9 +192,6 @@ def get_captions_by_image(
             url = storage.get_object_url(caption.file_key)
         except Exception:
             url = f"/api/images/{caption.image_id}/file"
-        
-        if url and url.startswith('/') and settings.BASE_URL:
-            url = f"{settings.BASE_URL}{url}"
         
         img_dict = convert_image_to_dict(caption, url)
         result.append(schemas.ImageOut(**img_dict))
@@ -258,9 +248,6 @@ def update_caption(
         url = storage.get_object_url(caption.file_key)
     except Exception:
         url = f"/api/images/{caption.image_id}/file"
-    
-    if url and url.startswith('/') and settings.BASE_URL:
-        url = f"{settings.BASE_URL}{url}"
     
     img_dict = convert_image_to_dict(caption, url)
     return schemas.ImageOut(**img_dict)
