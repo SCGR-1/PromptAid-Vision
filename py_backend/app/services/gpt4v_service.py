@@ -13,7 +13,7 @@ class GPT4VService(VLMService):
         self.client = openai.OpenAI(api_key=api_key)
         self.model_name = "GPT-4O"
     
-    async def generate_caption(self, image_bytes: bytes, prompt: str) -> Dict[str, Any]:
+    async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "") -> Dict[str, Any]:
         """Generate caption using GPT-4 Vision"""
         try:
             image_base64 = base64.b64encode(image_bytes).decode('utf-8')
@@ -25,23 +25,7 @@ class GPT4VService(VLMService):
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": prompt + "\n\nAdditionally, extract the following metadata in JSON format. Choose exactly ONE option from each category:\n\n" +
-                                "- title: Create a concise title (less than 10 words) for the crisis/event\n" +
-                                "- source: Choose ONE from: PDC, GDACS, WFP, GFH, GGC, USGS, OTHER\n" +
-                                "- type: Choose ONE from: BIOLOGICAL_EMERGENCY, CHEMICAL_EMERGENCY, CIVIL_UNREST, COLD_WAVE, COMPLEX_EMERGENCY, CYCLONE, DROUGHT, EARTHQUAKE, EPIDEMIC, FIRE, FLOOD, FLOOD_INSECURITY, HEAT_WAVE, INSECT_INFESTATION, LANDSLIDE, OTHER, PLUVIAL, POPULATION_MOVEMENT, RADIOLOGICAL_EMERGENCY, STORM, TRANSPORTATION_EMERGENCY, TSUNAMI, VOLCANIC_ERUPTION\n" +
-                                "- countries: List of affected country codes (ISO 2-letter codes like PA, US, etc.)\n" +
-                                                                     "- epsg: Choose ONE from: 4326, 3857, 32617, 32633, 32634, OTHER. If the map shows a different EPSG code, use \"OTHER\"\n\n" +
-                                "If you cannot find a match, use \"OTHER\". Return ONLY the JSON object (no markdown formatting) in this exact format:\n" +
-                                "{\n" +
-                                "  \"analysis\": \"detailed description...\",\n" +
-                                "  \"metadata\": {\n" +
-                                "    \"title\": \"...\",\n" +
-                                "    \"source\": \"...\",\n" +
-                                "    \"type\": \"...\",\n" +
-                                "    \"countries\": [\"...\"],\n" +
-                                "    \"epsg\": \"...\"\n" +
-                                "  }\n" +
-                                "}"},
+                            {"type": "text", "text": prompt + "\n\n" + metadata_instructions},
                             {
                                 "type": "image_url",
                                 "image_url": {

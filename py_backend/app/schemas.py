@@ -45,17 +45,19 @@ class ImageOut(BaseModel):
         from_attributes = True
 
 class CaptionUpdate(BaseModel):
-    title: Optional[str] = None
-    prompt: Optional[str] = None
-    model: Optional[str] = None
-    schema_id: Optional[str] = None
-    raw_json: Optional[dict] = None
-    generated: Optional[str] = None
-    edited: Optional[str] = None
+    title: str
+    edited: str
     accuracy: Optional[int] = None
     context: Optional[int] = None
     usability: Optional[int] = None
-    starred: Optional[bool] = None
+
+class PromptOut(BaseModel):
+    p_code: str
+    label: str
+    metadata_instructions: str | None = None
+    
+    class Config:
+        from_attributes = True
 
 class SourceOut(BaseModel):
     s_code: str

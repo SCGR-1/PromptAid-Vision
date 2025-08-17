@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from app.config import settings
 from app.routers import upload, caption, metadata, models
 from app.routers.images import router as images_router
+from app.routers.prompts import router as prompts_router
 
 app = FastAPI(title="PromptAid Vision")
 
@@ -27,6 +28,7 @@ app.include_router(metadata.router,    prefix="/api",            tags=["metadata
 app.include_router(models.router,      prefix="/api",            tags=["models"])
 app.include_router(upload.router,      prefix="/api/images",     tags=["images"])
 app.include_router(images_router,      prefix="/api/contribute", tags=["contribute"])
+app.include_router(prompts_router,     prefix="/api/prompts",    tags=["prompts"])
 
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)
 async def health():

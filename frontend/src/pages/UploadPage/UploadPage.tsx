@@ -78,8 +78,6 @@ export default function UploadPage() {
     });
   }, []);
 
-
-
   const handleNavigation = useCallback((to: string) => {
     if (uploadedImageIdRef.current) {
       if (confirm("Leave page? Your uploaded image will be deleted.")) {
@@ -309,7 +307,7 @@ export default function UploadPage() {
           },
           body: new URLSearchParams({
             title: title || 'Generated Caption',
-            prompt: 'Analyze this crisis map and provide a detailed description of the emergency situation, affected areas, and key information shown in the map.',
+            prompt: 'DEFAULT_CRISIS_MAP',
             ...(modelName      && { model_name: modelName })
           })
         },
@@ -369,8 +367,7 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           title: 'Generated Caption',
-          prompt:
-            'Analyze this crisis map and provide a detailed description of the emergency situation, affected areas, and key information shown in the map.',
+          prompt: 'DEFAULT_CRISIS_MAP',
           ...(modelName && { model_name: modelName }),
         }),
       });

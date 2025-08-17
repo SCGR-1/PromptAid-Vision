@@ -22,7 +22,7 @@ class VLMService(ABC):
         self.is_available = True
     
     @abstractmethod
-    async def generate_caption(self, image_bytes: bytes, prompt: str) -> Dict[str, Any]:
+    async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "") -> Dict[str, Any]:
         """Generate caption for an image"""
         pass
     
@@ -62,7 +62,7 @@ class VLMServiceManager:
         """Get list of available model names"""
         return list(self.services.keys())
     
-    async def generate_caption(self, image_bytes: bytes, prompt: str, model_name: str | None = None) -> dict:
+    async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "", model_name: str | None = None) -> dict:
         """Generate caption using the specified model or fallback to available service."""
         
         service = None
@@ -79,7 +79,7 @@ class VLMServiceManager:
             raise ValueError("No VLM services available")
         
         try:
-            result = await service.generate_caption(image_bytes, prompt)
+            result = await service.generate_caption(image_bytes, prompt, metadata_instructions)
             if isinstance(result, dict):
                 result["model"] = service.model_name
             return result

@@ -88,35 +88,19 @@ def get_captions_by_image(db: Session, image_id: str):
 
 def get_all_captions_with_images(db: Session):
     """Get all images that have caption data"""
-    print(f"DEBUG: Querying database for images with caption data...")
-    
-    total_images = db.query(models.Images).count()
-    print(f"DEBUG: Total images in database: {total_images}")
+    return db.query(models.Images).filter(models.Images.title.isnot(None)).all()
 
-    images_with_title = db.query(models.Images).filter(
-        models.Images.title.isnot(None)
-    ).count()
-    print(f"DEBUG: Images with title field: {images_with_title}")
-    
-    images_with_generated = db.query(models.Images).filter(
-        models.Images.generated.isnot(None)
-    ).count()
-    print(f"DEBUG: Images with generated field: {images_with_generated}")
-    
-    images_with_model = db.query(models.Images).filter(
-        models.Images.model.isnot(None)
-    ).count()
-    print(f"DEBUG: Images with model field: {images_with_model}")
-    
-    results = db.query(models.Images).filter(
-        models.Images.title.isnot(None)
-    ).all()
-    
-    print(f"DEBUG: Query returned {len(results)} results")
-    for img in results:
-        print(f"DEBUG: Image {img.image_id}: title='{img.title}', generated='{img.generated}', model='{img.model}'")
-    
-    return results
+def get_prompts(db: Session):
+    """Get all available prompts"""
+    return db.query(models.Prompts).all()
+
+def get_prompt(db: Session, p_code: str):
+    """Get a specific prompt by code"""
+    return db.query(models.Prompts).filter(models.Prompts.p_code == p_code).first()
+
+def get_prompt_by_label(db: Session, label: str):
+    """Get a specific prompt by label text"""
+    return db.query(models.Prompts).filter(models.Prompts.label == label).first()
 
 def update_caption(db: Session, image_id: str, update: schemas.CaptionUpdate):
     """Update caption data for an image"""

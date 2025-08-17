@@ -56,6 +56,12 @@ class ImageTypes(Base):
     image_type = Column(String, primary_key=True)
     label = Column(String, nullable=False)
 
+class Prompts(Base):
+    __tablename__ = "prompts"
+    p_code = Column(String, primary_key=True)
+    label = Column(Text, nullable=False)
+    metadata_instructions = Column(Text, nullable=True)
+
 class Models(Base):
     __tablename__ = "models"
     m_code = Column(String, primary_key=True)
@@ -91,7 +97,7 @@ class Images(Base):
     captured_at = Column(TIMESTAMP(timezone=True))
 
     title      = Column(String, nullable=True)
-    prompt     = Column(String, nullable=True)
+    prompt     = Column(String, ForeignKey("prompts.p_code"), nullable=True)
     model      = Column(String, ForeignKey("models.m_code"), nullable=True)
     schema_id  = Column(String, ForeignKey("json_schemas.schema_id"), nullable=True)
     raw_json   = Column(JSONB, nullable=True)
@@ -106,3 +112,4 @@ class Images(Base):
     countries = relationship("Country", secondary=image_countries, backref="images")
     schema    = relationship("JSONSchema")
     model_r   = relationship("Models", foreign_keys=[model])
+    prompt_r  = relationship("Prompts", foreign_keys=[prompt])

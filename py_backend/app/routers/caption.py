@@ -75,9 +75,29 @@ async def create_caption(
     model_name: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
+    print(f"DEBUG: Received request - image_id: {image_id}, title: {title}, prompt: {prompt}, model_name: {model_name}")
+    
     img = crud.get_image(db, image_id)
     if not img:
         raise HTTPException(404, "image not found")
+
+
+    print(f"Looking for prompt: '{prompt}' (type: {type(prompt)})")
+
+    prompt_obj = crud.get_prompt(db, prompt)
+    
+    if not prompt_obj:
+        print(f"Prompt not found by code, trying to find by label...")
+        prompt_obj = crud.get_prompt_by_label(db, prompt)
+    
+    print(f"Prompt lookup result: {prompt_obj}")
+    if not prompt_obj:
+        raise HTTPException(400, f"Prompt '{prompt}' not found")
+    
+    prompt_text = prompt_obj.label
+    metadata_instructions = prompt_obj.metadata_instructions or ""
+    print(f"Using prompt text: '{prompt_text}'")
+    print(f"Using metadata instructions: '{metadata_instructions[:100]}...'")
 
     try:
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
@@ -95,7 +115,7 @@ async def create_caption(
         print(f"Error reading image file: {e}")
         try:
             url = storage.get_object_url(img.file_key)
-            if url.startswith('/'):
+            if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
                 url = f"http://localhost:8000{url}"
             import requests
             resp = requests.get(url)
@@ -109,7 +129,8 @@ async def create_caption(
     try:
         result = await vlm_manager.generate_caption(
             image_bytes=img_bytes,
-            prompt=prompt,
+            prompt=prompt_text,
+            metadata_instructions=metadata_instructions,
             model_name=model_name,
         )
         text = result.get("caption", "")
@@ -127,7 +148,7 @@ async def create_caption(
         db,
         image_id=image_id,
         title=title,
-        prompt=prompt,
+        prompt=prompt_obj.p_code,
         model_code=used_model,
         raw_json=raw,
         text=text,
@@ -136,13 +157,21 @@ async def create_caption(
     
     db.refresh(c)
     
+    print(f"DEBUG: Caption created, image object: {c}")
+    print(f"DEBUG: file_key: {c.file_key}")
+    print(f"DEBUG: image_id: {c.image_id}")
+    
     from .upload import convert_image_to_dict
     try:
         url = storage.get_object_url(c.file_key)
+        print(f"DEBUG: Generated URL: {url}")
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
             url = f"http://localhost:8000{url}"
-    except Exception:
+            print(f"DEBUG: Local URL adjusted to: {url}")
+    except Exception as e:
+        print(f"DEBUG: URL generation failed: {e}")
         url = f"/api/images/{c.image_id}/file"
+        print(f"DEBUG: Using fallback URL: {url}")
     
     img_dict = convert_image_to_dict(c, url)
     return schemas.ImageOut(**img_dict)

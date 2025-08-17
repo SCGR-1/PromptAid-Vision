@@ -18,28 +18,9 @@ class GeminiService(VLMService):
         self.model_id = model
         self.model = genai.GenerativeModel(self.model_id)
 
-    async def generate_caption(self, image_bytes: bytes, prompt: str) -> Dict[str, Any]:
+    async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "") -> Dict[str, Any]:
         """Generate caption using Google Gemini Vision"""
-        instruction = (
-            prompt
-            + "\n\nAdditionally, extract the following metadata in JSON format. Choose exactly ONE option from each category:\n\n"
-            + "- title: Create a concise title (less than 10 words) for the crisis/event\n"
-            + "- source: Choose ONE from: PDC, GDACS, WFP, GFH, GGC, USGS, OTHER\n"
-            + "- type: Choose ONE from: BIOLOGICAL_EMERGENCY, CHEMICAL_EMERGENCY, CIVIL_UNREST, COLD_WAVE, COMPLEX_EMERGENCY, CYCLONE, DROUGHT, EARTHQUAKE, EPIDEMIC, FIRE, FLOOD, FLOOD_INSECURITY, HEAT_WAVE, INSECT_INFESTATION, LANDSLIDE, OTHER, PLUVIAL, POPULATION_MOVEMENT, RADIOLOGICAL_EMERGENCY, STORM, TRANSPORTATION_EMERGENCY, TSUNAMI, VOLCANIC_ERUPTION\n"
-            + "- countries: List of affected country codes (ISO 2-letter codes like PA, US, etc.)\n"
-            + "- epsg: Choose ONE from: 4326, 3857, 32617, 32633, 32634, OTHER. If the map shows a different EPSG code, use \"OTHER\"\n\n"
-            + "If you cannot find a match, use \"OTHER\". Return ONLY the JSON object (no markdown formatting) in this exact format:\n"
-            + "{\n"
-            + "  \"analysis\": \"detailed description...\",\n"
-            + "  \"metadata\": {\n"
-            + "    \"title\": \"...\",\n"
-            + "    \"source\": \"...\",\n"
-            + "    \"type\": \"...\",\n"
-            + "    \"countries\": [\"...\"],\n"
-            + "    \"epsg\": \"...\"\n"
-            + "  }\n"
-            + "}"
-        )
+        instruction = prompt + "\n\n" + metadata_instructions
 
         image_part = {
             "mime_type": "image/jpeg",

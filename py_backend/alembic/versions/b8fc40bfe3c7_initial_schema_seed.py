@@ -88,6 +88,12 @@ def upgrade():
         sa.Column('label', sa.String(), nullable=False),
     )
     op.create_table(
+        'prompts',
+        sa.Column('p_code', sa.String(), primary_key=True),
+        sa.Column('label', sa.Text(), nullable=False),
+        sa.Column('metadata_instructions', sa.Text(), nullable=True),
+    )
+    op.create_table(
         'models',
         sa.Column('m_code', sa.String(), primary_key=True),
         sa.Column('label', sa.String(), nullable=False),
@@ -179,6 +185,28 @@ def upgrade():
         ('drone_image','Drone Image')
     """)
     op.execute("""
+      INSERT INTO prompts (p_code,label,metadata_instructions) VALUES
+        ('DEFAULT_CRISIS_MAP','Analyze this crisis map and provide a detailed description of the emergency situation, affected areas, and key information shown in the map.','Additionally, extract the following metadata in JSON format. Choose exactly ONE option from each category:
+
+- title: Create a concise title (less than 10 words) for the crisis/event
+- source: Choose ONE from: PDC, GDACS, WFP, GFH, GGC, USGS, OTHER
+- type: Choose ONE from: BIOLOGICAL_EMERGENCY, CHEMICAL_EMERGENCY, CIVIL_UNREST, COLD_WAVE, COMPLEX_EMERGENCY, CYCLONE, DROUGHT, EARTHQUAKE, EPIDEMIC, FIRE, FLOOD, FLOOD_INSECURITY, HEAT_WAVE, INSECT_INFESTATION, LANDSLIDE, OTHER, PLUVIAL, POPULATION_MOVEMENT, RADIOLOGICAL_EMERGENCY, STORM, TRANSPORTATION_EMERGENCY, TSUNAMI, VOLCANIC_ERUPTION
+- countries: List of affected country codes (ISO 2-letter codes like PA, US, etc.)
+- epsg: Choose ONE from: 4326, 3857, 32617, 32633, 32634, OTHER. If the map shows a different EPSG code, use "OTHER"
+
+If you cannot find a match, use "OTHER". Return ONLY the JSON object (no markdown formatting) in this exact format:
+{
+  "analysis": "detailed description...",
+  "metadata": {
+    "title": "...",
+    "source": "...",
+    "type": "...",
+    "countries": ["..."],
+    "epsg": "..."
+  }
+}')
+    """)
+    op.execute("""
       INSERT INTO models (m_code,label,model_type,is_available,config) VALUES
         ('GPT-4O','GPT-4O','gpt4o',true,'{"provider":"openai","model":"gpt-4o"}'),
         ('GEMINI15','Gemini 1.5','gemini_pro_vision',true,'{}'),
@@ -219,7 +247,7 @@ def upgrade():
         sa.Column('captured_at', sa.TIMESTAMP(timezone=True), nullable=True),
 
         sa.Column('title', sa.String(), nullable=True),
-        sa.Column('prompt', sa.String(), nullable=True),
+        sa.Column('prompt', sa.String(), sa.ForeignKey('prompts.p_code'), nullable=True),
         sa.Column('model', sa.String(), sa.ForeignKey('models.m_code'), nullable=True),
         sa.Column('schema_id', sa.String(), sa.ForeignKey('json_schemas.schema_id'), nullable=True),
         sa.Column('raw_json', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
