@@ -1,4 +1,4 @@
-import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput, Spinner } from '@ifrc-go/ui';
+import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput, Spinner, Button } from '@ifrc-go/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './ExplorePage.module.css';
@@ -36,6 +36,7 @@ export default function ExplorePage() {
   const [catFilter, setCatFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
+  const [imageTypeFilter, setImageTypeFilter] = useState('');
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
   const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
   const [regions, setRegions] = useState<{r_code: string, label: string}[]>([]);
@@ -145,10 +146,11 @@ export default function ExplorePage() {
         c.countries.some(country => country.r_code === regionFilter);
       const matchesCountry = !countryFilter || 
         c.countries.some(country => country.c_code === countryFilter);
+      const matchesImageType = !imageTypeFilter || c.image_type === imageTypeFilter;
       
-      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry;
+      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType;
     });
-  }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter]);
+  }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter]);
 
 
   return (
@@ -246,6 +248,20 @@ export default function ExplorePage() {
                     disabled={isLoadingFilters}
                   />
                 </Container>
+
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <SelectInput
+                    name="imageType"
+                    placeholder={isLoadingFilters ? "Loading..." : "All Image Types"}
+                    options={imageTypes}
+                    value={imageTypeFilter || null}
+                    onChange={(v) => setImageTypeFilter(v as string || '')}
+                    keySelector={(o) => o.image_type}
+                    labelSelector={(o) => o.label}
+                    required={false}
+                    disabled={isLoadingFilters}
+                  />
+                </Container>
               </div>
             </div>
 
@@ -255,6 +271,20 @@ export default function ExplorePage() {
                 <p className="text-sm text-gray-600">
                   {filtered.length} of {captions.length} examples
                 </p>
+                <Button
+                  name="clear-filters"
+                  variant="secondary"
+                  onClick={() => {
+                    setSearch('');
+                    setSrcFilter('');
+                    setCatFilter('');
+                    setRegionFilter('');
+                    setCountryFilter('');
+                    setImageTypeFilter('');
+                  }}
+                >
+                  Clear Filters
+                </Button>
               </div>
 
               {/* Loading State */}

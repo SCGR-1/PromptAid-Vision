@@ -55,6 +55,7 @@ export default function MapDetailPage() {
   const [catFilter, setCatFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
+  const [imageTypeFilter, setImageTypeFilter] = useState('');
 
   const viewOptions = [
     { key: 'explore' as const, label: 'Explore' },
@@ -164,9 +165,10 @@ export default function MapDetailPage() {
       map.countries.some(country => country.r_code === regionFilter);
     const matchesCountry = !countryFilter || 
       map.countries.some(country => country.c_code === countryFilter);
+    const matchesImageType = !imageTypeFilter || map.image_type === imageTypeFilter;
     
-    return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry ? map : null;
-  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter]);
+    return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType ? map : null;
+  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter]);
 
   const handleContribute = async () => {
     if (!map) return;
@@ -346,6 +348,19 @@ export default function MapDetailPage() {
                 labelSelector={(o) => o.label}
               />
             </Container>
+
+            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+              <SelectInput
+                name="imageType"
+                placeholder="All Image Types"
+                options={imageTypes}
+                value={imageTypeFilter || null}
+                onChange={(v) => setImageTypeFilter(v as string || '')}
+                keySelector={(o) => o.image_type}
+                labelSelector={(o) => o.label}
+                required={false}
+              />
+            </Container>
           </div>
         </div>
 
@@ -461,7 +476,14 @@ export default function MapDetailPage() {
                           onClick={handleContribute}
                           disabled={isGenerating}
                         >
-                          {isGenerating ? 'Generating...' : 'Contribute'}
+                          {isGenerating ? (
+                            <div className="flex items-center gap-2">
+                              <Spinner className="text-white" />
+                              <span>Generating...</span>
+                            </div>
+                          ) : (
+                            'Contribute'
+                          )}
                         </Button>
                       </Container>
                       
@@ -506,6 +528,7 @@ export default function MapDetailPage() {
                       setCatFilter('');
                       setRegionFilter('');
                       setCountryFilter('');
+                      setImageTypeFilter('');
                     }}
                   >
                     Clear Filters
