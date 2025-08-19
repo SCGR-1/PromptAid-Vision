@@ -4,11 +4,24 @@ from uuid import UUID
 from datetime import datetime
 
 class ImageCreate(BaseModel):
-    source: str
-    event_type: str
+    source: Optional[str] = None
+    event_type: str = "OTHER"
     countries: List[str] = []
-    epsg: Optional[str] = None
+    epsg: str = "OTHER"
     image_type: str
+    
+    # Drone-specific fields (optional)
+    center_lon: Optional[float] = None
+    center_lat: Optional[float] = None
+    amsl_m: Optional[float] = None
+    agl_m: Optional[float] = None
+    heading_deg: Optional[float] = None
+    yaw_deg: Optional[float] = None
+    pitch_deg: Optional[float] = None
+    roll_deg: Optional[float] = None
+    rtk_fix: Optional[bool] = None
+    std_h_m: Optional[float] = None
+    std_v_m: Optional[float] = None
 
 class ImageMetadataUpdate(BaseModel):
     source: Optional[str] = None
@@ -16,12 +29,25 @@ class ImageMetadataUpdate(BaseModel):
     countries: Optional[List[str]] = None
     epsg: Optional[str] = None
     image_type: Optional[str] = None
+    
+    # Drone-specific fields (optional)
+    center_lon: Optional[float] = None
+    center_lat: Optional[float] = None
+    amsl_m: Optional[float] = None
+    agl_m: Optional[float] = None
+    heading_deg: Optional[float] = None
+    yaw_deg: Optional[float] = None
+    pitch_deg: Optional[float] = None
+    roll_deg: Optional[float] = None
+    rtk_fix: Optional[bool] = None
+    std_h_m: Optional[float] = None
+    std_v_m: Optional[float] = None
 
 class ImageOut(BaseModel):
     image_id: UUID
     file_key: str
     sha256: str
-    source: str
+    source: Optional[str] = None
     event_type: str
     epsg: Optional[str] = None
     image_type: str
@@ -40,6 +66,19 @@ class ImageOut(BaseModel):
     starred: bool = False
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    # Drone-specific fields
+    center_lon: Optional[float] = None
+    center_lat: Optional[float] = None
+    amsl_m: Optional[float] = None
+    agl_m: Optional[float] = None
+    heading_deg: Optional[float] = None
+    yaw_deg: Optional[float] = None
+    pitch_deg: Optional[float] = None
+    roll_deg: Optional[float] = None
+    rtk_fix: Optional[bool] = None
+    std_h_m: Optional[float] = None
+    std_v_m: Optional[float] = None
 
     class Config:
         from_attributes = True

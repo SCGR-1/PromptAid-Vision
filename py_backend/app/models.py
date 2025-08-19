@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP, CHAR, JSONB
 from sqlalchemy.orm import relationship
 import datetime, uuid
 from .database import Base
+from sqlalchemy import Float, Boolean
 
 image_countries = Table(
     "image_countries", Base.metadata,
@@ -89,7 +90,7 @@ class Images(Base):
     image_id    = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     file_key    = Column(String, nullable=False)
     sha256      = Column(String, nullable=False)
-    source      = Column(String, ForeignKey("sources.s_code"), nullable=False)
+    source      = Column(String, ForeignKey("sources.s_code"), nullable=True)
     event_type  = Column(String, ForeignKey("event_types.t_code"), nullable=False)
     epsg        = Column(String, ForeignKey("spatial_references.epsg"), nullable=False)
     image_type  = Column(String, ForeignKey("image_types.image_type"), nullable=False)
@@ -113,3 +114,15 @@ class Images(Base):
     schema    = relationship("JSONSchema")
     model_r   = relationship("Models", foreign_keys=[model])
     prompt_r  = relationship("Prompts", foreign_keys=[prompt])
+
+    center_lon = Column(Float)   
+    center_lat = Column(Float)
+    amsl_m     = Column(Float)
+    agl_m      = Column(Float)
+    heading_deg= Column(Float)
+    yaw_deg    = Column(Float)
+    pitch_deg  = Column(Float)
+    roll_deg   = Column(Float)
+    rtk_fix    = Column(Boolean)
+    std_h_m    = Column(Float)
+    std_v_m    = Column(Float)

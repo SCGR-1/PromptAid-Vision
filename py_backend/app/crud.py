@@ -8,11 +8,46 @@ def hash_bytes(data: bytes) -> str:
     """Compute SHA-256 hex digest of the data."""
     return hashlib.sha256(data).hexdigest()
 
-def create_image(db: Session, src, type_code, key, sha, countries: list[str], epsg: Optional[str], image_type: str):
+def create_image(db: Session, src, type_code, key, sha, countries: list[str], epsg: Optional[str], image_type: str, 
+                center_lon: Optional[float] = None, center_lat: Optional[float] = None, 
+                amsl_m: Optional[float] = None, agl_m: Optional[float] = None,
+                heading_deg: Optional[float] = None, yaw_deg: Optional[float] = None,
+                pitch_deg: Optional[float] = None, roll_deg: Optional[float] = None,
+                rtk_fix: Optional[bool] = None, std_h_m: Optional[float] = None, std_v_m: Optional[float] = None):
     """Insert into images and image_countries."""
+    
+    if image_type == "drone_image":
+        if type_code is None:
+            type_code = "OTHER"
+        if epsg is None:
+            epsg = "OTHER"
+    else:
+        if src is None:
+            src = "OTHER"
+        if type_code is None:
+            type_code = "OTHER"
+        if epsg is None:
+            epsg = "OTHER"
+    
+    if image_type != "drone_image":
+        center_lon = None
+        center_lat = None
+        amsl_m = None
+        agl_m = None
+        heading_deg = None
+        yaw_deg = None
+        pitch_deg = None
+        roll_deg = None
+        rtk_fix = None
+        std_h_m = None
+        std_v_m = None
+    
     img = models.Images(
         source=src, event_type=type_code,
-        file_key=key, sha256=sha, epsg=epsg, image_type=image_type
+        file_key=key, sha256=sha, epsg=epsg, image_type=image_type,
+        center_lon=center_lon, center_lat=center_lat, amsl_m=amsl_m, agl_m=agl_m,
+        heading_deg=heading_deg, yaw_deg=yaw_deg, pitch_deg=pitch_deg, roll_deg=roll_deg,
+        rtk_fix=rtk_fix, std_h_m=std_h_m, std_v_m=std_v_m
     )
     db.add(img)
     db.flush()
@@ -60,10 +95,15 @@ def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, t
     if not img:
         raise HTTPException(404, "Image not found")
     
+    # Set schema based on image type
+    schema_id = "default_caption@1.0.0"  # default
+    if img.image_type == "drone_image":
+        schema_id = "drone_caption@1.0.0"
+    
     img.title = title
     img.prompt = prompt
     img.model = model_code
-    img.schema_id = "default_caption@1.0.0"
+    img.schema_id = schema_id
     img.raw_json = raw_json
     img.generated = text
     img.edited = text

@@ -494,4 +494,54 @@
   box-shadow: var(--go-ui-box-shadow-xs);
 }
 
+/* Drone metadata styles */
+.droneMetadataSection {
+  margin-top: var(--go-ui-spacing-lg);
+  padding-top: var(--go-ui-spacing-lg);
+  border-top: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+}
+
+.droneMetadataHeading {
+  font-size: var(--go-ui-font-size-md);
+  font-weight: 600;
+  color: var(--go-ui-color-gray-90);
+  margin-bottom: var(--go-ui-spacing-md);
+  text-align: left;
+}
+
+.droneMetadataGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--go-ui-spacing-md);
+}
+
+.rtkFixContainer {
+  display: flex;
+  align-items: center;
+  padding: var(--go-ui-spacing-sm) 0;
+}
+
+.rtkFixLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--go-ui-spacing-sm);
+  font-size: var(--go-ui-font-size-sm);
+  color: var(--go-ui-color-gray-80);
+  cursor: pointer;
+}
+
+.rtkFixCheckbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--go-ui-color-red-90);
+}
+
+/* Responsive adjustments for drone metadata */
+@media (max-width: 768px) {
+  .droneMetadataGrid {
+    grid-template-columns: 1fr;
+    gap: var(--go-ui-spacing-sm);
+  }
+}
+
 

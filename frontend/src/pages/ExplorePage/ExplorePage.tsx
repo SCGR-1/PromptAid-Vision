@@ -37,6 +37,7 @@ export default function ExplorePage() {
   const [regionFilter, setRegionFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [imageTypeFilter, setImageTypeFilter] = useState('');
+  const [showReferenceExamples, setShowReferenceExamples] = useState(false);
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
   const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
   const [regions, setRegions] = useState<{r_code: string, label: string}[]>([]);
@@ -62,7 +63,7 @@ export default function ExplorePage() {
       .then(data => {
         if (Array.isArray(data)) {
           const imagesWithCaptions = data.filter((item: { title?: string; generated?: string; model?: string }) => {
-            const hasCaption = item.title && item.generated && item.model;
+            const hasCaption = item.generated && item.model;
             return hasCaption;
           });
           setCaptions(imagesWithCaptions);
@@ -147,10 +148,11 @@ export default function ExplorePage() {
       const matchesCountry = !countryFilter || 
         c.countries.some(country => country.c_code === countryFilter);
       const matchesImageType = !imageTypeFilter || c.image_type === imageTypeFilter;
+      const matchesReferenceExamples = !showReferenceExamples || c.starred === true;
       
-      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType;
+      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
     });
-  }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter]);
+  }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
 
 
   return (
@@ -183,7 +185,8 @@ export default function ExplorePage() {
         {view === 'explore' ? (
           <div className="space-y-6">
             {/* Search and Filters */}
-            <div className="mb-6">
+            <div className="mb-6 space-y-4">
+              {/* Layer 1: Search, Reference Examples, Clear Filters */}
               <div className="flex flex-wrap items-center gap-4">
                 <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
                   <TextInput
@@ -194,6 +197,45 @@ export default function ExplorePage() {
                   />
                 </Container>
 
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <Button
+                    name="reference-examples"
+                    variant={showReferenceExamples ? "primary" : "secondary"}
+                    onClick={() => setShowReferenceExamples(!showReferenceExamples)}
+                    className="whitespace-nowrap"
+                  >
+                    <span className="mr-2">
+                      {showReferenceExamples ? (
+                        <span className="text-yellow-400">★</span>
+                      ) : (
+                        <span className="text-yellow-400">☆</span>
+                      )}
+                    </span>
+                    Reference Examples
+                  </Button>
+                </Container>
+
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <Button
+                    name="clear-filters"
+                    variant="secondary"
+                    onClick={() => {
+                      setSearch('');
+                      setSrcFilter('');
+                      setCatFilter('');
+                      setRegionFilter('');
+                      setCountryFilter('');
+                      setImageTypeFilter('');
+                      setShowReferenceExamples(false);
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </Container>
+              </div>
+
+              {/* Layer 2: 5 Filter Bars */}
+              <div className="flex flex-wrap items-center gap-4">
                 <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
                   <SelectInput
                     name="source"
@@ -271,20 +313,6 @@ export default function ExplorePage() {
                 <p className="text-sm text-gray-600">
                   {filtered.length} of {captions.length} examples
                 </p>
-                <Button
-                  name="clear-filters"
-                  variant="secondary"
-                  onClick={() => {
-                    setSearch('');
-                    setSrcFilter('');
-                    setCatFilter('');
-                    setRegionFilter('');
-                    setCountryFilter('');
-                    setImageTypeFilter('');
-                  }}
-                >
-                  Clear Filters
-                </Button>
               </div>
 
               {/* Loading State */}
@@ -319,7 +347,7 @@ export default function ExplorePage() {
                       </div>
                       <div className={styles.mapItemContent}>
                         <h3 className={styles.mapItemTitle}>
-                          {c.title}
+                          {c.title || 'Untitled'}
                         </h3>
                         <div className={styles.mapItemMetadata}>
                           <div className={styles.metadataTags}>

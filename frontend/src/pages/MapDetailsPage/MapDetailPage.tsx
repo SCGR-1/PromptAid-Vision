@@ -56,6 +56,7 @@ export default function MapDetailPage() {
   const [regionFilter, setRegionFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [imageTypeFilter, setImageTypeFilter] = useState('');
+  const [showReferenceExamples, setShowReferenceExamples] = useState(false);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'Explore' },
@@ -166,9 +167,10 @@ export default function MapDetailPage() {
     const matchesCountry = !countryFilter || 
       map.countries.some(country => country.c_code === countryFilter);
     const matchesImageType = !imageTypeFilter || map.image_type === imageTypeFilter;
+    const matchesReferenceExamples = !showReferenceExamples || map.starred === true;
     
-    return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType ? map : null;
-  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter]);
+    return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples ? map : null;
+  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
 
   const handleContribute = async () => {
     if (!map) return;
@@ -287,7 +289,8 @@ export default function MapDetailPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
+          {/* Layer 1: Search, Reference Examples, Clear Filters */}
           <div className="flex flex-wrap items-center gap-4">
             <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
               <TextInput
@@ -298,6 +301,45 @@ export default function MapDetailPage() {
               />
             </Container>
 
+            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+              <Button
+                name="reference-examples"
+                variant={showReferenceExamples ? "primary" : "secondary"}
+                onClick={() => setShowReferenceExamples(!showReferenceExamples)}
+                className="whitespace-nowrap"
+              >
+                <span className="mr-2">
+                  {showReferenceExamples ? (
+                    <span className="text-yellow-400">★</span>
+                  ) : (
+                    <span className="text-yellow-400">☆</span>
+                  )}
+                </span>
+                Reference Examples
+              </Button>
+            </Container>
+
+            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+              <Button
+                name="clear-filters"
+                variant="secondary"
+                onClick={() => {
+                  setSearch('');
+                  setSrcFilter('');
+                  setCatFilter('');
+                  setRegionFilter('');
+                  setCountryFilter('');
+                  setImageTypeFilter('');
+                  setShowReferenceExamples(false);
+                }}
+              >
+                Clear Filters
+              </Button>
+            </Container>
+          </div>
+
+          {/* Layer 2: 5 Filter Bars */}
+          <div className="flex flex-wrap items-center gap-4">
             <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
               <SelectInput
                 name="source"
@@ -529,6 +571,7 @@ export default function MapDetailPage() {
                       setRegionFilter('');
                       setCountryFilter('');
                       setImageTypeFilter('');
+                      setShowReferenceExamples(false);
                     }}
                   >
                     Clear Filters

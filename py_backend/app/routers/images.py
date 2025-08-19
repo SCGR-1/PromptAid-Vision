@@ -96,24 +96,65 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         sha = hashlib.sha256(data).hexdigest()
         print(f"DEBUG: Generated SHA256: {sha}")
 
+        # Set prompt and schema based on image type
+        prompt_code = "DEFAULT_CRISIS_MAP"
+        schema_id = "default_caption@1.0.0"
+        if payload.image_type == "drone_image":
+            prompt_code = "DEFAULT_DRONE_IMAGE"
+            schema_id = "drone_caption@1.0.0"
+        
+
+        if payload.image_type == "drone_image":
+            source = payload.source
+            event_type = payload.event_type if payload.event_type else "OTHER"
+            epsg = payload.epsg if payload.epsg else "OTHER"
+        else:
+            source = payload.source if payload.source else "OTHER"
+            event_type = payload.event_type if payload.event_type else "OTHER"
+            epsg = payload.epsg if payload.epsg else "OTHER"
+        
+        if payload.image_type != "drone_image":
+            payload.center_lon = None
+            payload.center_lat = None
+            payload.amsl_m = None
+            payload.agl_m = None
+            payload.heading_deg = None
+            payload.yaw_deg = None
+            payload.pitch_deg = None
+            payload.roll_deg = None
+            payload.rtk_fix = None
+            payload.std_h_m = None
+            payload.std_v_m = None
+        
         img = Images(
             file_key=key,
             sha256=sha,
-            source=payload.source,
-            event_type=payload.event_type,
-            epsg=payload.epsg,
+            source=source,
+            event_type=event_type,
+            epsg=epsg,
             image_type=payload.image_type,
             title="no title",
-            prompt="DEFAULT_CRISIS_MAP",
+            prompt=prompt_code,
             model="STUB_MODEL",
-            schema_id="default_caption@1.0.0",
+            schema_id=schema_id,
             raw_json={},
             generated="",
             edited="",
             accuracy=50,
             context=50,
             usability=50,
-            starred=False
+            starred=False,
+            center_lon=payload.center_lon,
+            center_lat=payload.center_lat,
+            amsl_m=payload.amsl_m,
+            agl_m=payload.agl_m,
+            heading_deg=payload.heading_deg,
+            yaw_deg=payload.yaw_deg,
+            pitch_deg=payload.pitch_deg,
+            roll_deg=payload.roll_deg,
+            rtk_fix=payload.rtk_fix,
+            std_h_m=payload.std_h_m,
+            std_v_m=payload.std_v_m
         )
         
         print(f"DEBUG: Created Images object: {img}")

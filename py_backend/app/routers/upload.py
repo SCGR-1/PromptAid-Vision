@@ -4,7 +4,7 @@ import io
 from sqlalchemy.orm import Session
 from .. import crud, schemas, storage, database
 from ..config import settings
-from typing import List
+from typing import List, Optional
 import boto3
 import time
 
@@ -17,6 +17,18 @@ class CopyImageRequest(BaseModel):
     countries: str = ""
     epsg: str = ""
     image_type: str = "crisis_map"
+    # Drone-specific fields (optional)
+    center_lon: Optional[float] = None
+    center_lat: Optional[float] = None
+    amsl_m: Optional[float] = None
+    agl_m: Optional[float] = None
+    heading_deg: Optional[float] = None
+    yaw_deg: Optional[float] = None
+    pitch_deg: Optional[float] = None
+    roll_deg: Optional[float] = None
+    rtk_fix: Optional[bool] = None
+    std_h_m: Optional[float] = None
+    std_v_m: Optional[float] = None
 
 def get_db():
     db = database.SessionLocal()
@@ -58,7 +70,20 @@ def convert_image_to_dict(img, image_url):
         "usability": img.usability,
         "starred": img.starred if img.starred is not None else False,
         "created_at": img.created_at,
-        "updated_at": img.updated_at
+        "updated_at": img.updated_at,
+        
+        # Drone-specific fields
+        "center_lon": getattr(img, 'center_lon', None),
+        "center_lat": getattr(img, 'center_lat', None),
+        "amsl_m": getattr(img, 'amsl_m', None),
+        "agl_m": getattr(img, 'agl_m', None),
+        "heading_deg": getattr(img, 'heading_deg', None),
+        "yaw_deg": getattr(img, 'yaw_deg', None),
+        "pitch_deg": getattr(img, 'pitch_deg', None),
+        "roll_deg": getattr(img, 'roll_deg', None),
+        "rtk_fix": getattr(img, 'rtk_fix', None),
+        "std_h_m": getattr(img, 'std_h_m', None),
+        "std_v_m": getattr(img, 'std_v_m', None)
     }
     
     return img_dict
@@ -88,25 +113,56 @@ def get_image(image_id: str, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=schemas.ImageOut)
 async def upload_image(
-    source: str        = Form(default="OTHER"),
+    source: Optional[str] = Form(default=None),
     event_type: str    = Form(default="OTHER"),
     countries: str     = Form(default=""),
     epsg: str          = Form(default=""),
     image_type: str    = Form(default="crisis_map"),
     file: UploadFile   = Form(...),
+    # Drone-specific fields (optional)
+    center_lon: Optional[float]  = Form(default=None),
+    center_lat: Optional[float]  = Form(default=None),
+    amsl_m: Optional[float]      = Form(default=None),
+    agl_m: Optional[float]       = Form(default=None),
+    heading_deg: Optional[float] = Form(default=None),
+    yaw_deg: Optional[float]     = Form(default=None),
+    pitch_deg: Optional[float]   = Form(default=None),
+    roll_deg: Optional[float]    = Form(default=None),
+    rtk_fix: Optional[bool]      = Form(default=None),
+    std_h_m: Optional[float]     = Form(default=None),
+    std_v_m: Optional[float]     = Form(default=None),
     db: Session        = Depends(get_db)
 ):
     countries_list = [c.strip() for c in countries.split(',') if c.strip()] if countries else []
     
-    if not source or source.strip() == "":
-        source = "OTHER"
-    if not event_type or event_type.strip() == "":
-        event_type = "OTHER"
+    if image_type == "drone_image":
+        if not event_type or event_type.strip() == "":
+            event_type = "OTHER"
+        if not epsg or epsg.strip() == "":
+            epsg = "OTHER"
+    else:
+        if not source or source.strip() == "":
+            source = "OTHER"
+        if not event_type or event_type.strip() == "":
+            event_type = "OTHER"
+        if not epsg or epsg.strip() == "":
+            epsg = "OTHER"
+    
     if not image_type or image_type.strip() == "":
         image_type = "crisis_map"
     
-    if not epsg or epsg.strip() == "":
-        epsg = None
+    if image_type != "drone_image":
+        center_lon = None
+        center_lat = None
+        amsl_m = None
+        agl_m = None
+        heading_deg = None
+        yaw_deg = None
+        pitch_deg = None
+        roll_deg = None
+        rtk_fix = None
+        std_h_m = None
+        std_v_m = None
     
     content = await file.read()
     sha     = crud.hash_bytes(content)
@@ -114,7 +170,11 @@ async def upload_image(
     key = storage.upload_fileobj(io.BytesIO(content), file.filename)
 
     try:
-        img = crud.create_image(db, source, event_type, key, sha, countries_list, epsg, image_type)
+        img = crud.create_image(
+            db, source, event_type, key, sha, countries_list, epsg, image_type,
+            center_lon, center_lat, amsl_m, agl_m, heading_deg, yaw_deg, pitch_deg, roll_deg,
+            rtk_fix, std_h_m, std_v_m
+        )
     except Exception as e:
         raise HTTPException(500, f"Failed to save image to database: {str(e)}")
 
@@ -163,7 +223,10 @@ async def copy_image_for_contribution(
             source_img.sha256,
             countries_list, 
             request.epsg, 
-            request.image_type
+            request.image_type,
+            request.center_lon, request.center_lat, request.amsl_m, request.agl_m,
+            request.heading_deg, request.yaw_deg, request.pitch_deg, request.roll_deg,
+            request.rtk_fix, request.std_h_m, request.std_v_m
         )
         
         try:
@@ -257,6 +320,30 @@ def update_image_metadata(
             img.epsg = metadata.epsg
         if metadata.image_type is not None:
             img.image_type = metadata.image_type
+        
+        # Update drone-specific fields
+        if metadata.center_lon is not None:
+            img.center_lon = metadata.center_lon
+        if metadata.center_lat is not None:
+            img.center_lat = metadata.center_lat
+        if metadata.amsl_m is not None:
+            img.amsl_m = metadata.amsl_m
+        if metadata.agl_m is not None:
+            img.agl_m = metadata.agl_m
+        if metadata.heading_deg is not None:
+            img.heading_deg = metadata.heading_deg
+        if metadata.yaw_deg is not None:
+            img.yaw_deg = metadata.yaw_deg
+        if metadata.pitch_deg is not None:
+            img.pitch_deg = metadata.pitch_deg
+        if metadata.roll_deg is not None:
+            img.roll_deg = metadata.roll_deg
+        if metadata.rtk_fix is not None:
+            img.rtk_fix = metadata.rtk_fix
+        if metadata.std_h_m is not None:
+            img.std_h_m = metadata.std_h_m
+        if metadata.std_v_m is not None:
+            img.std_v_m = metadata.std_v_m
         
         if metadata.countries is not None:
             print(f"DEBUG: Updating countries to: {metadata.countries}")

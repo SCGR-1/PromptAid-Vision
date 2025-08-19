@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { DragEvent } from 'react';
 import {
   PageContainer, Heading, Button,
-  SelectInput, MultiSelectInput, Container, IconButton, TextInput, TextArea, Spinner,
+  SelectInput, MultiSelectInput, Container, IconButton, TextInput, TextArea, Spinner, SegmentInput,
 } from '@ifrc-go/ui';
 import {
   UploadCloudLineIcon,
@@ -32,6 +32,19 @@ export default function UploadPage() {
   const [countries, setCountries] = useState<string[]>([]);
   const [title, setTitle] = useState('');
 
+  // Drone-specific metadata fields
+  const [centerLon, setCenterLon] = useState<string>('');
+  const [centerLat, setCenterLat] = useState<string>('');
+  const [amslM, setAmslM] = useState<string>('');
+  const [aglM, setAglM] = useState<string>('');
+  const [headingDeg, setHeadingDeg] = useState<string>('');
+  const [yawDeg, setYawDeg] = useState<string>('');
+  const [pitchDeg, setPitchDeg] = useState<string>('');
+  const [rollDeg, setRollDeg] = useState<string>('');
+  const [rtkFix, setRtkFix] = useState<boolean>(false);
+  const [stdHM, setStdHM] = useState<string>('');
+  const [stdVM, setStdVM] = useState<string>('');
+
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
   const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
   const [spatialReferences, setSpatialReferences] = useState<{epsg: string, srid: string, proj4: string, wkt: string}[]>([]);
@@ -49,9 +62,20 @@ export default function UploadPage() {
   const handleImageTypeChange = (value: string | undefined) => setImageType(value || '');
   const handleCountriesChange = (value: string[] | undefined) => setCountries(Array.isArray(value) ? value : []);
 
-  const handleStepChange = (newStep: 1 | '2a' | '2b' | 3) => {
-    setStep(newStep);
-  };
+  // Drone metadata handlers
+  const handleCenterLonChange = (value: string | undefined) => setCenterLon(value || '');
+  const handleCenterLatChange = (value: string | undefined) => setCenterLat(value || '');
+  const handleAmslMChange = (value: string | undefined) => setAmslM(value || '');
+  const handleAglMChange = (value: string | undefined) => setAglM(value || '');
+  const handleHeadingDegChange = (value: string | undefined) => setHeadingDeg(value || '');
+  const handleYawDegChange = (value: string | undefined) => setYawDeg(value || '');
+  const handlePitchDegChange = (value: string | undefined) => setPitchDeg(value || '');
+  const handleRollDegChange = (value: string | undefined) => setRollDeg(value || '');
+  const handleRtkFixChange = (value: boolean | undefined) => setRtkFix(value || false);
+  const handleStdHMChange = (value: string | undefined) => setStdHM(value || '');
+  const handleStdVMChange = (value: string | undefined) => setStdVM(value || '');
+
+  const handleStepChange = (newStep: 1 | '2a' | '2b' | 3) => setStep(newStep);
 
   useEffect(() => {
     Promise.all([
@@ -71,9 +95,9 @@ export default function UploadPage() {
       setImageTypes(imageTypesData);
       setCountriesOptions(countriesData);
       
-      if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
-      if (typesData.length > 0) setEventType(typesData[0].t_code);
-      if (spatialData.length > 0) setEpsg(spatialData[0].epsg);
+            if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
+      setEventType('OTHER');
+      setEpsg('OTHER');
       if (imageTypesData.length > 0) setImageType(imageTypesData[0].image_type);
     });
   }, []);
@@ -225,6 +249,19 @@ export default function UploadPage() {
     setTitle('');
     setScores({ accuracy: 50, context: 50, usability: 50 });
     setUploadedImageId(null);
+    
+    // Reset drone metadata fields
+    setCenterLon('');
+    setCenterLat('');
+    setAmslM('');
+    setAglM('');
+    setHeadingDeg('');
+    setYawDeg('');
+    setPitchDeg('');
+    setRollDeg('');
+    setRtkFix(false);
+    setStdHM('');
+    setStdVM('');
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
@@ -277,9 +314,28 @@ export default function UploadPage() {
 
     const fd = new FormData();
     fd.append('file', file);
-    fd.append('source', source);
-    fd.append('event_type', eventType);
-    fd.append('epsg', epsg);
+    
+    if (imageType === 'drone_image') {
+      fd.append('event_type', eventType || 'OTHER');
+      fd.append('epsg', epsg || 'OTHER');
+      // Add drone-specific metadata
+      if (centerLon) fd.append('center_lon', centerLon);
+      if (centerLat) fd.append('center_lat', centerLat);
+      if (amslM) fd.append('amsl_m', amslM);
+      if (aglM) fd.append('agl_m', aglM);
+      if (headingDeg) fd.append('heading_deg', headingDeg);
+      if (yawDeg) fd.append('yaw_deg', yawDeg);
+      if (pitchDeg) fd.append('pitch_deg', pitchDeg);
+      if (rollDeg) fd.append('roll_deg', rollDeg);
+      if (rtkFix) fd.append('rtk_fix', rtkFix.toString());
+      if (stdHM) fd.append('std_h_m', stdHM);
+      if (stdVM) fd.append('std_v_m', stdVM);
+    } else {
+      fd.append('source', source || 'OTHER');
+      fd.append('event_type', eventType || 'OTHER');
+      fd.append('epsg', epsg || 'OTHER');
+    }
+    
     fd.append('image_type', imageType);
     countries.forEach((c) => fd.append('countries', c));
 
@@ -307,7 +363,7 @@ export default function UploadPage() {
           },
           body: new URLSearchParams({
             title: title || 'Generated Caption',
-            prompt: 'DEFAULT_CRISIS_MAP',
+            prompt: imageType === 'drone_image' ? 'DEFAULT_DRONE_IMAGE' : 'DEFAULT_CRISIS_MAP',
             ...(modelName      && { model_name: modelName })
           })
         },
@@ -326,6 +382,20 @@ export default function UploadPage() {
         if ((metadata as Record<string, unknown>).epsg) setEpsg((metadata as Record<string, unknown>).epsg as string);
         if ((metadata as Record<string, unknown>).countries && Array.isArray((metadata as Record<string, unknown>).countries)) {
           setCountries((metadata as Record<string, unknown>).countries as string[]);
+        }
+        // Extract drone metadata if available
+        if (imageType === 'drone_image') {
+          if ((metadata as Record<string, unknown>).center_lon) setCenterLon((metadata as Record<string, unknown>).center_lon as string);
+          if ((metadata as Record<string, unknown>).center_lat) setCenterLat((metadata as Record<string, unknown>).center_lat as string);
+          if ((metadata as Record<string, unknown>).amsl_m) setAmslM((metadata as Record<string, unknown>).amsl_m as string);
+          if ((metadata as Record<string, unknown>).agl_m) setAglM((metadata as Record<string, unknown>).agl_m as string);
+          if ((metadata as Record<string, unknown>).heading_deg) setHeadingDeg((metadata as Record<string, unknown>).heading_deg as string);
+          if ((metadata as Record<string, unknown>).yaw_deg) setYawDeg((metadata as Record<string, unknown>).yaw_deg as string);
+          if ((metadata as Record<string, unknown>).pitch_deg) setPitchDeg((metadata as Record<string, unknown>).pitch_deg as string);
+          if ((metadata as Record<string, unknown>).roll_deg) setRollDeg((metadata as Record<string, unknown>).roll_deg as string);
+          if ((metadata as Record<string, unknown>).rtk_fix !== undefined) setRtkFix((metadata as Record<string, unknown>).rtk_fix as boolean);
+          if ((metadata as Record<string, unknown>).std_h_m) setStdHM((metadata as Record<string, unknown>).std_h_m as string);
+          if ((metadata as Record<string, unknown>).std_v_m) setStdVM((metadata as Record<string, unknown>).std_v_m as string);
         }
       }
 
@@ -347,11 +417,24 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: imageUrl,
-          source,
-          event_type: eventType,
-          epsg,
+          source: imageType === 'drone_image' ? undefined : (source || 'OTHER'),
+          event_type: eventType || 'OTHER',
+          epsg: epsg || 'OTHER',
           image_type: imageType,
           countries,
+          ...(imageType === 'drone_image' && {
+            center_lon: centerLon || undefined,
+            center_lat: centerLat || undefined,
+            amsl_m: amslM || undefined,
+            agl_m: aglM || undefined,
+            heading_deg: headingDeg || undefined,
+            yaw_deg: yawDeg || undefined,
+            pitch_deg: pitchDeg || undefined,
+            roll_deg: rollDeg || undefined,
+            rtk_fix: rtkFix || undefined,
+            std_h_m: stdHM || undefined,
+            std_v_m: stdVM || undefined,
+          }),
         }),
       });
       const json = await readJsonSafely(res);
@@ -367,7 +450,7 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           title: 'Generated Caption',
-          prompt: 'DEFAULT_CRISIS_MAP',
+          prompt: imageType === 'drone_image' ? 'DEFAULT_DRONE_IMAGE' : 'DEFAULT_CRISIS_MAP',
           ...(modelName && { model_name: modelName }),
         }),
       });
@@ -383,6 +466,20 @@ export default function UploadPage() {
         if ((metadata as Record<string, unknown>).epsg) setEpsg((metadata as Record<string, unknown>).epsg as string);
         if ((metadata as Record<string, unknown>).countries && Array.isArray((metadata as Record<string, unknown>).countries)) {
           setCountries((metadata as Record<string, unknown>).countries as string[]);
+        }
+        // Extract drone metadata if available
+        if (imageType === 'drone_image') {
+          if ((metadata as Record<string, unknown>).center_lon) setCenterLon((metadata as Record<string, unknown>).center_lon as string);
+          if ((metadata as Record<string, unknown>).center_lat) setCenterLat((metadata as Record<string, unknown>).center_lat as string);
+          if ((metadata as Record<string, unknown>).amsl_m) setAmslM((metadata as Record<string, unknown>).amsl_m as string);
+          if ((metadata as Record<string, unknown>).agl_m) setAglM((metadata as Record<string, unknown>).agl_m as string);
+          if ((metadata as Record<string, unknown>).heading_deg) setHeadingDeg((metadata as Record<string, unknown>).heading_deg as string);
+          if ((metadata as Record<string, unknown>).yaw_deg) setYawDeg((metadata as Record<string, unknown>).yaw_deg as string);
+          if ((metadata as Record<string, unknown>).pitch_deg) setPitchDeg((metadata as Record<string, unknown>).pitch_deg as string);
+          if ((metadata as Record<string, unknown>).roll_deg) setRollDeg((metadata as Record<string, unknown>).roll_deg as string);
+          if ((metadata as Record<string, unknown>).rtk_fix !== undefined) setRtkFix((metadata as Record<string, unknown>).rtk_fix as boolean);
+          if ((metadata as Record<string, unknown>).std_h_m) setStdHM((metadata as Record<string, unknown>).std_h_m as string);
+          if ((metadata as Record<string, unknown>).std_v_m) setStdVM((metadata as Record<string, unknown>).std_v_m as string);
         }
       }
 
@@ -402,9 +499,9 @@ export default function UploadPage() {
     
     try {
       const metadataBody = {
-        source: source,
-        event_type: eventType,
-        epsg: epsg,
+        source: imageType === 'drone_image' ? undefined : (source || 'OTHER'),
+        event_type: eventType || 'OTHER',
+        epsg: epsg || 'OTHER',
         image_type: imageType,
         countries: countries,
       };
@@ -487,8 +584,8 @@ export default function UploadPage() {
           {step === 1 && !searchParams.get('step') && (
             <div className="space-y-6">
               <p className="text-gray-700 leading-relaxed max-w-2xl mx-auto">
-                This app evaluates how well multimodal AI models turn emergency maps
-                into meaningful text. Upload your map, let the AI generate a
+                This app evaluates how well multimodal AI models analyze and describe
+                crisis maps and drone imagery. Upload your image, let the AI generate a
                 description, then review and rate the result based on your expertise.
               </p>
               
@@ -500,6 +597,23 @@ export default function UploadPage() {
                 >
                   More <ArrowRightLineIcon className="w-3 h-3" />
                 </Link>
+              </div>
+              
+              {/* Image Type Selection */}
+              <div className="flex justify-center">
+                <Container withInternalPadding className="bg-transparent border-none shadow-none">
+                  <SegmentInput
+                    name="image-type"
+                    value={imageType}
+                    onChange={(value) => handleImageTypeChange(value as string)}
+                    options={[
+                      { key: 'crisis_map', label: 'Crisis Maps' },
+                      { key: 'drone_image', label: 'Drone Imagery' }
+                    ]}
+                    keySelector={(o) => o.key}
+                    labelSelector={(o) => o.label}
+                  />
+                </Container>
               </div>
               
               <div
@@ -635,16 +749,18 @@ export default function UploadPage() {
                         required
                       />
                     </div>
-                    <SelectInput
-                      label="Source"
-                      name="source"
-                      value={source}
-                      onChange={handleSourceChange}
-                      options={sources}
-                      keySelector={(o) => o.s_code}
-                      labelSelector={(o) => o.label}
-                      required
-                    />
+                                         {imageType !== 'drone_image' && (
+                       <SelectInput
+                         label="Source"
+                         name="source"
+                         value={source}
+                         onChange={handleSourceChange}
+                         options={sources}
+                         keySelector={(o) => o.s_code}
+                         labelSelector={(o) => o.label}
+                         required
+                       />
+                     )}
                     <SelectInput
                       label="Event Type"
                       name="event_type"
@@ -653,7 +769,7 @@ export default function UploadPage() {
                       options={types}
                       keySelector={(o) => o.t_code}
                       labelSelector={(o) => o.label}
-                      required
+                      required={imageType !== 'drone_image'}
                     />
                     <SelectInput
                       label="EPSG"
@@ -663,7 +779,8 @@ export default function UploadPage() {
                       options={spatialReferences}
                       keySelector={(o) => o.epsg}
                       labelSelector={(o) => `${o.srid} (EPSG:${o.epsg})`}
-                      required
+                      placeholder="EPSG"
+                      required={imageType !== 'drone_image'}
                     />
                     <SelectInput
                       label="Image Type"
@@ -685,6 +802,108 @@ export default function UploadPage() {
                       labelSelector={(o) => o.label}
                       placeholder="Select one or more"
                     />
+                    
+                    {/* Drone-specific metadata fields */}
+                    {imageType === 'drone_image' && (
+                      <>
+                        <div className={styles.droneMetadataSection}>
+                          <h4 className={styles.droneMetadataHeading}>Drone Flight Data</h4>
+                          <div className={styles.droneMetadataGrid}>
+                            <TextInput
+                              label="Center Longitude"
+                              name="center_lon"
+                              value={centerLon}
+                              onChange={handleCenterLonChange}
+                              placeholder="e.g., -122.4194"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Center Latitude"
+                              name="center_lat"
+                              value={centerLat}
+                              onChange={handleCenterLatChange}
+                              placeholder="e.g., 37.7749"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Altitude AMSL (m)"
+                              name="amsl_m"
+                              value={amslM}
+                              onChange={handleAmslMChange}
+                              placeholder="e.g., 100.5"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Altitude AGL (m)"
+                              name="agl_m"
+                              value={aglM}
+                              onChange={handleAglMChange}
+                              placeholder="e.g., 50.2"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Heading (degrees)"
+                              name="heading_deg"
+                              value={headingDeg}
+                              onChange={handleHeadingDegChange}
+                              placeholder="e.g., 180.0"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Yaw (degrees)"
+                              name="yaw_deg"
+                              value={yawDeg}
+                              onChange={handleYawDegChange}
+                              placeholder="e.g., 90.0"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Pitch (degrees)"
+                              name="pitch_deg"
+                              value={pitchDeg}
+                              onChange={handlePitchDegChange}
+                              placeholder="e.g., 0.0"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Roll (degrees)"
+                              name="roll_deg"
+                              value={rollDeg}
+                              onChange={handleRollDegChange}
+                              placeholder="e.g., 0.0"
+                              step="any"
+                            />
+                            <div className={styles.rtkFixContainer}>
+                              <label className={styles.rtkFixLabel}>
+                                <input
+                                  type="checkbox"
+                                  checked={rtkFix}
+                                  onChange={(e) => handleRtkFixChange(e.target.checked)}
+                                  className={styles.rtkFixCheckbox}
+                                />
+                                RTK Fix Available
+                              </label>
+                            </div>
+                            <TextInput
+                              label="Horizontal Std Dev (m)"
+                              name="std_h_m"
+                              value={stdHM}
+                              onChange={handleStdHMChange}
+                              placeholder="e.g., 0.1"
+                              step="any"
+                            />
+                            <TextInput
+                              label="Vertical Std Dev (m)"
+                              name="std_v_m"
+                              value={stdVM}
+                              onChange={handleStdVMChange}
+                              placeholder="e.g., 0.2"
+                              step="any"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className={styles.confirmSection}>
                     <IconButton
