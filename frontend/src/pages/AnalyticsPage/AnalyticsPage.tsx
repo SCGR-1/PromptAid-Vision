@@ -415,13 +415,7 @@ export default function AnalyticsPage() {
 
   return (
     <PageContainer>
-      <Container
-        heading="Analytics Dashboard"
-        headingLevel={2}
-        withHeaderBorder
-        withInternalPadding
-        className="max-w-7xl mx-auto"
-      >
+      <div className="max-w-7xl mx-auto">
         <div className={styles.tabSelector}>
           <SegmentInput
             name="analytics-view"
@@ -548,7 +542,7 @@ export default function AnalyticsPage() {
             </Container>
           </div>
         )}
-      </Container>
+      </div>
     </PageContainer>
   );
 }

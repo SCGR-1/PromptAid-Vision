@@ -64,8 +64,8 @@ export default function MapDetailPage() {
   } = useFilterContext();
 
   const viewOptions = [
-    { key: 'explore' as const, label: 'Explore' },
-    { key: 'mapDetails' as const, label: 'Map Details' }
+    { key: 'explore' as const, label: 'List' },
+    { key: 'mapDetails' as const, label: 'Carousel' }
   ];
 
   const fetchMapData = useCallback(async (id: string) => {
@@ -322,8 +322,8 @@ export default function MapDetailPage() {
         throw new Error(errorData.error || 'Failed to generate caption');
       }
       
-      const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}`;
-      navigate(url);
+              const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
+        navigate(url);
       
     } catch (error: unknown) {
       console.error('Contribution failed:', error);
@@ -370,13 +370,7 @@ export default function MapDetailPage() {
 
   return (
     <PageContainer>
-      <Container
-        heading="Explore"
-        headingLevel={2}
-        withHeaderBorder
-        withInternalPadding
-        className="max-w-7xl mx-auto"
-      >
+      <div className="max-w-7xl mx-auto">
         <div className={styles.tabSelector}>
           <SegmentInput
             name="map-details-view"
@@ -620,10 +614,7 @@ export default function MapDetailPage() {
                           disabled={isGenerating}
                         >
                           {isGenerating ? (
-                            <div className="flex items-center gap-2">
-                              <Spinner className="text-white" />
-                              <span>Generating...</span>
-                            </div>
+                            <span>Generating...</span>
                           ) : (
                             'Contribute'
                           )}
@@ -674,7 +665,7 @@ export default function MapDetailPage() {
             )}
           </div>
         ) : null}
-      </Container>
+      </div>
     </PageContainer>
   );
 } 

@@ -98,19 +98,17 @@ export default function UploadPage() {
             if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
       setEventType('OTHER');
       setEpsg('OTHER');
-      if (imageTypesData.length > 0) setImageType(imageTypesData[0].image_type);
+      // Only set default imageType if we don't have one from URL parameter
+      if (imageTypesData.length > 0 && !searchParams.get('imageType')) {
+        setImageType(imageTypesData[0].image_type);
+      }
     });
-  }, []);
+  }, [searchParams]);
 
   const handleNavigation = useCallback((to: string) => {
     if (uploadedImageIdRef.current) {
-      if (confirm("Leave page? Your uploaded image will be deleted.")) {
-        fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" })
-          .then(() => {
-            navigate(to);
-          })
-          .catch(console.error);
-      }
+      setPendingNavigation(to);
+      setShowNavigationConfirm(true);
     } else {
       navigate(to);
     }
@@ -173,6 +171,7 @@ export default function UploadPage() {
     const imageUrlParam = searchParams.get('imageUrl');
     const stepParam = searchParams.get('step');
     const imageIdParam = searchParams.get('imageId');
+    const imageTypeParam = searchParams.get('imageType');
     
                 if (imageUrlParam) {
         setImageUrl(imageUrlParam);
@@ -180,10 +179,22 @@ export default function UploadPage() {
         if (stepParam === '2a' && imageIdParam) {
           setIsLoadingContribution(true);
           setUploadedImageId(imageIdParam);
+          
+          // Set imageType from URL parameter if available
+          if (imageTypeParam) {
+            console.log('Setting imageType from URL parameter:', imageTypeParam);
+            setImageType(imageTypeParam);
+          }
+          
           fetch(`/api/images/${imageIdParam}`)
             .then(res => res.json())
             .then(data => {
-              if (data.image_type) setImageType(data.image_type);
+              console.log('API response data.image_type:', data.image_type);
+              // Only set imageType from API if we don't have it from URL parameter
+              if (data.image_type && !imageTypeParam) {
+                console.log('Setting imageType from API response:', data.image_type);
+                setImageType(data.image_type);
+              }
               
               if (data.generated) setDraft(data.generated);
               
@@ -239,29 +250,14 @@ export default function UploadPage() {
       }
   }, [searchParams]);
 
+  // Debug useEffect to track imageType changes
+  useEffect(() => {
+    console.log('imageType changed to:', imageType);
+  }, [imageType]);
+
   const resetToStep1 = () => {
-    setStep(1);
-    setFile(null);
-    setPreview(null);
-    setImageUrl(null);
-    
-    setDraft('');
-    setTitle('');
-    setScores({ accuracy: 50, context: 50, usability: 50 });
-    setUploadedImageId(null);
-    
-    // Reset drone metadata fields
-    setCenterLon('');
-    setCenterLat('');
-    setAmslM('');
-    setAglM('');
-    setHeadingDeg('');
-    setYawDeg('');
-    setPitchDeg('');
-    setRollDeg('');
-    setRtkFix(false);
-    setStdHM('');
-    setStdVM('');
+    setIsPerformanceConfirmed(false);
+    window.location.href = '/app/upload';
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
@@ -270,6 +266,11 @@ export default function UploadPage() {
   });
 
   const [isFullSizeModalOpen, setIsFullSizeModalOpen] = useState(false);
+  const [isPerformanceConfirmed, setIsPerformanceConfirmed] = useState(false);
+  const [showRatingWarning, setShowRatingWarning] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showNavigationConfirm, setShowNavigationConfirm] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -497,6 +498,11 @@ export default function UploadPage() {
     console.log('handleSubmit called with:', { uploadedImageId, title, draft });
     if (!uploadedImageId) return alert("No image to submit");
     
+    if (!isPerformanceConfirmed) {
+      setShowRatingWarning(true);
+      return;
+    }
+    
     try {
       const metadataBody = {
         source: imageType === 'drone_image' ? undefined : (source || 'OTHER'),
@@ -544,25 +550,44 @@ export default function UploadPage() {
       return;
     }
     
-    if (confirm("Delete this image? This cannot be undone.")) {
+    setShowDeleteConfirm(true);
+  }
+
+  async function confirmDelete() {
+    try {
+      console.log('Deleting image with ID:', uploadedImageId);
+      const res = await fetch(`/api/images/${uploadedImageId}`, {
+        method: "DELETE",
+      });
+      
+      if (!res.ok) {
+        const json = await readJsonSafely(res);
+        throw new Error((json.error as string) || `Delete failed with status ${res.status}`);
+      }
+      
+      setShowDeleteConfirm(false);
+      if (searchParams.get('isContribution') === 'true') {
+        navigate('/explore');
+      } else {
+        resetToStep1();
+      }
+    } catch (err) {
+      handleApiError(err, 'Delete');
+    }
+  }
+
+  async function confirmNavigation() {
+    if (pendingNavigation && uploadedImageIdRef.current) {
       try {
-        console.log('Deleting image with ID:', uploadedImageId);
-        const res = await fetch(`/api/images/${uploadedImageId}`, {
-          method: "DELETE",
-        });
-        
-        if (!res.ok) {
-          const json = await readJsonSafely(res);
-          throw new Error((json.error as string) || `Delete failed with status ${res.status}`);
-        }
-        
-        if (searchParams.get('isContribution') === 'true') {
-          navigate('/explore');
-        } else {
-          resetToStep1();
-        }
-      } catch (err) {
-        handleApiError(err, 'Delete');
+        await fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" });
+        setShowNavigationConfirm(false);
+        setPendingNavigation(null);
+        navigate(pendingNavigation);
+      } catch (error) {
+        console.error('Failed to delete image before navigation:', error);
+        setShowNavigationConfirm(false);
+        setPendingNavigation(null);
+        navigate(pendingNavigation);
       }
     }
   }
@@ -572,13 +597,7 @@ export default function UploadPage() {
   return (
     <PageContainer>
       {step !== 3 && (
-        <Container
-          heading="Upload Your Image"
-          headingLevel={2}
-          withHeaderBorder
-          withInternalPadding
-          className="max-w-7xl mx-auto"
-        >
+        <div className="max-w-7xl mx-auto">
           <div className={styles.uploadContainer} data-step={step}>
           {/* Drop-zone */}
           {step === 1 && !searchParams.get('step') && (
@@ -973,23 +992,47 @@ export default function UploadPage() {
                   withInternalPadding
                 >
                   <div className={styles.ratingSection}>
-                    <p className={styles.ratingDescription}>How well did the AI perform on the task?</p>
-                    {(['accuracy', 'context', 'usability'] as const).map((k) => (
-                      <div key={k} className={styles.ratingSlider}>
-                        <label className={styles.ratingLabel}>{k}</label>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={scores[k]}
-                          onChange={(e) =>
-                            setScores((s) => ({ ...s, [k]: Number(e.target.value) }))
-                          }
-                          className={styles.ratingInput}
-                        />
-                        <span className={styles.ratingValue}>{scores[k]}</span>
+                    {!isPerformanceConfirmed && (
+                      <>
+                        <p className={styles.ratingDescription}>How well did the AI perform on the task?</p>
+                        {(['accuracy', 'context', 'usability'] as const).map((k) => (
+                          <div key={k} className={styles.ratingSlider}>
+                            <label className={styles.ratingLabel}>{k}</label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={scores[k]}
+                              onChange={(e) =>
+                                setScores((s) => ({ ...s, [k]: Number(e.target.value) }))
+                              }
+                              className={styles.ratingInput}
+                            />
+                            <span className={styles.ratingValue}>{scores[k]}</span>
+                          </div>
+                        ))}
+                        <div className={styles.confirmButtonContainer}>
+                          <Button
+                            name="confirm-ratings"
+                            variant="secondary"
+                            onClick={() => setIsPerformanceConfirmed(true)}
+                          >
+                            Confirm Ratings
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                    {isPerformanceConfirmed && (
+                      <div className={styles.confirmButtonContainer}>
+                        <Button
+                          name="edit-ratings"
+                          variant="secondary"
+                          onClick={() => setIsPerformanceConfirmed(false)}
+                        >
+                          Edit Ratings
+                        </Button>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </Container>
               </div>
@@ -997,7 +1040,7 @@ export default function UploadPage() {
               {/* ────── AI‑GENERATED CAPTION ────── */}
               <div className={styles.metadataSectionCard}>
                 <Container
-                  heading="AI‑Generated Caption"
+                  heading="Generated Text"
                   headingLevel={3}
                   withHeaderBorder
                   withInternalPadding
@@ -1007,37 +1050,37 @@ export default function UploadPage() {
                       name="caption"
                       value={draft}
                       onChange={(value) => setDraft(value || '')}
-                      rows={5}
+                      rows={10}
                       placeholder="AI-generated caption will appear here..."
                     />
                   </div>
+                  
+                  {/* ────── SUBMIT BUTTONS ────── */}
+                  <div className={styles.submitSection}>
+                    <Button
+                      name="back"
+                      variant="secondary"
+                      onClick={() => handleStepChange('2a')}
+                    >
+                      Back
+                    </Button>
+                    <IconButton
+                      name="delete"
+                      variant="tertiary"
+                      onClick={handleDelete}
+                      title="Delete"
+                      ariaLabel="Delete uploaded image"
+                    >
+                      <DeleteBinLineIcon />
+                    </IconButton>
+                    <Button
+                      name="submit"
+                      onClick={handleSubmit}
+                    >
+                      Submit
+                    </Button>
+                  </div>
                 </Container>
-              </div>
-
-              {/* ────── SUBMIT BUTTON ────── */}
-              <div className={styles.submitSection}>
-                <Button
-                  name="back"
-                  variant="secondary"
-                  onClick={() => handleStepChange('2a')}
-                >
-                  ← Back to Metadata
-                </Button>
-                <IconButton
-                  name="delete"
-                  variant="tertiary"
-                  onClick={handleDelete}
-                  title="Delete"
-                  ariaLabel="Delete uploaded image"
-                >
-                  <DeleteBinLineIcon />
-                </IconButton>
-                <Button
-                  name="submit"
-                  onClick={handleSubmit}
-                >
-                  Submit
-                </Button>
               </div>
             </div>
           </div>
@@ -1067,8 +1110,91 @@ export default function UploadPage() {
           </div>
         )}
 
+        {/* Rating Confirmation Warning Modal */}
+        {showRatingWarning && (
+          <div className={styles.fullSizeModalOverlay} onClick={() => setShowRatingWarning(false)}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>Please Confirm Your Ratings</h3>
+                <p className={styles.ratingWarningText}>
+                  You must confirm your performance ratings before submitting. Please go back to the rating section and click "Confirm Ratings".
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="close-warning"
+                    variant="secondary"
+                    onClick={() => setShowRatingWarning(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className={styles.fullSizeModalOverlay} onClick={() => setShowDeleteConfirm(false)}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>Delete Image?</h3>
+                <p className={styles.ratingWarningText}>
+                  This action cannot be undone. Are you sure you want to delete this uploaded image?
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="confirm-delete"
+                    variant="secondary"
+                    onClick={confirmDelete}
+                  >
+                    Delete
+                  </Button>
+                  <Button
+                    name="cancel-delete"
+                    variant="tertiary"
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Confirmation Modal */}
+        {showNavigationConfirm && (
+          <div className={styles.fullSizeModalOverlay} onClick={() => setShowNavigationConfirm(false)}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>Leave Page?</h3>
+                <p className={styles.ratingWarningText}>
+                  Your uploaded image will be deleted if you leave this page. Are you sure you want to continue?
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="confirm-navigation"
+                    variant="secondary"
+                    onClick={confirmNavigation}
+                  >
+                    Leave Page
+                  </Button>
+                  <Button
+                    name="cancel-navigation"
+                    variant="tertiary"
+                    onClick={() => setShowNavigationConfirm(false)}
+                  >
+                    Stay
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         </div>
-        </Container>
+        </div>
       )}
 
       {/* Success page - outside the upload container */}

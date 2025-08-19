@@ -54,8 +54,8 @@ export default function ExplorePage() {
   const [isLoadingContent, setIsLoadingContent] = useState(true);
 
   const viewOptions = [
-    { key: 'explore' as const, label: 'Explore' },
-    { key: 'mapDetails' as const, label: 'Map Details' }
+    { key: 'explore' as const, label: 'List' },
+    { key: 'mapDetails' as const, label: 'Carousel' }
   ];
 
   const fetchCaptions = () => {
@@ -164,13 +164,7 @@ export default function ExplorePage() {
 
   return (
     <PageContainer>
-      <Container
-        heading="Explore"
-        headingLevel={2}
-        withHeaderBorder
-        withInternalPadding
-        className="max-w-7xl mx-auto"
-      >
+      <div className="max-w-7xl mx-auto">
         <div className={styles.tabSelector}>
           <SegmentInput
             name="explore-view"
@@ -394,7 +388,7 @@ export default function ExplorePage() {
             </div>
           </div>
         )}
-      </Container>
+      </div>
     </PageContainer>
   );
 }

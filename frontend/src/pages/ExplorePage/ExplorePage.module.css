@@ -1,5 +1,7 @@
 .tabSelector {
   margin-bottom: var(--go-ui-spacing-lg);
+  display: flex;
+  justify-content: center;
 }
 
 .metadataTags {

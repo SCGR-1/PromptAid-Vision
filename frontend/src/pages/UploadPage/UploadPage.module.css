@@ -544,4 +544,42 @@
   }
 }
 
+/* Performance rating confirmation styles */
+.confirmButtonContainer {
+  margin-top: var(--go-ui-spacing-lg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Rating warning modal styles */
+.ratingWarningContent {
+  padding: var(--go-ui-spacing-xl);
+  text-align: center;
+  max-width: 500px;
+}
+
+
+
+.ratingWarningTitle {
+  font-size: var(--go-ui-font-size-lg);
+  font-weight: var(--go-ui-font-weight-semibold);
+  color: var(--go-ui-color-gray-900);
+  margin-bottom: var(--go-ui-spacing-md);
+}
+
+.ratingWarningText {
+  font-size: var(--go-ui-font-size-md);
+  color: var(--go-ui-color-gray-700);
+  line-height: 1.6;
+  margin-bottom: var(--go-ui-spacing-xl);
+}
+
+.ratingWarningButtons {
+  display: flex;
+  gap: var(--go-ui-spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 
