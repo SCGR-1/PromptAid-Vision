@@ -29,6 +29,7 @@ class ImageMetadataUpdate(BaseModel):
     countries: Optional[List[str]] = None
     epsg: Optional[str] = None
     image_type: Optional[str] = None
+    starred: Optional[bool] = None
     
     # Drone-specific fields (optional)
     center_lon: Optional[float] = None

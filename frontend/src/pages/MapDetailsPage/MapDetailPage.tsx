@@ -1,7 +1,7 @@
 import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput } from '@ifrc-go/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronLeftLineIcon, ChevronRightLineIcon } from '@ifrc-go/icons';
+import { ChevronLeftLineIcon, ChevronRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';
 import styles from './MapDetailPage.module.css';
 import { useFilterContext } from '../../contexts/FilterContext';
 
@@ -50,6 +50,12 @@ export default function MapDetailPage() {
   const [hasPrevious, setHasPrevious] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  
+  // Add delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // Add flag to prevent auto-navigation during delete operations
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Use shared filter context instead of local state
   const {
@@ -101,7 +107,7 @@ export default function MapDetailPage() {
 
   // Auto-navigate to first matching item when filters change
   useEffect(() => {
-    if (!map || loading) return;
+    if (!map || loading || isDeleting) return; // Skip if deleting
     
     // Check if current map matches current filters
     const currentMapMatches = () => {
@@ -153,7 +159,7 @@ export default function MapDetailPage() {
         })
         .catch(console.error);
     }
-  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading]);
+  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading, isDeleting]);
 
   const checkNavigationAvailability = async (currentId: string) => {
     try {
@@ -253,6 +259,139 @@ export default function MapDetailPage() {
   }, []);
 
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Add delete function
+  const handleDelete = async () => {
+    if (!map) return;
+    
+    setShowDeleteConfirm(true);
+  };
+
+  const toggleStarred = async () => {
+    if (!map) return;
+    
+    try {
+      const response = await fetch(`/api/images/${map.image_id}`, {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          starred: !map.starred
+        })
+      });
+      
+      if (response.ok) {
+        // Update local state
+        setMap(prev => prev ? { ...prev, starred: !prev.starred } : null);
+      } else {
+        console.error('Failed to toggle starred status');
+      }
+    } catch (error) {
+      console.error('Error toggling starred status:', error);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!map) return;
+    
+    setIsDeleting(true); // Set flag to true
+    try {
+      console.log('Deleting image with ID:', map.image_id);
+      const res = await fetch(`/api/images/${map.image_id}`, {
+        method: "DELETE",
+      });
+      
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error((json.error as string) || `Delete failed with status ${res.status}`);
+      }
+      
+      setShowDeleteConfirm(false);
+      
+      // Navigate to next item in filtered list instead of explore page
+      try {
+        const response = await fetch('/api/images');
+        if (response.ok) {
+          const images = await response.json();
+          
+          // Filter images based on current filter criteria (same logic as navigateToItem)
+          const filteredImages = images.filter((img: any) => {
+            const matchesSearch = !search || 
+              img.title?.toLowerCase().includes(search.toLowerCase()) ||
+              img.generated?.toLowerCase().includes(search.toLowerCase()) ||
+              img.source?.toLowerCase().includes(search.toLowerCase()) ||
+              img.event_type?.toLowerCase().includes(search.toLowerCase());
+            
+            const matchesSource = !srcFilter || img.source === srcFilter;
+            const matchesCategory = !catFilter || img.event_type === catFilter;
+            const matchesRegion = !regionFilter || 
+              img.countries?.some((country: any) => country.r_code === regionFilter);
+            const matchesCountry = !countryFilter || 
+              img.countries?.some((country: any) => country.c_code === countryFilter);
+            const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+            const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+            
+            return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+          });
+          
+          // Remove the current item from the filtered list since it was deleted
+          const remainingImages = filteredImages.filter((img: any) => img.image_id !== map.image_id);
+          
+          console.log('Delete navigation debug:', {
+            originalFilteredCount: filteredImages.length,
+            remainingCount: remainingImages.length,
+            currentIndex: filteredImages.findIndex((img: any) => img.image_id === map.image_id),
+            remainingImages: remainingImages.map((img: any) => ({ id: img.image_id, title: img.title }))
+          });
+          
+          if (remainingImages.length > 0) {
+            // Find the current item's position in the original filtered list
+            const currentIndex = filteredImages.findIndex((img: any) => img.image_id === map.image_id);
+            
+            // Navigate to the next item, or the previous if we're at the end
+            let targetIndex: number;
+            if (currentIndex === filteredImages.length - 1) {
+              // We were at the last item, go to the previous one
+              targetIndex = currentIndex - 1;
+            } else {
+              // Go to the next item
+              targetIndex = currentIndex;
+            }
+            
+            console.log('Navigation target:', { currentIndex, targetIndex, targetId: remainingImages[targetIndex]?.image_id });
+            
+            // Make sure the target index is valid
+            if (targetIndex >= 0 && targetIndex < remainingImages.length) {
+              console.log('Navigating to:', remainingImages[targetIndex].image_id);
+              navigate(`/map/${remainingImages[targetIndex].image_id}`);
+            } else {
+              // Fallback to first remaining item
+              console.log('Fallback navigation to first item:', remainingImages[0].image_id);
+              navigate(`/map/${remainingImages[0].image_id}`);
+            }
+          } else {
+            // No more items in filtered list, go to explore page
+            console.log('No remaining items, going to explore page');
+            navigate('/explore');
+          }
+        } else {
+          // Fallback to explore page if API call fails
+          navigate('/explore');
+        }
+      } catch (error) {
+        console.error('Failed to navigate to next item:', error);
+        // Fallback to explore page
+        navigate('/explore');
+      } finally {
+        setIsDeleting(false); // Reset flag
+      }
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert(`Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setShowDeleteConfirm(false);
+    }
+  };
   
   const filteredMap = useMemo(() => {
     if (!map) return null;
@@ -506,7 +645,14 @@ export default function MapDetailPage() {
                 <div className={styles.gridLayout}>
                   {/* Image Section */}
                   <Container
-                    heading={filteredMap.title || "Map Image"}
+                    heading={
+                      <div className="flex items-center gap-2">
+                        <span>{filteredMap.title || "Map Image"}</span>
+                        {filteredMap.starred && (
+                          <span className="text-red-500 text-xl" title="Starred image">★</span>
+                        )}
+                      </div>
+                    }
                     headingLevel={2}
                     withHeaderBorder
                     withInternalPadding
@@ -607,6 +753,21 @@ export default function MapDetailPage() {
                         </Container>
                       )}
                       
+                      {/* Delete Button */}
+                      <Container withInternalPadding className="rounded-md p-2">
+                        <Button
+                          name="delete"
+                          variant="tertiary"
+                          size={1}
+                          className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 hover:border-red-300"
+                          onClick={handleDelete}
+                          title="Delete"
+                          aria-label="Delete saved image"
+                        >
+                          <DeleteBinLineIcon className="w-4 h-4" />
+                        </Button>
+                      </Container>
+                      
                       <Container withInternalPadding className="rounded-md p-2">
                         <Button
                           name="contribute"
@@ -618,6 +779,27 @@ export default function MapDetailPage() {
                           ) : (
                             'Contribute'
                           )}
+                        </Button>
+                      </Container>
+                      
+                      {/* Star Toggle Button */}
+                      <Container withInternalPadding className="rounded-md p-2">
+                        <Button
+                          name="toggle-star"
+                          variant="tertiary"
+                          size={1}
+                          className={`${
+                            map?.starred 
+                              ? 'bg-red-100 hover:bg-red-200 text-red-800 border-2 border-red-400' 
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-2 border-gray-300'
+                          } w-16 h-8 rounded-full transition-all duration-200 flex items-center justify-center`}
+                          onClick={toggleStarred}
+                          title={map?.starred ? 'Unstar image' : 'Star image'}
+                          aria-label={map?.starred ? 'Unstar image' : 'Star image'}
+                        >
+                          <span className={`text-lg transition-all duration-200 ${map?.starred ? 'text-red-600' : 'text-gray-500'}`}>
+                            {map?.starred ? '★' : '☆'}
+                          </span>
                         </Button>
                       </Container>
                       
@@ -666,6 +848,36 @@ export default function MapDetailPage() {
           </div>
         ) : null}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className={styles.fullSizeModalOverlay} onClick={() => setShowDeleteConfirm(false)}>
+          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.ratingWarningContent}>
+              <h3 className={styles.ratingWarningTitle}>Delete Image?</h3>
+              <p className={styles.ratingWarningText}>
+                This action cannot be undone. Are you sure you want to delete this saved image and all related data?
+              </p>
+              <div className={styles.ratingWarningButtons}>
+                <Button
+                  name="confirm-delete"
+                  variant="secondary"
+                  onClick={confirmDelete}
+                >
+                  Delete
+                </Button>
+                <Button
+                  name="cancel-delete"
+                  variant="tertiary"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 } 

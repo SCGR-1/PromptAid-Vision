@@ -340,7 +340,12 @@ export default function ExplorePage() {
                       </div>
                       <div className={styles.mapItemContent}>
                         <h3 className={styles.mapItemTitle}>
-                          {c.title || 'Untitled'}
+                          <div className="flex items-center gap-2">
+                            <span>{c.title || 'Untitled'}</span>
+                            {c.starred && (
+                              <span className="text-red-500 text-lg" title="Starred image">★</span>
+                            )}
+                          </div>
                         </h3>
                         <div className={styles.mapItemMetadata}>
                           <div className={styles.metadataTags}>

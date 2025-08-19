@@ -320,6 +320,8 @@ def update_image_metadata(
             img.epsg = metadata.epsg
         if metadata.image_type is not None:
             img.image_type = metadata.image_type
+        if metadata.starred is not None:
+            img.starred = metadata.starred
         
         # Update drone-specific fields
         if metadata.center_lon is not None:
