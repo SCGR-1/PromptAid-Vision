@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon } from '@ifrc-go/icons';
 import styles from './MapDetailPage.module.css';
+import { useFilterContext } from '../../contexts/FilterContext';
 
 interface MapOut {
   image_id: string;
@@ -50,13 +51,17 @@ export default function MapDetailPage() {
   const [hasNext, setHasNext] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   
-  const [search, setSearch] = useState('');
-  const [srcFilter, setSrcFilter] = useState('');
-  const [catFilter, setCatFilter] = useState('');
-  const [regionFilter, setRegionFilter] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
-  const [imageTypeFilter, setImageTypeFilter] = useState('');
-  const [showReferenceExamples, setShowReferenceExamples] = useState(false);
+  // Use shared filter context instead of local state
+  const {
+    search, setSearch,
+    srcFilter, setSrcFilter,
+    catFilter, setCatFilter,
+    regionFilter, setRegionFilter,
+    countryFilter, setCountryFilter,
+    imageTypeFilter, setImageTypeFilter,
+    showReferenceExamples, setShowReferenceExamples,
+    clearAllFilters
+  } = useFilterContext();
 
   const viewOptions = [
     { key: 'explore' as const, label: 'Explore' },
@@ -94,15 +99,92 @@ export default function MapDetailPage() {
     fetchMapData(mapId);
   }, [mapId, fetchMapData]);
 
+  // Auto-navigate to first matching item when filters change
+  useEffect(() => {
+    if (!map || loading) return;
+    
+    // Check if current map matches current filters
+    const currentMapMatches = () => {
+      const matchesSearch = !search || 
+        map.title?.toLowerCase().includes(search.toLowerCase()) ||
+        map.generated?.toLowerCase().includes(search.toLowerCase()) ||
+        map.source?.toLowerCase().includes(search.toLowerCase()) ||
+        map.event_type?.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesSource = !srcFilter || map.source === srcFilter;
+      const matchesCategory = !catFilter || map.event_type === catFilter;
+      const matchesRegion = !regionFilter || 
+        map.countries.some(country => country.r_code === regionFilter);
+      const matchesCountry = !countryFilter || 
+        map.countries.some(country => country.c_code === countryFilter);
+      const matchesImageType = !imageTypeFilter || map.image_type === imageTypeFilter;
+      const matchesReferenceExamples = !showReferenceExamples || map.starred === true;
+      
+      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+    };
+
+    if (!currentMapMatches()) {
+      // Find first matching item and navigate to it
+      fetch('/api/images')
+        .then(r => r.json())
+        .then(images => {
+          const firstMatching = images.find((img: any) => {
+            const matchesSearch = !search || 
+              img.title?.toLowerCase().includes(search.toLowerCase()) ||
+              img.generated?.toLowerCase().includes(search.toLowerCase()) ||
+              img.source?.toLowerCase().includes(search.toLowerCase()) ||
+              img.event_type?.toLowerCase().includes(search.toLowerCase());
+            
+            const matchesSource = !srcFilter || img.source === srcFilter;
+            const matchesCategory = !catFilter || img.event_type === catFilter;
+            const matchesRegion = !regionFilter || 
+              img.countries?.some((country: any) => country.r_code === regionFilter);
+            const matchesCountry = !countryFilter || 
+              img.countries?.some((country: any) => country.c_code === countryFilter);
+            const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+            const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+            
+            return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+          });
+          
+          if (firstMatching && firstMatching.image_id !== mapId) {
+            navigate(`/map/${firstMatching.image_id}`);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading]);
+
   const checkNavigationAvailability = async (currentId: string) => {
     try {
       const response = await fetch('/api/images');
       if (response.ok) {
         const images = await response.json();
-        const currentIndex = images.findIndex((img: { image_id: string }) => img.image_id === currentId);
         
-        setHasPrevious(images.length > 1 && currentIndex > 0);
-        setHasNext(images.length > 1 && currentIndex < images.length - 1);
+        // Filter images based on current filter criteria
+        const filteredImages = images.filter((img: any) => {
+          const matchesSearch = !search || 
+            img.title?.toLowerCase().includes(search.toLowerCase()) ||
+            img.generated?.toLowerCase().includes(search.toLowerCase()) ||
+            img.source?.toLowerCase().includes(search.toLowerCase()) ||
+            img.event_type?.toLowerCase().includes(search.toLowerCase());
+          
+          const matchesSource = !srcFilter || img.source === srcFilter;
+          const matchesCategory = !catFilter || img.event_type === catFilter;
+          const matchesRegion = !regionFilter || 
+            img.countries?.some((country: any) => country.r_code === regionFilter);
+          const matchesCountry = !countryFilter || 
+            img.countries?.some((country: any) => country.c_code === countryFilter);
+          const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+          const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+          
+          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+        });
+        
+        const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
+        
+        setHasPrevious(filteredImages.length > 1 && currentIndex > 0);
+        setHasNext(filteredImages.length > 1 && currentIndex < filteredImages.length - 1);
       }
     } catch (error) {
       console.error('Failed to check navigation availability:', error);
@@ -117,16 +199,37 @@ export default function MapDetailPage() {
       if (!response.ok) return;
       
       const images = await response.json();
-      const currentIndex = images.findIndex((img: { image_id: string }) => img.image_id === mapId);
+      
+      // Filter images based on current filter criteria
+      const filteredImages = images.filter((img: any) => {
+        const matchesSearch = !search || 
+          img.title?.toLowerCase().includes(search.toLowerCase()) ||
+          img.generated?.toLowerCase().includes(search.toLowerCase()) ||
+          img.source?.toLowerCase().includes(search.toLowerCase()) ||
+          img.event_type?.toLowerCase().includes(search.toLowerCase());
+        
+        const matchesSource = !srcFilter || img.source === srcFilter;
+        const matchesCategory = !catFilter || img.event_type === catFilter;
+        const matchesRegion = !regionFilter || 
+          img.countries?.some((country: any) => country.r_code === regionFilter);
+        const matchesCountry = !countryFilter || 
+          img.countries?.some((country: any) => country.c_code === countryFilter);
+        const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+        const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+        
+        return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+      });
+      
+      const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
       
       let targetIndex: number;
       if (direction === 'previous') {
-        targetIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
+        targetIndex = currentIndex === 0 ? filteredImages.length - 1 : currentIndex - 1;
       } else {
-        targetIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1;
+        targetIndex = currentIndex === filteredImages.length - 1 ? 0 : currentIndex + 1;
       }
       
-      const targetId = images[targetIndex].image_id;
+      const targetId = filteredImages[targetIndex].image_id;
       navigate(`/map/${targetId}`);
     } catch (error) {
       console.error('Navigation failed:', error);
@@ -153,6 +256,10 @@ export default function MapDetailPage() {
   
   const filteredMap = useMemo(() => {
     if (!map) return null;
+    
+    if (!search && !srcFilter && !catFilter && !regionFilter && !countryFilter && !imageTypeFilter && !showReferenceExamples) {
+      return map;
+    }
     
     const matchesSearch = !search || 
       map.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -323,15 +430,7 @@ export default function MapDetailPage() {
               <Button
                 name="clear-filters"
                 variant="secondary"
-                onClick={() => {
-                  setSearch('');
-                  setSrcFilter('');
-                  setCatFilter('');
-                  setRegionFilter('');
-                  setCountryFilter('');
-                  setImageTypeFilter('');
-                  setShowReferenceExamples(false);
-                }}
+                onClick={clearAllFilters}
               >
                 Clear Filters
               </Button>
@@ -443,9 +542,11 @@ export default function MapDetailPage() {
                       spacing="comfortable"
                     >
                       <div className={styles.metadataTags}>
-                        <span className={styles.metadataTag}>
-                          {sources.find(s => s.s_code === filteredMap.source)?.label || filteredMap.source}
-                        </span>
+                        {filteredMap.image_type !== 'drone_image' && (
+                          <span className={styles.metadataTag}>
+                            {sources.find(s => s.s_code === filteredMap.source)?.label || filteredMap.source}
+                          </span>
+                        )}
                         <span className={styles.metadataTag}>
                           {types.find(t => t.t_code === filteredMap.event_type)?.label || filteredMap.event_type}
                         </span>
@@ -564,15 +665,7 @@ export default function MapDetailPage() {
                   <Button
                     name="clear-filters"
                     variant="secondary"
-                    onClick={() => {
-                      setSearch('');
-                      setSrcFilter('');
-                      setCatFilter('');
-                      setRegionFilter('');
-                      setCountryFilter('');
-                      setImageTypeFilter('');
-                      setShowReferenceExamples(false);
-                    }}
+                    onClick={clearAllFilters}
                   >
                     Clear Filters
                   </Button>

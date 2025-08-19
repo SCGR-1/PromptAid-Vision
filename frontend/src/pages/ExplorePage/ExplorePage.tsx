@@ -2,6 +2,7 @@ import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, Seg
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './ExplorePage.module.css';
+import { useFilterContext } from '../../contexts/FilterContext';
 
 interface ImageWithCaptionOut {
   image_id: string;
@@ -31,13 +32,19 @@ export default function ExplorePage() {
   const navigate = useNavigate();
   const [view, setView] = useState<'explore' | 'mapDetails'>('explore');
   const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
-  const [search, setSearch] = useState('');
-  const [srcFilter, setSrcFilter] = useState('');
-  const [catFilter, setCatFilter] = useState('');
-  const [regionFilter, setRegionFilter] = useState('');
-  const [countryFilter, setCountryFilter] = useState('');
-  const [imageTypeFilter, setImageTypeFilter] = useState('');
-  const [showReferenceExamples, setShowReferenceExamples] = useState(false);
+  
+  // Use shared filter context instead of local state
+  const {
+    search, setSearch,
+    srcFilter, setSrcFilter,
+    catFilter, setCatFilter,
+    regionFilter, setRegionFilter,
+    countryFilter, setCountryFilter,
+    imageTypeFilter, setImageTypeFilter,
+    showReferenceExamples, setShowReferenceExamples,
+    clearAllFilters
+  } = useFilterContext();
+  
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
   const [types, setTypes] = useState<{t_code: string, label: string}[]>([]);
   const [regions, setRegions] = useState<{r_code: string, label: string}[]>([]);
@@ -219,15 +226,7 @@ export default function ExplorePage() {
                   <Button
                     name="clear-filters"
                     variant="secondary"
-                    onClick={() => {
-                      setSearch('');
-                      setSrcFilter('');
-                      setCatFilter('');
-                      setRegionFilter('');
-                      setCountryFilter('');
-                      setImageTypeFilter('');
-                      setShowReferenceExamples(false);
-                    }}
+                    onClick={clearAllFilters}
                   >
                     Clear Filters
                   </Button>
@@ -351,9 +350,11 @@ export default function ExplorePage() {
                         </h3>
                         <div className={styles.mapItemMetadata}>
                           <div className={styles.metadataTags}>
-                            <span className={styles.metadataTagSource}>
-                              {sources.find(s => s.s_code === c.source)?.label || c.source}
-                            </span>
+                            {c.image_type !== 'drone_image' && (
+                              <span className={styles.metadataTagSource}>
+                                {sources.find(s => s.s_code === c.source)?.label || c.source}
+                              </span>
+                            )}
                             <span className={styles.metadataTagType}>
                               {types.find(t => t.t_code === c.event_type)?.label || c.event_type}
                             </span>

@@ -10,6 +10,7 @@ import HelpPage from './pages/HelpPage';
 import MapDetailPage from './pages/MapDetailsPage';
 import DemoPage from './pages/DemoPage';
 import DevPage from './pages/DevPage';
+import { FilterProvider } from './contexts/FilterContext';
 
 const router = createHashRouter([
   {
@@ -94,7 +95,9 @@ function Application() {
   return (
     <AlertContext.Provider value={alertContextValue}>
       <LanguageContext.Provider value={languageContextValue}>
-        <RouterProvider router={router} />
+        <FilterProvider>
+          <RouterProvider router={router} />
+        </FilterProvider>
       </LanguageContext.Provider>
     </AlertContext.Provider>
   );
