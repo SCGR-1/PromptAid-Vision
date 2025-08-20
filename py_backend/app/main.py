@@ -7,10 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from app.config import settings
 from app.routers import upload, caption, metadata, models
 from app.routers.images import router as images_router
 from app.routers.prompts import router as prompts_router
+from app.routers.admin import router as admin_router
+from app.routers.schemas import router as schemas_router
 
 app = FastAPI(title="PromptAid Vision")
 
@@ -29,6 +34,8 @@ app.include_router(models.router,      prefix="/api",            tags=["models"]
 app.include_router(upload.router,      prefix="/api/images",     tags=["images"])
 app.include_router(images_router,      prefix="/api/contribute", tags=["contribute"])
 app.include_router(prompts_router,     prefix="/api/prompts",    tags=["prompts"])
+app.include_router(admin_router,       prefix="/api/admin",      tags=["admin"])
+app.include_router(schemas_router,     prefix="/api",            tags=["schemas"])
 
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)
 async def health():

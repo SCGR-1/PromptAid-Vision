@@ -29,7 +29,17 @@ def get_available_models(db: Session = Depends(get_db)):
                 "config": model.config
             })
         
-        return {"models": models_info}
+        # Add debug info about registered services
+        registered_services = list(vlm_manager.services.keys())
+        
+        return {
+            "models": models_info,
+            "debug": {
+                "registered_services": registered_services,
+                "total_services": len(registered_services),
+                "available_db_models": [m.m_code for m in db_models if m.is_available]
+            }
+        }
     except Exception as e:
         raise HTTPException(500, f"Failed to get models: {str(e)}")
 

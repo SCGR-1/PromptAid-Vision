@@ -9,8 +9,10 @@ import ExplorePage from './pages/ExplorePage';
 import HelpPage from './pages/HelpPage';
 import MapDetailPage from './pages/MapDetailsPage';
 import DemoPage from './pages/DemoPage';
-import DevPage from './pages/DevPage';
+
+import AdminPage from './pages/AdminPage/AdminPage';
 import { FilterProvider } from './contexts/FilterContext';
+import { AdminProvider } from './contexts/AdminContext';
 
 const router = createHashRouter([
   {
@@ -22,7 +24,8 @@ const router = createHashRouter([
       { path: '/explore',   element: <ExplorePage /> },
       { path: '/help',      element: <HelpPage /> },
       { path: '/demo',      element: <DemoPage /> },
-      { path: '/dev',       element: <DevPage /> },
+      
+      { path: '/admin',     element: <AdminPage /> },
       { path: '/map/:mapId', element: <MapDetailPage /> },
     ],
   },
@@ -95,9 +98,11 @@ function Application() {
   return (
     <AlertContext.Provider value={alertContextValue}>
       <LanguageContext.Provider value={languageContextValue}>
-        <FilterProvider>
-          <RouterProvider router={router} />
-        </FilterProvider>
+        <AdminProvider>
+          <FilterProvider>
+            <RouterProvider router={router} />
+          </FilterProvider>
+        </AdminProvider>
       </LanguageContext.Provider>
     </AlertContext.Provider>
   );

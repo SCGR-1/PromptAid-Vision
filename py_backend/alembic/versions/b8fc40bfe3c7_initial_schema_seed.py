@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 import pycountry
 
-revision = '0001_initial_schema_and_seed'
+revision = 'b8fc40bfe3c7'
 down_revision = None
 branch_labels = None
 depends_on = None

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import crud, database, schemas, storage
 from ..services.vlm_service import vlm_manager
+from ..services.schema_validator import schema_validator
 from ..config import settings
 
 from ..services.stub_vlm_service import StubVLMService
@@ -132,11 +133,34 @@ async def create_caption(
             prompt=prompt_text,
             metadata_instructions=metadata_instructions,
             model_name=model_name,
+            db_session=db,
         )
-        text = result.get("caption", "")
-        used_model = model_name or "STUB_MODEL"
+        
+        # Get the raw response for validation
         raw = result.get("raw_response", {})
-        metadata = result.get("metadata", {})
+        
+        # Validate and clean the data using schema validation
+        image_type = img.image_type
+        print(f"DEBUG: Validating data for image type: {image_type}")
+        print(f"DEBUG: Raw data structure: {list(raw.keys()) if isinstance(raw, dict) else 'Not a dict'}")
+        
+        cleaned_data, is_valid, validation_error = schema_validator.clean_and_validate_data(raw, image_type)
+        
+        if is_valid:
+            print(f"✓ Schema validation passed for {image_type}")
+            text = cleaned_data.get("analysis", "")
+            metadata = cleaned_data.get("metadata", {})
+        else:
+            print(f"⚠ Schema validation failed for {image_type}: {validation_error}")
+            # Use fallback but log the validation error
+            text = result.get("caption", "This is a fallback caption due to schema validation error.")
+            metadata = result.get("metadata", {})
+            raw["validation_error"] = validation_error
+            raw["validation_failed"] = True
+        
+        # Use the actual model that was used, not the requested model_name
+        used_model = result.get("model", model_name) or "STUB_MODEL"
+        
     except Exception as e:
         print(f"VLM error, using fallback: {e}")
         text = "This is a fallback caption due to VLM service error."

@@ -10,7 +10,7 @@ import json
 
 # Alembic identifiers
 revision = "0002_drone_fields"
-down_revision = "0001_initial_schema_and_seed"
+down_revision = "b8fc40bfe3c7"
 branch_labels = None
 depends_on = None
 

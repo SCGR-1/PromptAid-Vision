@@ -152,6 +152,6 @@ class InstructBLIPService(HuggingFaceService):
     """InstructBLIP model service using Hugging Face"""
     
     def __init__(self, api_key: str):
-        super().__init__(api_key, "microsoft/git-base")
+        super().__init__(api_key, "Salesforce/instructblip-vicuna-7b")
         self.model_name = "INSTRUCTBLIP_VICUNA_7B"
         self.model_type = ModelType.CUSTOM 

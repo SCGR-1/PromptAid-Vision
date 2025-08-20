@@ -8,6 +8,7 @@ import {
   GoMainIcon,
   SettingsIcon,
 } from "@ifrc-go/icons";
+import { useAdmin } from "../contexts/AdminContext";
 
 declare global {
   interface Window {
@@ -19,12 +20,12 @@ const navItems = [
   { to: "/upload",    label: "Upload",    Icon: UploadCloudLineIcon },
   { to: "/explore",   label: "Explore",   Icon: SearchLineIcon },
   { to: "/analytics", label: "Analytics", Icon: AnalysisIcon },
-  { to: "/dev",       label: "Dev",       Icon: SettingsIcon },
 ];
 
 export default function HeaderNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAdmin();
 
   return (
     <nav className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-white/95">
@@ -72,18 +73,18 @@ export default function HeaderNav() {
                         ? 'shadow-lg shadow-ifrcRed/20 transform scale-105' 
                         : 'hover:bg-white hover:shadow-md hover:scale-105'
                     }`}
-                                      onClick={() => {
-                    if (location.pathname === "/upload") {
-                      if (window.confirmNavigationIfNeeded) {
-                        window.confirmNavigationIfNeeded(to);
-                        return;
+                    onClick={() => {
+                      if (location.pathname === "/upload") {
+                        if (window.confirmNavigationIfNeeded) {
+                          window.confirmNavigationIfNeeded(to);
+                          return;
+                        }
+                        if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                          return;
+                        }
                       }
-                      if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
-                        return;
-                      }
-                    }
-                    navigate(to);
-                  }}
+                      navigate(to);
+                    }}
                   >
                     <Icon className={`w-4 h-4 transition-transform duration-200 ${
                       isActive ? 'scale-110' : 'group-hover:scale-110'
@@ -99,31 +100,66 @@ export default function HeaderNav() {
           })}
         </nav>
 
-        <Button
-          name="help"
-          variant={location.pathname === '/help' ? "primary" : "tertiary"}
-          size={1}
-          className={`transition-all duration-200 ${
-            location.pathname === '/help'
-              ? 'shadow-lg shadow-ifrcRed/20 transform scale-105'
-              : 'hover:bg-blue-50 hover:text-blue-600 hover:shadow-md hover:scale-105'
-          }`}
-          onClick={() => {
-            if (location.pathname === "/upload") {
-              if (window.confirmNavigationIfNeeded) {
-                window.confirmNavigationIfNeeded('/help');
-                return;
+        <div className="flex items-center space-x-2">
+          <Button
+            name="help"
+            variant={location.pathname === '/help' ? "primary" : "tertiary"}
+            size={1}
+            className={`transition-all duration-200 ${
+              location.pathname === '/help'
+                ? 'shadow-lg shadow-ifrcRed/20 transform scale-105' 
+                : 'hover:bg-blue-50 hover:text-blue-600 hover:shadow-md hover:scale-105'
+            }`}
+            onClick={() => {
+              if (location.pathname === "/upload") {
+                if (window.confirmNavigationIfNeeded) {
+                  window.confirmNavigationIfNeeded('/help');
+                  return;
+                }
+                if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                  return;
+                }
               }
-              if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
-                return;
-              }
-            }
-            navigate('/help');
-          }}
-        >
-          <QuestionLineIcon className="w-4 h-4" />
-          <span className="inline ml-2 font-semibold">Help & Support</span>
-        </Button>
+              navigate('/help');
+            }}
+          >
+            <QuestionLineIcon className="w-4 h-4" />
+            <span className="inline ml-2 font-semibold">Help & Support</span>
+          </Button>
+
+          <div className="relative">
+            <Container withInternalPadding className="p-2">
+              <Button
+                name="dev"
+                variant={location.pathname === '/admin' ? "primary" : "tertiary"}
+                size={1}
+                className={`transition-all duration-200 ${
+                  location.pathname === '/admin'
+                    ? 'shadow-lg shadow-purple-500/20 transform scale-105'
+                    : 'hover:bg-purple-50 hover:text-purple-600 hover:shadow-md hover:scale-105'
+                }`}
+                onClick={() => {
+                  if (location.pathname === "/upload") {
+                    if (window.confirmNavigationIfNeeded) {
+                      window.confirmNavigationIfNeeded('/admin');
+                      return;
+                    }
+                    if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                      return;
+                    }
+                  }
+                  navigate('/admin');
+                }}
+              >
+                <SettingsIcon className="w-4 h-4" />
+                <span className="inline ml-2 font-semibold">Dev</span>
+              </Button>
+            </Container>
+            {location.pathname === '/admin' && (
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-purple-500 rounded-full animate-pulse"></div>
+            )}
+          </div>
+        </div>
       </PageContainer>
     </nav>
   );

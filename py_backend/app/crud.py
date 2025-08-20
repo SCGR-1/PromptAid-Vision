@@ -211,3 +211,15 @@ def get_models(db: Session):
 def get_model(db: Session, m_code: str):
     """Get a specific model by code"""
     return db.get(models.Models, m_code)
+
+def get_all_schemas(db: Session):
+    """Get all JSON schemas"""
+    return db.query(models.JSONSchema).all()
+
+def get_schema(db: Session, schema_id: str):
+    """Get a specific JSON schema by ID"""
+    return db.query(models.JSONSchema).filter(models.JSONSchema.schema_id == schema_id).first()
+
+def get_recent_images_with_validation(db: Session, limit: int = 100):
+    """Get recent images with validation info"""
+    return db.query(models.Images).order_by(models.Images.created_at.desc()).limit(limit).all()

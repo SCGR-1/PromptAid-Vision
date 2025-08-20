@@ -342,7 +342,7 @@ export default function UploadPage() {
 
     const modelName = localStorage.getItem(SELECTED_MODEL_KEY);
     if (modelName) {
-    fd.append('model_name', modelName);
+      fd.append('model_name', modelName);
     }
 
     try {
@@ -365,7 +365,7 @@ export default function UploadPage() {
           body: new URLSearchParams({
             title: title || 'Generated Caption',
             prompt: imageType === 'drone_image' ? 'DEFAULT_DRONE_IMAGE' : 'DEFAULT_CRISIS_MAP',
-            ...(modelName      && { model_name: modelName })
+            ...(modelName && { model_name: modelName })
           })
         },
       );
@@ -449,11 +449,11 @@ export default function UploadPage() {
       const capRes = await fetch(`/api/images/${newId}/caption`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          title: 'Generated Caption',
-          prompt: imageType === 'drone_image' ? 'DEFAULT_DRONE_IMAGE' : 'DEFAULT_CRISIS_MAP',
-          ...(modelName && { model_name: modelName }),
-        }),
+                  body: new URLSearchParams({
+            title: 'Generated Caption',
+            prompt: imageType === 'drone_image' ? 'DEFAULT_DRONE_IMAGE' : 'DEFAULT_CRISIS_MAP',
+            ...(modelName && { model_name: modelName }),
+          }),
       });
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error((capJson.error as string) || 'Caption failed');
