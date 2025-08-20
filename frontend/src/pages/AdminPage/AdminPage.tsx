@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../../contexts/AdminContext';
 import { PageContainer, Heading, Button, Container, TextInput } from '@ifrc-go/ui';
 
 const SELECTED_MODEL_KEY = 'selectedVlmModel';
 
 export default function AdminPage() {
-  const navigate = useNavigate();
   const { isAuthenticated, isLoading, login, logout } = useAdmin();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

@@ -25,7 +25,7 @@ const navItems = [
 export default function HeaderNav() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAdmin();
+  const { } = useAdmin();
 
   return (
     <nav className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-white/95">
