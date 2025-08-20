@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './ExplorePage.module.css';
 import { useFilterContext } from '../../contexts/FilterContext';
+import { useAdmin } from '../../contexts/AdminContext';
 
 interface ImageWithCaptionOut {
   image_id: string;
@@ -30,6 +31,7 @@ interface ImageWithCaptionOut {
 
 export default function ExplorePage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAdmin();
   const [view, setView] = useState<'explore' | 'mapDetails'>('explore');
   const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
   
@@ -198,23 +200,26 @@ export default function ExplorePage() {
                   />
                 </Container>
 
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <Button
-                    name="reference-examples"
-                    variant={showReferenceExamples ? "primary" : "secondary"}
-                    onClick={() => setShowReferenceExamples(!showReferenceExamples)}
-                    className="whitespace-nowrap"
-                  >
-                    <span className="mr-2">
-                      {showReferenceExamples ? (
-                        <span className="text-yellow-400">★</span>
-                      ) : (
-                        <span className="text-yellow-400">☆</span>
-                      )}
-                    </span>
-                    Reference Examples
-                  </Button>
-                </Container>
+                {/* Reference Examples Filter - Admin Only */}
+                {isAuthenticated && (
+                  <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                    <Button
+                      name="reference-examples"
+                      variant={showReferenceExamples ? "primary" : "secondary"}
+                      onClick={() => setShowReferenceExamples(!showReferenceExamples)}
+                      className="whitespace-nowrap"
+                    >
+                      <span className="mr-2">
+                        {showReferenceExamples ? (
+                          <span className="text-yellow-400">★</span>
+                        ) : (
+                          <span className="text-yellow-400">☆</span>
+                        )}
+                      </span>
+                      Reference Examples
+                    </Button>
+                  </Container>
+                )}
 
                 <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
                   <Button
@@ -342,7 +347,7 @@ export default function ExplorePage() {
                         <h3 className={styles.mapItemTitle}>
                           <div className="flex items-center gap-2">
                             <span>{c.title || 'Untitled'}</span>
-                            {c.starred && (
+                            {isAuthenticated && c.starred && (
                               <span className="text-red-500 text-lg" title="Starred image">★</span>
                             )}
                           </div>

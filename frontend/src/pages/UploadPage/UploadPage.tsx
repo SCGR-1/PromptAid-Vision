@@ -257,7 +257,7 @@ export default function UploadPage() {
 
   const resetToStep1 = () => {
     setIsPerformanceConfirmed(false);
-    window.location.href = '/app/upload';
+    navigate('/upload');
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,

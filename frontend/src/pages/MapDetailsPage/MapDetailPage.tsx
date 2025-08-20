@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';
 import styles from './MapDetailPage.module.css';
 import { useFilterContext } from '../../contexts/FilterContext';
+import { useAdmin } from '../../contexts/AdminContext';
 
 interface MapOut {
   image_id: string;
@@ -37,6 +38,7 @@ interface MapOut {
 export default function MapDetailPage() {
   const { mapId } = useParams<{ mapId: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAdmin();
   const [view, setView] = useState<'explore' | 'mapDetails'>('mapDetails');
   const [map, setMap] = useState<MapOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -161,11 +163,23 @@ export default function MapDetailPage() {
     }
   }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading, isDeleting]);
 
+  // Ensure navigation availability is checked when component mounts
+  useEffect(() => {
+    if (mapId && !loading) {
+      console.log('🚀 Component mounted, checking navigation availability...');
+      checkNavigationAvailability(mapId);
+    }
+  }, [mapId, loading]);
+
   const checkNavigationAvailability = async (currentId: string) => {
     try {
+      console.log('🔍 Checking navigation availability for:', currentId);
       const response = await fetch('/api/images');
+      console.log('📡 API response status:', response.status);
+      
       if (response.ok) {
         const images = await response.json();
+        console.log('📊 Total images from API:', images.length);
         
         // Filter images based on current filter criteria
         const filteredImages = images.filter((img: any) => {
@@ -187,13 +201,30 @@ export default function MapDetailPage() {
           return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
         });
         
-        const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
+        console.log('🔍 Filtered images count:', filteredImages.length);
+        console.log('🔍 Current filters:', { search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples });
         
-        setHasPrevious(filteredImages.length > 1 && currentIndex > 0);
-        setHasNext(filteredImages.length > 1 && currentIndex < filteredImages.length - 1);
+        const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
+        console.log('📍 Current index:', currentIndex);
+        
+        const hasPrev = filteredImages.length > 1 && currentIndex > 0;
+        const hasNext = filteredImages.length > 1 && currentIndex < filteredImages.length - 1;
+        
+        console.log('⬅️ Has previous:', hasPrev, '➡️ Has next:', hasNext);
+        
+        setHasPrevious(hasPrev);
+        setHasNext(hasNext);
+      } else {
+        console.error('❌ API response not ok:', response.status, response.statusText);
+        // Fallback: set navigation to true if we can't determine
+        setHasPrevious(true);
+        setHasNext(true);
       }
     } catch (error) {
-      console.error('Failed to check navigation availability:', error);
+      console.error('❌ Failed to check navigation availability:', error);
+      // Fallback: set navigation to true if we can't determine
+      setHasPrevious(true);
+      setHasNext(true);
     }
   };
 
@@ -541,23 +572,26 @@ export default function MapDetailPage() {
               />
             </Container>
 
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-              <Button
-                name="reference-examples"
-                variant={showReferenceExamples ? "primary" : "secondary"}
-                onClick={() => setShowReferenceExamples(!showReferenceExamples)}
-                className="whitespace-nowrap"
-              >
-                <span className="mr-2">
-                  {showReferenceExamples ? (
-                    <span className="text-yellow-400">★</span>
-                  ) : (
-                    <span className="text-yellow-400">☆</span>
-                  )}
-                </span>
-                Reference Examples
-              </Button>
-            </Container>
+            {/* Reference Examples Filter - Admin Only */}
+            {isAuthenticated && (
+              <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                <Button
+                  name="reference-examples"
+                  variant={showReferenceExamples ? "primary" : "secondary"}
+                  onClick={() => setShowReferenceExamples(!showReferenceExamples)}
+                  className="whitespace-nowrap"
+                >
+                  <span className="mr-2">
+                    {showReferenceExamples ? (
+                      <span className="text-yellow-400">★</span>
+                    ) : (
+                      <span className="text-yellow-400">☆</span>
+                    )}
+                  </span>
+                  Reference Examples
+                </Button>
+              </Container>
+            )}
 
             <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
               <Button
@@ -648,7 +682,7 @@ export default function MapDetailPage() {
                     heading={
                       <div className="flex items-center gap-2">
                         <span>{filteredMap.title || "Map Image"}</span>
-                        {filteredMap.starred && (
+                        {isAuthenticated && filteredMap.starred && (
                           <span className="text-red-500 text-xl" title="Starred image">★</span>
                         )}
                       </div>
@@ -730,6 +764,9 @@ export default function MapDetailPage() {
                 <div className="flex items-center justify-center mt-8">
                   <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
                     <div className="flex items-center gap-4">
+                      {/* Debug: Navigation state */}
+                      {/* hasPrevious: {hasPrevious ? 'true' : 'false'}, hasNext: {hasNext ? 'true' : 'false'} */}
+                      
                       {hasPrevious && (
                         <Container withInternalPadding className="rounded-md p-2">
                           <Button
@@ -753,20 +790,22 @@ export default function MapDetailPage() {
                         </Container>
                       )}
                       
-                      {/* Delete Button */}
-                      <Container withInternalPadding className="rounded-md p-2">
-                        <Button
-                          name="delete"
-                          variant="tertiary"
-                          size={1}
-                          className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 hover:border-red-300"
-                          onClick={handleDelete}
-                          title="Delete"
-                          aria-label="Delete saved image"
-                        >
-                          <DeleteBinLineIcon className="w-4 h-4" />
-                        </Button>
-                      </Container>
+                      {/* Delete Button - Admin Only */}
+                      {isAuthenticated && (
+                        <Container withInternalPadding className="rounded-md p-2">
+                          <Button
+                            name="delete"
+                            variant="tertiary"
+                            size={1}
+                            className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 hover:border-red-300"
+                            onClick={handleDelete}
+                            title="Delete"
+                            aria-label="Delete saved image"
+                          >
+                            <DeleteBinLineIcon className="w-4 h-4" />
+                          </Button>
+                        </Container>
+                      )}
                       
                       <Container withInternalPadding className="rounded-md p-2">
                         <Button
@@ -782,26 +821,28 @@ export default function MapDetailPage() {
                         </Button>
                       </Container>
                       
-                      {/* Star Toggle Button */}
-                      <Container withInternalPadding className="rounded-md p-2">
-                        <Button
-                          name="toggle-star"
-                          variant="tertiary"
-                          size={1}
-                          className={`${
-                            map?.starred 
-                              ? 'bg-red-100 hover:bg-red-200 text-red-800 border-2 border-red-400' 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-2 border-gray-300'
-                          } w-16 h-8 rounded-full transition-all duration-200 flex items-center justify-center`}
-                          onClick={toggleStarred}
-                          title={map?.starred ? 'Unstar image' : 'Star image'}
-                          aria-label={map?.starred ? 'Unstar image' : 'Star image'}
-                        >
-                          <span className={`text-lg transition-all duration-200 ${map?.starred ? 'text-red-600' : 'text-gray-500'}`}>
-                            {map?.starred ? '★' : '☆'}
-                          </span>
-                        </Button>
-                      </Container>
+                      {/* Star Toggle Button - Admin Only */}
+                      {isAuthenticated && (
+                        <Container withInternalPadding className="rounded-md p-2">
+                          <Button
+                            name="toggle-star"
+                            variant="tertiary"
+                            size={1}
+                            className={`${
+                              map?.starred 
+                                ? 'bg-red-100 hover:bg-red-200 text-red-800 border-2 border-red-400' 
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-2 border-gray-300'
+                            } w-16 h-8 rounded-full transition-all duration-200 flex items-center justify-center`}
+                            onClick={toggleStarred}
+                            title={map?.starred ? 'Unstar image' : 'Star image'}
+                            aria-label={map?.starred ? 'Unstar image' : 'Star image'}
+                          >
+                            <span className={`text-lg transition-all duration-200 ${map?.starred ? 'text-red-600' : 'text-gray-500'}`}>
+                              {map?.starred ? '★' : '☆'}
+                            </span>
+                          </Button>
+                        </Container>
+                      )}
                       
                       {hasNext && (
                         <Container withInternalPadding className="rounded-md p-2">
@@ -824,6 +865,49 @@ export default function MapDetailPage() {
                             </div>
                           </Button>
                         </Container>
+                      )}
+                      
+                      {/* Fallback navigation buttons if hasPrevious/hasNext are not working */}
+                      {!hasPrevious && !hasNext && (
+                        <>
+                          <Container withInternalPadding className="rounded-md p-2">
+                            <Button
+                              name="fallback-previous"
+                              variant="tertiary"
+                              size={1}
+                              className="bg-white/90 hover:bg-white shadow-lg border border-gray-200 hover:scale-110"
+                              onClick={() => navigateToItem('previous')}
+                              disabled={isNavigating}
+                            >
+                              <div className="flex items-center gap-1">
+                                <div className="flex -space-x-1">
+                                  <ChevronLeftLineIcon className="w-4 h-4" />
+                                  <ChevronLeftLineIcon className="w-4 h-4" />
+                                </div>
+                                <span className="font-semibold">Previous</span>
+                              </div>
+                            </Button>
+                          </Container>
+                          
+                          <Container withInternalPadding className="rounded-md p-2">
+                            <Button
+                              name="fallback-next"
+                              variant="tertiary"
+                              size={1}
+                              className="bg-white/90 hover:bg-white shadow-lg border border-gray-200 hover:scale-110"
+                              onClick={() => navigateToItem('next')}
+                              disabled={isNavigating}
+                            >
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold">Next</span>
+                                <div className="flex -space-x-1">
+                                  <ChevronRightLineIcon className="w-4 h-4" />
+                                  <ChevronRightLineIcon className="w-4 h-4" />
+                                </div>
+                              </div>
+                            </Button>
+                          </Container>
+                        </>
                       )}
                     </div>
                   </Container>
