@@ -6,16 +6,6 @@ import styles from './MapDetailPage.module.css';
 import { useFilterContext } from '../../contexts/FilterContext';
 import { useAdmin } from '../../contexts/AdminContext';
 
-// Helper function to get the correct API base URL for the current environment
-const getApiBaseUrl = () => {
-  // Check if we're in the deployed environment (Hugging Face Spaces)
-  if (window.location.hostname.includes('hf.space')) {
-    return '/app/api';
-  }
-  // Local development
-  return '/api';
-};
-
 interface MapOut {
   image_id: string;
   file_key: string;
@@ -91,7 +81,7 @@ export default function MapDetailPage() {
     setLoading(true);
     
     try {
-      const response = await fetch(`${getApiBaseUrl()}/images/${id}`);
+      const response = await fetch(`/api/images/${id}`);
       if (!response.ok) {
         throw new Error('Map not found');
       }
@@ -143,8 +133,7 @@ export default function MapDetailPage() {
 
     if (!currentMapMatches()) {
       // Find first matching item and navigate to it
-      const apiUrl = `${getApiBaseUrl()}/images`;
-      fetch(apiUrl)
+      fetch('/api/images')
         .then(r => r.json())
         .then(images => {
           const firstMatching = images.find((img: any) => {
@@ -174,25 +163,11 @@ export default function MapDetailPage() {
     }
   }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading, isDeleting]);
 
-  // Ensure navigation availability is checked when component mounts
-  useEffect(() => {
-    if (mapId && !loading) {
-      console.log('🚀 Component mounted, checking navigation availability...');
-      checkNavigationAvailability(mapId);
-    }
-  }, [mapId, loading]);
-
   const checkNavigationAvailability = async (currentId: string) => {
     try {
-      console.log('🔍 Checking navigation availability for:', currentId);
-      const apiUrl = `${getApiBaseUrl()}/images`;
-      console.log('🌐 Using API URL:', apiUrl);
-      const response = await fetch(apiUrl);
-      console.log('📡 API response status:', response.status);
-      
+      const response = await fetch('/api/images');
       if (response.ok) {
         const images = await response.json();
-        console.log('📊 Total images from API:', images.length);
         
         // Filter images based on current filter criteria
         const filteredImages = images.filter((img: any) => {
@@ -214,30 +189,13 @@ export default function MapDetailPage() {
           return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
         });
         
-        console.log('🔍 Filtered images count:', filteredImages.length);
-        console.log('🔍 Current filters:', { search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples });
-        
         const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
-        console.log('📍 Current index:', currentIndex);
         
-        const hasPrev = filteredImages.length > 1 && currentIndex > 0;
-        const hasNext = filteredImages.length > 1 && currentIndex < filteredImages.length - 1;
-        
-        console.log('⬅️ Has previous:', hasPrev, '➡️ Has next:', hasNext);
-        
-        setHasPrevious(hasPrev);
-        setHasNext(hasNext);
-      } else {
-        console.error('❌ API response not ok:', response.status, response.statusText);
-        // Fallback: set navigation to true if we can't determine
-        setHasPrevious(true);
-        setHasNext(true);
+        setHasPrevious(filteredImages.length > 1 && currentIndex > 0);
+        setHasNext(filteredImages.length > 1 && currentIndex < filteredImages.length - 1);
       }
     } catch (error) {
-      console.error('❌ Failed to check navigation availability:', error);
-      // Fallback: set navigation to true if we can't determine
-      setHasPrevious(true);
-      setHasNext(true);
+      console.error('Failed to check navigation availability:', error);
     }
   };
 
@@ -245,9 +203,7 @@ export default function MapDetailPage() {
     if (isNavigating) return;
     
     try {
-      const apiUrl = `${getApiBaseUrl()}/images`;
-      console.log('🌐 Navigation using API URL:', apiUrl);
-      const response = await fetch(apiUrl);
+      const response = await fetch('/api/images');
       if (!response.ok) return;
       
       const images = await response.json();
@@ -290,11 +246,11 @@ export default function MapDetailPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${getApiBaseUrl()}/sources`).then(r => r.json()),
-      fetch(`${getApiBaseUrl()}/types`).then(r => r.json()),
-      fetch(`${getApiBaseUrl()}/image-types`).then(r => r.json()),
-      fetch(`${getApiBaseUrl()}/regions`).then(r => r.json()),
-      fetch(`${getApiBaseUrl()}/countries`).then(r => r.json()),
+      fetch('/api/sources').then(r => r.json()),
+      fetch('/api/types').then(r => r.json()),
+      fetch('/api/image-types').then(r => r.json()),
+      fetch('/api/regions').then(r => r.json()),
+      fetch('/api/countries').then(r => r.json()),
     ]).then(([sourcesData, typesData, imageTypesData, regionsData, countriesData]) => {
       setSources(sourcesData);
       setTypes(typesData);
@@ -317,7 +273,7 @@ export default function MapDetailPage() {
     if (!map) return;
     
     try {
-      const response = await fetch(`${getApiBaseUrl()}/images/${map.image_id}`, {
+      const response = await fetch(`/api/images/${map.image_id}`, {
         method: "PUT",
         headers: {
           'Content-Type': 'application/json',
@@ -344,7 +300,7 @@ export default function MapDetailPage() {
     setIsDeleting(true); // Set flag to true
     try {
       console.log('Deleting image with ID:', map.image_id);
-      const res = await fetch(`${getApiBaseUrl()}/images/${map.image_id}`, {
+      const res = await fetch(`/api/images/${map.image_id}`, {
         method: "DELETE",
       });
       
@@ -357,8 +313,7 @@ export default function MapDetailPage() {
       
       // Navigate to next item in filtered list instead of explore page
       try {
-        const apiUrl = `${getApiBaseUrl()}/images`;
-        const response = await fetch(apiUrl);
+        const response = await fetch('/api/images');
         if (response.ok) {
           const images = await response.json();
           
@@ -471,7 +426,7 @@ export default function MapDetailPage() {
     setIsGenerating(true);
     
     try {
-      const res = await fetch(`${getApiBaseUrl()}/contribute/from-url`, {
+      const res = await fetch('/api/contribute/from-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -493,7 +448,7 @@ export default function MapDetailPage() {
       const newId = json.image_id as string;
       
       const modelName = localStorage.getItem('selectedVlmModel');
-      const capRes = await fetch(`${getApiBaseUrl()}/images/${newId}/caption`, {
+      const capRes = await fetch(`/api/images/${newId}/caption`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -780,9 +735,6 @@ export default function MapDetailPage() {
                 <div className="flex items-center justify-center mt-8">
                   <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
                     <div className="flex items-center gap-4">
-                      {/* Debug: Navigation state */}
-                      {/* hasPrevious: {hasPrevious ? 'true' : 'false'}, hasNext: {hasNext ? 'true' : 'false'} */}
-                      
                       {hasPrevious && (
                         <Container withInternalPadding className="rounded-md p-2">
                           <Button
@@ -881,49 +833,6 @@ export default function MapDetailPage() {
                             </div>
                           </Button>
                         </Container>
-                      )}
-                      
-                      {/* Fallback navigation buttons if hasPrevious/hasNext are not working */}
-                      {!hasPrevious && !hasNext && (
-                        <>
-                          <Container withInternalPadding className="rounded-md p-2">
-                            <Button
-                              name="fallback-previous"
-                              variant="tertiary"
-                              size={1}
-                              className="bg-white/90 hover:bg-white shadow-lg border border-gray-200 hover:scale-110"
-                              onClick={() => navigateToItem('previous')}
-                              disabled={isNavigating}
-                            >
-                              <div className="flex items-center gap-1">
-                                <div className="flex -space-x-1">
-                                  <ChevronLeftLineIcon className="w-4 h-4" />
-                                  <ChevronLeftLineIcon className="w-4 h-4" />
-                                </div>
-                                <span className="font-semibold">Previous</span>
-                              </div>
-                            </Button>
-                          </Container>
-                          
-                          <Container withInternalPadding className="rounded-md p-2">
-                            <Button
-                              name="fallback-next"
-                              variant="tertiary"
-                              size={1}
-                              className="bg-white/90 hover:bg-white shadow-lg border border-gray-200 hover:scale-110"
-                              onClick={() => navigateToItem('next')}
-                              disabled={isNavigating}
-                            >
-                              <div className="flex items-center gap-1">
-                                <span className="font-semibold">Next</span>
-                                <div className="flex -space-x-1">
-                                  <ChevronRightLineIcon className="w-4 h-4" />
-                                  <ChevronRightLineIcon className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </Button>
-                          </Container>
-                        </>
                       )}
                     </div>
                   </Container>
