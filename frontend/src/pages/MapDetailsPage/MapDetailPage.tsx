@@ -6,6 +6,16 @@ import styles from './MapDetailPage.module.css';
 import { useFilterContext } from '../../contexts/FilterContext';
 import { useAdmin } from '../../contexts/AdminContext';
 
+// Helper function to get the correct API base URL for the current environment
+const getApiBaseUrl = () => {
+  // Check if we're in the deployed environment (Hugging Face Spaces)
+  if (window.location.hostname.includes('hf.space')) {
+    return '/app/api';
+  }
+  // Local development
+  return '/api';
+};
+
 interface MapOut {
   image_id: string;
   file_key: string;
@@ -81,7 +91,7 @@ export default function MapDetailPage() {
     setLoading(true);
     
     try {
-      const response = await fetch(`/api/images/${id}`);
+      const response = await fetch(`${getApiBaseUrl()}/images/${id}`);
       if (!response.ok) {
         throw new Error('Map not found');
       }
@@ -133,7 +143,8 @@ export default function MapDetailPage() {
 
     if (!currentMapMatches()) {
       // Find first matching item and navigate to it
-      fetch('/api/images')
+      const apiUrl = `${getApiBaseUrl()}/images`;
+      fetch(apiUrl)
         .then(r => r.json())
         .then(images => {
           const firstMatching = images.find((img: any) => {
@@ -174,7 +185,9 @@ export default function MapDetailPage() {
   const checkNavigationAvailability = async (currentId: string) => {
     try {
       console.log('🔍 Checking navigation availability for:', currentId);
-      const response = await fetch('/api/images');
+      const apiUrl = `${getApiBaseUrl()}/images`;
+      console.log('🌐 Using API URL:', apiUrl);
+      const response = await fetch(apiUrl);
       console.log('📡 API response status:', response.status);
       
       if (response.ok) {
@@ -232,7 +245,9 @@ export default function MapDetailPage() {
     if (isNavigating) return;
     
     try {
-      const response = await fetch('/api/images');
+      const apiUrl = `${getApiBaseUrl()}/images`;
+      console.log('🌐 Navigation using API URL:', apiUrl);
+      const response = await fetch(apiUrl);
       if (!response.ok) return;
       
       const images = await response.json();
@@ -275,11 +290,11 @@ export default function MapDetailPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/sources').then(r => r.json()),
-      fetch('/api/types').then(r => r.json()),
-      fetch('/api/image-types').then(r => r.json()),
-      fetch('/api/regions').then(r => r.json()),
-      fetch('/api/countries').then(r => r.json()),
+      fetch(`${getApiBaseUrl()}/sources`).then(r => r.json()),
+      fetch(`${getApiBaseUrl()}/types`).then(r => r.json()),
+      fetch(`${getApiBaseUrl()}/image-types`).then(r => r.json()),
+      fetch(`${getApiBaseUrl()}/regions`).then(r => r.json()),
+      fetch(`${getApiBaseUrl()}/countries`).then(r => r.json()),
     ]).then(([sourcesData, typesData, imageTypesData, regionsData, countriesData]) => {
       setSources(sourcesData);
       setTypes(typesData);
@@ -302,7 +317,7 @@ export default function MapDetailPage() {
     if (!map) return;
     
     try {
-      const response = await fetch(`/api/images/${map.image_id}`, {
+      const response = await fetch(`${getApiBaseUrl()}/images/${map.image_id}`, {
         method: "PUT",
         headers: {
           'Content-Type': 'application/json',
@@ -329,7 +344,7 @@ export default function MapDetailPage() {
     setIsDeleting(true); // Set flag to true
     try {
       console.log('Deleting image with ID:', map.image_id);
-      const res = await fetch(`/api/images/${map.image_id}`, {
+      const res = await fetch(`${getApiBaseUrl()}/images/${map.image_id}`, {
         method: "DELETE",
       });
       
@@ -342,7 +357,8 @@ export default function MapDetailPage() {
       
       // Navigate to next item in filtered list instead of explore page
       try {
-        const response = await fetch('/api/images');
+        const apiUrl = `${getApiBaseUrl()}/images`;
+        const response = await fetch(apiUrl);
         if (response.ok) {
           const images = await response.json();
           
@@ -455,7 +471,7 @@ export default function MapDetailPage() {
     setIsGenerating(true);
     
     try {
-      const res = await fetch('/api/contribute/from-url', {
+      const res = await fetch(`${getApiBaseUrl()}/contribute/from-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -477,7 +493,7 @@ export default function MapDetailPage() {
       const newId = json.image_id as string;
       
       const modelName = localStorage.getItem('selectedVlmModel');
-      const capRes = await fetch(`/api/images/${newId}/caption`, {
+      const capRes = await fetch(`${getApiBaseUrl()}/images/${newId}/caption`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
