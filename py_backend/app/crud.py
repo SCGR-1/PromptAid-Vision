@@ -212,6 +212,45 @@ def get_model(db: Session, m_code: str):
     """Get a specific model by code"""
     return db.get(models.Models, m_code)
 
+def create_model(db: Session, m_code: str, label: str, model_type: str, provider: str, model_id: str, is_available: bool = False):
+    """Create a new model"""
+    new_model = models.Models(
+        m_code=m_code,
+        label=label,
+        model_type=model_type,
+        provider=provider,
+        model_id=model_id,
+        is_available=is_available
+    )
+    db.add(new_model)
+    db.commit()
+    db.refresh(new_model)
+    return new_model
+
+def update_model(db: Session, m_code: str, update_data: dict):
+    """Update an existing model"""
+    model = db.get(models.Models, m_code)
+    if not model:
+        return None
+    
+    for field, value in update_data.items():
+        if hasattr(model, field):
+            setattr(model, field, value)
+    
+    db.commit()
+    db.refresh(model)
+    return model
+
+def delete_model(db: Session, m_code: str):
+    """Delete a model"""
+    model = db.get(models.Models, m_code)
+    if not model:
+        return False
+    
+    db.delete(model)
+    db.commit()
+    return True
+
 def get_all_schemas(db: Session):
     """Get all JSON schemas"""
     return db.query(models.JSONSchema).all()

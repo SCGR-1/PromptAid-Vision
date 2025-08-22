@@ -125,13 +125,76 @@ class VLMServiceManager:
         if not service:
             raise ValueError("No VLM services available")
         
-        try:
-            result = await service.generate_caption(image_bytes, prompt, metadata_instructions)
-            if isinstance(result, dict):
-                result["model"] = service.model_name
-            return result
-        except Exception as e:
-            print(f"Error generating caption: {str(e)}")
-            raise
+        # Track attempts to avoid infinite loops
+        attempted_services = set()
+        max_attempts = len(self.services)
+        
+        while len(attempted_services) < max_attempts:
+            try:
+                result = await service.generate_caption(image_bytes, prompt, metadata_instructions)
+                if isinstance(result, dict):
+                    result["model"] = service.model_name
+                    result["fallback_used"] = len(attempted_services) > 0
+                    if len(attempted_services) > 0:
+                        result["original_model"] = model_name
+                        result["fallback_reason"] = "model_unavailable"
+                return result
+            except Exception as e:
+                error_str = str(e)
+                print(f"Error with service {service.model_name}: {error_str}")
+                
+                # Check if it's a model unavailable error (any type of error)
+                if "MODEL_UNAVAILABLE" in error_str:
+                    attempted_services.add(service.model_name)
+                    print(f"Model {service.model_name} is unavailable, trying another service...")
+                    
+                    # Try to find another available service
+                    if db_session:
+                        try:
+                            from .. import crud
+                            available_models = crud.get_models(db_session)
+                            available_model_codes = [m.m_code for m in available_models if m.is_available]
+                            
+                            # Find next available service that hasn't been attempted
+                            for next_service in self.services.values():
+                                if (next_service.model_name in available_model_codes and 
+                                    next_service.model_name not in attempted_services):
+                                    service = next_service
+                                    print(f"Switching to fallback service: {service.model_name}")
+                                    break
+                            else:
+                                # No more available services, use any untried service
+                                for next_service in self.services.values():
+                                    if next_service.model_name not in attempted_services:
+                                        service = next_service
+                                        print(f"Using untried service as fallback: {service.model_name}")
+                                        break
+                        except Exception as db_error:
+                            print(f"Error checking database availability: {db_error}")
+                            # Fallback to any untried service
+                            for next_service in self.services.values():
+                                if next_service.model_name not in attempted_services:
+                                    service = next_service
+                                    print(f"Using untried service as fallback: {service.model_name}")
+                                    break
+                    else:
+                        # No database session, use any untried service
+                        for next_service in self.services.values():
+                            if next_service.model_name not in attempted_services:
+                                service = next_service
+                                print(f"Using untried service as fallback: {service.model_name}")
+                                break
+                    
+                    if not service:
+                        raise ValueError("No more VLM services available after model failures")
+                    
+                    continue  # Try again with new service
+                else:
+                    # Non-model-unavailable error, don't retry
+                    print(f"Non-model-unavailable error, not retrying: {error_str}")
+                    raise
+        
+        # If we get here, we've tried all services
+        raise ValueError("All VLM services failed due to model unavailability")
 
 vlm_manager = VLMServiceManager() 

@@ -70,6 +70,8 @@ class Models(Base):
     model_type = Column(String, nullable=False)
     is_available = Column(Boolean, default=True)
     config = Column(JSONB, nullable=True)
+    provider = Column(String, nullable=True)
+    model_id = Column(String, nullable=True)
 
 class JSONSchema(Base):
     __tablename__ = "json_schemas"

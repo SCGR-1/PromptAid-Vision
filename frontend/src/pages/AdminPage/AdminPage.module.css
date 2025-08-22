@@ -1,0 +1,371 @@
+/* AdminPage.module.css */
+
+/* Main container */
+.adminContainer {
+  margin: 0 auto;
+  max-width: var(--go-ui-width-screen-lg);
+  padding: var(--go-ui-spacing-lg) var(--go-ui-spacing-md) var(--go-ui-spacing-2xl) var(--go-ui-spacing-md);
+  font-family: var(--go-ui-font-family-sans);
+}
+
+/* Header section */
+.adminHeader {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--go-ui-spacing-2xl);
+}
+
+/* Content sections */
+.adminSection {
+  margin-top: var(--go-ui-spacing-2xl);
+}
+
+.adminSection:first-child {
+  margin-top: 0;
+}
+
+/* Model selection area */
+.modelSelectionArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--go-ui-spacing-md);
+}
+
+.modelSelectionRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--go-ui-spacing-md);
+}
+
+@media (min-width: 640px) {
+  .modelSelectionRow {
+    flex-direction: row;
+  }
+}
+
+.modelSelect {
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-40);
+  border-radius: var(--go-ui-border-radius-md);
+  padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-md);
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  min-width: 200px;
+  transition: all var(--go-ui-duration-transition-medium) ease;
+}
+
+.modelSelect:focus {
+  outline: none;
+  border-color: var(--go-ui-color-red-90);
+  box-shadow: 0 0 0 3px var(--go-ui-color-red-10);
+}
+
+.modelStatus {
+  font-size: var(--go-ui-font-size-xs);
+  font-family: var(--go-ui-font-family-sans);
+  color: var(--go-ui-color-green-70);
+  background-color: var(--go-ui-color-green-10);
+  padding: var(--go-ui-spacing-xs) var(--go-ui-spacing-sm);
+  border-radius: var(--go-ui-border-radius-sm);
+  white-space: nowrap;
+}
+
+/* Model management area */
+.modelManagementHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--go-ui-spacing-lg);
+}
+
+.modelManagementButtons {
+  display: flex;
+  gap: var(--go-ui-spacing-md);
+}
+
+/* Models table */
+.modelsTable {
+  overflow-x: auto;
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-30);
+  border-radius: var(--go-ui-border-radius-lg);
+  margin-bottom: var(--go-ui-spacing-xl);
+}
+
+.modelsTable table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.modelsTable th {
+  background-color: var(--go-ui-color-gray-10);
+  padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-md);
+  text-align: left;
+  font-size: var(--go-ui-font-size-xs);
+  font-family: var(--go-ui-font-family-sans);
+  font-weight: var(--go-ui-font-weight-medium);
+  color: var(--go-ui-color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-30);
+}
+
+.modelsTable td {
+  padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-md);
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  border-bottom: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-20);
+  vertical-align: middle;
+}
+
+.modelsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.modelsTable tr:hover {
+  background-color: var(--go-ui-color-gray-5);
+}
+
+.modelCode {
+  font-family: var(--go-ui-font-family-mono);
+  font-weight: var(--go-ui-font-weight-medium);
+}
+
+.modelId {
+  font-family: var(--go-ui-font-family-mono);
+  color: var(--go-ui-color-gray-600);
+  font-size: var(--go-ui-font-size-xs);
+}
+
+.modelActions {
+  display: flex;
+  gap: var(--go-ui-spacing-sm);
+}
+
+/* Add model button container */
+.addModelButtonContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--go-ui-spacing-lg);
+  margin-bottom: var(--go-ui-spacing-md);
+}
+
+/* Add model form - now below table */
+.addModelForm {
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-30);
+  border-radius: var(--go-ui-border-radius-lg);
+  padding: var(--go-ui-spacing-lg);
+  background-color: var(--go-ui-color-gray-10);
+  margin-top: var(--go-ui-spacing-lg);
+}
+
+.addModelFormTitle {
+  font-size: var(--go-ui-font-size-md);
+  font-family: var(--go-ui-font-family-sans);
+  font-weight: var(--go-ui-font-weight-medium);
+  margin-bottom: var(--go-ui-spacing-md);
+  color: var(--go-ui-color-gray-900);
+}
+
+.addModelFormGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--go-ui-spacing-md);
+  margin-bottom: var(--go-ui-spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .addModelFormGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.addModelFormField {
+  display: flex;
+  flex-direction: column;
+}
+
+.addModelFormLabel {
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  font-weight: var(--go-ui-font-weight-medium);
+  color: var(--go-ui-color-gray-700);
+  margin-bottom: var(--go-ui-spacing-xs);
+}
+
+.addModelFormInput {
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-40);
+  border-radius: var(--go-ui-border-radius-md);
+  padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-md);
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  transition: border-color var(--go-ui-duration-transition-medium) ease;
+}
+
+.addModelFormInput:focus {
+  outline: none;
+  border-color: var(--go-ui-color-red-90);
+  box-shadow: 0 0 0 3px var(--go-ui-color-red-10);
+}
+
+.addModelFormSelect {
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-40);
+  border-radius: var(--go-ui-border-radius-md);
+  padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-md);
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  background-color: var(--go-ui-color-white);
+  transition: border-color var(--go-ui-duration-transition-medium) ease;
+}
+
+.addModelFormSelect:focus {
+  outline: none;
+  border-color: var(--go-ui-color-red-90);
+  box-shadow: 0 0 0 3px var(--go-ui-color-red-10);
+}
+
+.addModelFormCheckbox {
+  display: flex;
+  align-items: center;
+  gap: var(--go-ui-spacing-sm);
+}
+
+.addModelFormCheckbox input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--go-ui-color-red-90);
+}
+
+.addModelFormCheckbox span {
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  color: var(--go-ui-color-gray-700);
+}
+
+.addModelFormActions {
+  display: flex;
+  gap: var(--go-ui-spacing-md);
+  justify-content: flex-start;
+}
+
+
+
+/* Modal styles - matching UploadPage exactly */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: var(--go-ui-spacing-lg);
+}
+
+.modalContent {
+  background-color: var(--go-ui-color-white);
+  border-radius: var(--go-ui-border-radius-lg);
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: hidden;
+  box-shadow: var(--go-ui-box-shadow-xl);
+  display: flex;
+  flex-direction: column;
+}
+
+.modalBody {
+  padding: var(--go-ui-spacing-xl);
+  text-align: center;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalTitle {
+  font-size: var(--go-ui-font-size-lg);
+  font-family: var(--go-ui-font-family-sans);
+  font-weight: var(--go-ui-font-weight-semibold);
+  color: var(--go-ui-color-gray-900);
+  margin-bottom: var(--go-ui-spacing-md);
+}
+
+.modalText {
+  font-size: var(--go-ui-font-size-md);
+  font-family: var(--go-ui-font-family-sans);
+  color: var(--go-ui-color-gray-700);
+  line-height: 1.6;
+  margin-bottom: var(--go-ui-spacing-xl);
+  flex: 1;
+  overflow-y: auto;
+  max-height: 60vh;
+  padding-right: var(--go-ui-spacing-sm);
+}
+
+.modalTextLeft {
+  text-align: left;
+}
+
+/* Scrollbar styling for modal content */
+.modalText::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalText::-webkit-scrollbar-track {
+  background: var(--go-ui-color-gray-20);
+  border-radius: 4px;
+}
+
+.modalText::-webkit-scrollbar-thumb {
+  background: var(--go-ui-color-gray-40);
+  border-radius: 4px;
+}
+
+.modalText::-webkit-scrollbar-thumb:hover {
+  background: var(--go-ui-color-gray-50);
+}
+
+.modalButtons {
+  display: flex;
+  gap: var(--go-ui-spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .adminContainer {
+    padding: var(--go-ui-spacing-md) var(--go-ui-spacing-sm);
+  }
+  
+  .modelManagementHeader {
+    flex-direction: column;
+    gap: var(--go-ui-spacing-md);
+    align-items: stretch;
+  }
+  
+  .modelManagementButtons {
+    justify-content: center;
+  }
+  
+  .addModelFormActions {
+    flex-direction: column;
+  }
+  
+  .modalOverlay {
+    padding: var(--go-ui-spacing-sm);
+  }
+  
+  .modalContent {
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+  
+  .modalBody {
+    padding: var(--go-ui-spacing-lg);
+  }
+}

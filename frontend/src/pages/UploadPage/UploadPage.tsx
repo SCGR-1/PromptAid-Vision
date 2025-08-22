@@ -28,7 +28,7 @@ export default function UploadPage() {
   const [source,   setSource]   = useState('');
   const [eventType, setEventType] = useState('');
   const [epsg, setEpsg] = useState('');
-  const [imageType, setImageType] = useState('');
+  const [imageType, setImageType] = useState('crisis_map');
   const [countries, setCountries] = useState<string[]>([]);
   const [title, setTitle] = useState('');
 
@@ -98,8 +98,8 @@ export default function UploadPage() {
             if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
       setEventType('OTHER');
       setEpsg('OTHER');
-      // Only set default imageType if we don't have one from URL parameter
-      if (imageTypesData.length > 0 && !searchParams.get('imageType')) {
+      // Only set default imageType if we don't have one from URL parameter and don't already have a default
+      if (imageTypesData.length > 0 && !searchParams.get('imageType') && !imageType) {
         setImageType(imageTypesData[0].image_type);
       }
     });
@@ -196,7 +196,20 @@ export default function UploadPage() {
                 setImageType(data.image_type);
               }
               
-              if (data.generated) setDraft(data.generated);
+              if (data.generated) {
+                // Handle both plain text and JSON responses
+                try {
+                  const parsedGenerated = JSON.parse(data.generated);
+                  if (parsedGenerated.analysis) {
+                    setDraft(parsedGenerated.analysis);
+                  } else {
+                    setDraft(data.generated);
+                  }
+                } catch (e) {
+                  // Not JSON, treat as plain text
+                  setDraft(data.generated);
+                }
+              }
               
               let extractedMetadata = data.raw_json?.extracted_metadata;
               console.log('Raw extracted_metadata:', extractedMetadata);
@@ -257,7 +270,31 @@ export default function UploadPage() {
 
   const resetToStep1 = () => {
     setIsPerformanceConfirmed(false);
-    navigate('/upload');
+    setStep(1);
+    setFile(null);
+    setPreview(null);
+    setUploadedImageId(null);
+    setImageUrl(null);
+    setTitle('');
+    setSource('');
+    setEventType('');
+    setEpsg('');
+    setCountries([]);
+    setCenterLon('');
+    setCenterLat('');
+    setAmslM('');
+    setAglM('');
+    setHeadingDeg('');
+    setYawDeg('');
+    setPitchDeg('');
+    setRollDeg('');
+    setRtkFix(false);
+    setStdHM('');
+    setStdVM('');
+    setScores({ accuracy: 50, context: 50, usability: 50 });
+    setDraft('');
+    setShowFallbackNotification(false);
+    setFallbackInfo(null);
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
@@ -271,6 +308,12 @@ export default function UploadPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showNavigationConfirm, setShowNavigationConfirm] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [showFallbackNotification, setShowFallbackNotification] = useState(false);
+  const [fallbackInfo, setFallbackInfo] = useState<{
+    originalModel: string;
+    fallbackModel: string;
+    reason: string;
+  } | null>(null);
 
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -373,6 +416,16 @@ export default function UploadPage() {
       if (!capRes.ok) throw new Error((capJson.error as string) || 'Caption failed');
       setUploadedImageId(mapIdVal);                     
 
+      // Check for model fallback information
+      const fallbackInfo = (capJson.raw_json as Record<string, unknown>)?.fallback_info;
+      if (fallbackInfo) {
+        setFallbackInfo({
+          originalModel: (fallbackInfo as Record<string, unknown>).original_model as string,
+          fallbackModel: (fallbackInfo as Record<string, unknown>).fallback_model as string,
+          reason: (fallbackInfo as Record<string, unknown>).reason as string
+        });
+        setShowFallbackNotification(true);
+      }
 
       const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
       if (extractedMetadata) {
@@ -400,7 +453,20 @@ export default function UploadPage() {
         }
       }
 
-      setDraft(capJson.generated as string);
+      // Handle both plain text and JSON responses
+      if (capJson.generated) {
+        try {
+          const parsedGenerated = JSON.parse(capJson.generated as string);
+          if (parsedGenerated.analysis) {
+            setDraft(parsedGenerated.analysis);
+          } else {
+            setDraft(capJson.generated as string);
+          }
+        } catch (e) {
+          // Not JSON, treat as plain text
+          setDraft(capJson.generated as string);
+        }
+      }
       handleStepChange('2a');
     } catch (err) {
       handleApiError(err, 'Upload');
@@ -458,7 +524,18 @@ export default function UploadPage() {
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error((capJson.error as string) || 'Caption failed');
   
-            const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
+      // Check for model fallback information
+      const fallbackInfo = (capJson.raw_json as Record<string, unknown>)?.fallback_info;
+      if (fallbackInfo) {
+        setFallbackInfo({
+          originalModel: (fallbackInfo as Record<string, unknown>).original_model as string,
+          fallbackModel: (fallbackInfo as Record<string, unknown>).fallback_model as string,
+          reason: (fallbackInfo as Record<string, unknown>).reason as string
+        });
+        setShowFallbackNotification(true);
+      }
+
+      const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
       if (extractedMetadata) {
         const metadata = (extractedMetadata as Record<string, unknown>).metadata || extractedMetadata;
         if ((metadata as Record<string, unknown>).title) setTitle((metadata as Record<string, unknown>).title as string);
@@ -484,7 +561,20 @@ export default function UploadPage() {
         }
       }
 
-      setDraft((capJson.generated as string) || '');
+      // Handle both plain text and JSON responses
+      if (capJson.generated) {
+        try {
+          const parsedGenerated = JSON.parse(capJson.generated as string);
+          if (parsedGenerated.analysis) {
+            setDraft(parsedGenerated.analysis);
+          } else {
+            setDraft(capJson.generated as string);
+          }
+        } catch (e) {
+          // Not JSON, treat as plain text
+          setDraft(capJson.generated as string);
+        }
+      }
       handleStepChange('2a');
     } catch (err) {
       handleApiError(err, 'Upload');
@@ -1186,6 +1276,30 @@ export default function UploadPage() {
                     onClick={() => setShowNavigationConfirm(false)}
                   >
                     Stay
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Model Fallback Notification Modal */}
+        {showFallbackNotification && fallbackInfo && (
+          <div className={styles.fullSizeModalOverlay} onClick={() => setShowFallbackNotification(false)}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>Model Changed</h3>
+                <p className={styles.ratingWarningText}>
+                  {fallbackInfo.originalModel} is currently unavailable. 
+                  We've automatically switched to {fallbackInfo.fallbackModel} to complete your request.
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="close-fallback"
+                    variant="secondary"
+                    onClick={() => setShowFallbackNotification(false)}
+                  >
+                    Got it
                   </Button>
                 </div>
               </div>

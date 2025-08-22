@@ -12,8 +12,25 @@ class StubVLMService(VLMService):
         """Generate a stub caption for testing purposes."""
         caption = f"This is a stub caption for testing. Image size: {len(image_bytes)} bytes. Prompt: {prompt[:50]}..."
         
+        # Return data in the format expected by schema validator
         return {
             "caption": caption,
-            "raw_response": {"stub": True, "caption": caption},
-            "metadata": {}
+            "raw_response": {
+                "stub": True,
+                "analysis": caption,
+                "metadata": {
+                    "title": "Stub Generated Title",
+                    "source": "OTHER",
+                    "type": "OTHER", 
+                    "countries": [],
+                    "epsg": "OTHER"
+                }
+            },
+            "metadata": {
+                "title": "Stub Generated Title",
+                "source": "OTHER",
+                "type": "OTHER",
+                "countries": [],
+                "epsg": "OTHER"
+            }
         } 

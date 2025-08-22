@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
 from ..config import settings
+from .. import crud
 
 router = APIRouter()
 security = HTTPBearer()
@@ -130,3 +131,182 @@ async def admin_status(credentials: HTTPAuthorizationCredentials = Depends(secur
         "role": "admin",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+# Model Management Endpoints
+class ModelCreateRequest(BaseModel):
+    m_code: str
+    label: str
+    model_type: str
+    provider: str
+    model_id: str
+    is_available: bool = False
+
+class ModelUpdateRequest(BaseModel):
+    label: str | None = None
+    model_type: str | None = None
+    provider: str | None = None
+    model_id: str | None = None
+    is_available: bool | None = None
+
+@router.post("/models", response_model=dict)
+async def create_model(
+    request: ModelCreateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Create a new model (admin only)"""
+    token = credentials.credentials
+    
+    if not verify_admin_token(token):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
+    
+    try:
+        # Check if model already exists
+        existing_model = crud.get_model(db, request.m_code)
+        if existing_model:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model with code '{request.m_code}' already exists"
+            )
+        
+        # Create new model
+        new_model = crud.create_model(
+            db,
+            m_code=request.m_code,
+            label=request.label,
+            model_type=request.model_type,
+            provider=request.provider,
+            model_id=request.model_id,
+            is_available=request.is_available
+        )
+        
+        return {
+            "message": "Model created successfully",
+            "model": {
+                "m_code": new_model.m_code,
+                "label": new_model.label,
+                "model_type": new_model.model_type,
+                "provider": new_model.provider,
+                "model_id": new_model.model_id,
+                "is_available": new_model.is_available
+            }
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create model: {str(e)}"
+        )
+
+@router.put("/models/{model_code}", response_model=dict)
+async def update_model(
+    model_code: str,
+    request: ModelUpdateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Update an existing model (admin only)"""
+    token = credentials.credentials
+    
+    if not verify_admin_token(token):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
+    
+    try:
+        # Check if model exists
+        existing_model = crud.get_model(db, model_code)
+        if not existing_model:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model '{model_code}' not found"
+            )
+        
+        # Update model fields
+        update_data = {}
+        if request.label is not None:
+            update_data["label"] = request.label
+        if request.model_type is not None:
+            update_data["model_type"] = request.model_type
+        if request.is_available is not None:
+            update_data["is_available"] = request.is_available
+        
+        # Update config column for provider and model_id
+        config_updates = {}
+        if request.provider is not None:
+            config_updates["provider"] = request.provider
+        if request.model_id is not None:
+            config_updates["model_id"] = request.model_id
+        
+        if config_updates:
+            # Get current config or create empty dict
+            current_config = existing_model.config or {}
+            # Merge with updates
+            updated_config = {**current_config, **config_updates}
+            update_data["config"] = updated_config
+        
+        updated_model = crud.update_model(db, model_code, update_data)
+        
+        return {
+            "message": "Model updated successfully",
+            "model": {
+                "m_code": updated_model.m_code,
+                "label": updated_model.label,
+                "model_type": updated_model.model_type,
+                "is_available": updated_model.is_available,
+                "config": updated_model.config or {}
+            }
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update model: {str(e)}"
+        )
+
+@router.delete("/models/{model_code}", response_model=dict)
+async def delete_model(
+    model_code: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Delete a model (admin only)"""
+    token = credentials.credentials
+    
+    if not verify_admin_token(token):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token"
+        )
+    
+    try:
+        # Check if model exists
+        existing_model = crud.get_model(db, model_code)
+        if not existing_model:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model '{model_code}' not found"
+            )
+        
+        # Check if model is being used by any images
+        from ..models import Images
+        image_count = db.query(Images).filter(Images.model == model_code).count()
+        if image_count > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot delete model '{model_code}' - it is used by {image_count} image(s)"
+            )
+        
+        # Delete model
+        crud.delete_model(db, model_code)
+        
+        return {
+            "message": f"Model '{model_code}' deleted successfully"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete model: {str(e)}"
+        )

@@ -9,7 +9,7 @@ from ..config import settings
 from ..services.stub_vlm_service import StubVLMService
 from ..services.gpt4v_service import GPT4VService
 from ..services.gemini_service import GeminiService
-from ..services.huggingface_service import LLaVAService, BLIP2Service, InstructBLIPService
+from ..services.huggingface_service import ProvidersGenericVLMService
 
 stub_service = StubVLMService()
 vlm_manager.register_service(stub_service)
@@ -36,16 +36,28 @@ else:
 
 if settings.HF_API_KEY:
     try:
-        llava_service = LLaVAService(settings.HF_API_KEY)
-        vlm_manager.register_service(llava_service)
+        # Dynamically register models from database
+        from .. import crud
+        from ..database import SessionLocal
         
-        blip2_service = BLIP2Service(settings.HF_API_KEY)
-        vlm_manager.register_service(blip2_service)
-        
-        instructblip_service = InstructBLIPService(settings.HF_API_KEY)
-        vlm_manager.register_service(instructblip_service)
-        
-        print(f"✓ Hugging Face services registered (LLaVA, BLIP2, InstructBLIP)")
+        db = SessionLocal()
+        try:
+            models = crud.get_models(db)
+            for model in models:
+                if model.provider == "huggingface" and model.model_id:
+                    try:
+                        service = ProvidersGenericVLMService(
+                            api_key=settings.HF_API_KEY,
+                            model_id=model.model_id,
+                            public_name=model.m_code
+                        )
+                        vlm_manager.register_service(service)
+                        print(f"✓ Registered HF model: {model.m_code} -> {model.model_id}")
+                    except Exception as e:
+                        print(f"✗ Failed to register {model.m_code}: {e}")
+            print(f"✓ Hugging Face services registered dynamically from database")
+        finally:
+            db.close()
     except Exception as e:
         print(f"✗ Hugging Face services failed: {e}")
         import traceback
@@ -160,6 +172,20 @@ async def create_caption(
         
         # Use the actual model that was used, not the requested model_name
         used_model = result.get("model", model_name) or "STUB_MODEL"
+        
+        # Check if fallback was used
+        fallback_used = result.get("fallback_used", False)
+        original_model = result.get("original_model", None)
+        fallback_reason = result.get("fallback_reason", None)
+        
+        if fallback_used:
+            print(f"⚠ Model fallback occurred: {original_model} -> {used_model} (reason: {fallback_reason})")
+            # Add fallback info to raw response for frontend
+            raw["fallback_info"] = {
+                "original_model": original_model,
+                "fallback_model": used_model,
+                "reason": fallback_reason
+            }
         
     except Exception as e:
         print(f"VLM error, using fallback: {e}")

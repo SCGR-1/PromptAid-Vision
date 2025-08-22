@@ -2,21 +2,28 @@
 
 This directory contains comprehensive tests for the PromptAid Vision application.
 
-## Test Organization
+## 🧪 Test Structure
 
-### Core Functionality Tests
-- **`test_core.py`** - Core application functionality, database operations, and basic API endpoints
-- **`test_config.py`** - Configuration validation and storage setup verification
+### Core Tests
+- **`test_core.py`** - Core application functionality, database connections, and API endpoints
+- **`test_config.py`** - Configuration and storage system tests
 
-### API and Integration Tests
-- **`test_upload_flow.py`** - Complete image upload workflow testing
-- **`test_openai_integration.py`** - OpenAI GPT-4 Vision API integration tests
-- **`test_hf.py`** - Hugging Face Spaces deployment and integration tests
+### API & Integration Tests
+- **`test_upload_flow.py`** - Complete upload workflow testing
+- **`test_openai_integration.py`** - OpenAI API integration tests
+- **`test_admin_endpoints.py`** - Admin authentication and model management endpoints
 
-### Frontend and UI Tests
-- **`test_explore_page.py`** - Frontend explore page functionality and data display
+### Schema Validation Tests
+- **`test_schema_validation.py`** - Comprehensive schema validation and integration tests
+  - Crisis map data validation
+  - Drone image data validation
+  - VLM response format handling
+  - Admin schema management endpoints
 
-## Running Tests
+### Frontend Tests
+- **`test_explore_page.py`** - Frontend explore page functionality tests
+
+## 🚀 Running Tests
 
 ### Run All Tests
 ```bash
@@ -27,38 +34,60 @@ python tests/run_tests.py
 ### Run Individual Tests
 ```bash
 cd py_backend
-python tests/test_config.py          # Test configuration
-python tests/test_core.py           # Test core functionality
-python tests/test_upload_flow.py    # Test upload flow
-python tests/test_openai_integration.py  # Test OpenAI integration
-python tests/test_hf.py             # Test Hugging Face integration
-python tests/test_explore_page.py   # Test explore page
+python tests/test_core.py
+python tests/test_schema_validation.py
+python tests/test_admin_endpoints.py
 ```
 
 ### Test Configuration
-```bash
-# Test storage configuration
-python tests/test_config.py
-```
+- Set `ADMIN_PASSWORD` environment variable for admin endpoint tests
+- Ensure backend is running on `localhost:8000` for integration tests
+- Update `BASE_URL` in test files if using different backend URL
 
-## Test Dependencies
+## 📋 Test Categories
 
-- **Database**: Tests use a test SQLite database
-- **External APIs**: Some tests require API keys (OpenAI, Hugging Face)
-- **Storage**: Tests verify both local and S3 storage configurations
+### ✅ **KEPT** (Relevant & Up-to-date)
+- Core application tests
+- Schema validation tests
+- Admin endpoint tests
+- Upload flow tests
+- OpenAI integration tests
+- Frontend tests
 
-## Test Data
+### 🗑️ **REMOVED** (Outdated/Redundant)
+- ~~`test_hf.py`~~ - Old HuggingFace API tests (replaced by generic service)
+- ~~`test_simple_validation.py`~~ - Simple validation (merged into comprehensive test)
+- ~~`test_schema_integration.py`~~ - Schema integration (merged into validation test)
+- ~~`run_tests_simple.py`~~ - Redundant test runner
+- ~~`HUGGINGFACE_INTEGRATION.md`~~ - Outdated documentation
+- ~~`TROUBLESHOOTING_HF.md`~~ - Outdated troubleshooting guide
 
-- **`test.jpg`** - Sample image file for testing uploads and image processing
+## 🔧 Test Environment
 
-## Troubleshooting
+- **Backend**: FastAPI application with PostgreSQL database
+- **Frontend**: React application with IFRC UI components
+- **APIs**: OpenAI, HuggingFace, and custom VLM services
+- **Validation**: JSON schema validation for crisis maps and drone images
 
-See `TROUBLESHOOTING_HF.md` for common Hugging Face deployment issues.
+## 📊 Test Results
 
-## Adding New Tests
+Tests provide detailed output including:
+- ✅ Success indicators for passed tests
+- ❌ Error details for failed tests
+- 📋 Metadata about test execution
+- ⏱️ Performance timing information
+- 🔍 Detailed validation results
 
-1. Create test file in this directory
-2. Follow naming convention: `test_*.py`
-3. Add to `run_tests.py` in appropriate category
-4. Ensure tests can run independently
-5. Include proper error handling and cleanup 
+## 🚨 Troubleshooting
+
+### Common Issues
+1. **Import Errors**: Ensure you're running from the `py_backend` directory
+2. **Database Connection**: Verify PostgreSQL is running and accessible
+3. **API Keys**: Check environment variables for required API keys
+4. **Backend Status**: Ensure FastAPI backend is running on expected port
+
+### Getting Help
+- Check test output for specific error messages
+- Verify environment configuration
+- Ensure all dependencies are installed
+- Check backend logs for additional context 

@@ -57,7 +57,10 @@ def main():
         # API and integration tests
         ("test_upload_flow.py", "Upload Flow Tests"),
         ("test_openai_integration.py", "OpenAI Integration Tests"),
-        ("test_hf.py", "Hugging Face Integration Tests"),
+        ("test_admin_endpoints.py", "Admin Endpoints Tests"),
+        
+        # Schema validation tests
+        ("test_schema_validation.py", "Schema Validation Tests"),
         
         # Frontend and UI tests
         ("test_explore_page.py", "Explore Page Tests"),

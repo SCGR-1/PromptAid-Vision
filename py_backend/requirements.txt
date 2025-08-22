@@ -22,3 +22,4 @@ pycountry-convert>=0.7.2
 python-multipart
 PyJWT
 jsonschema
+aiohttp>=3.9

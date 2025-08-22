@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
-import { PageContainer, Heading, Button, Container, TextInput } from '@ifrc-go/ui';
+import { PageContainer, Heading, Button, Container, TextInput, SelectInput } from '@ifrc-go/ui';
+import styles from './AdminPage.module.css';
 
 const SELECTED_MODEL_KEY = 'selectedVlmModel';
 
@@ -10,13 +11,45 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  const [availableModels, setAvailableModels] = useState<Array<{
-    m_code: string;
-    label: string;
-    model_type: string;
-    is_available: boolean;
-  }>>([]);
+     const [availableModels, setAvailableModels] = useState<Array<{
+     m_code: string;
+     label: string;
+     model_type: string;
+     is_available: boolean;
+     provider?: string;
+     model_id?: string;
+     config?: {
+       provider?: string;
+       model_id?: string;
+       model?: string;
+       stub?: boolean;
+     };
+   }>>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
+  
+     // Model management state
+   const [showAddModelForm, setShowAddModelForm] = useState(false);
+   const [showEditModelForm, setShowEditModelForm] = useState(false);
+   const [editingModel, setEditingModel] = useState<any>(null);
+   const [newModelData, setNewModelData] = useState({
+     m_code: '',
+     label: '',
+     model_type: 'custom',
+     provider: 'huggingface',
+     model_id: '',
+     is_available: false
+   });
+  
+         // Modal states
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+    const [showSetupInstructionsModal, setShowSetupInstructionsModal] = useState(false);
+    const [showTestResultsModal, setShowTestResultsModal] = useState(false);
+    const [modelToDelete, setModelToDelete] = useState<string>('');
+    const [setupInstructions, setSetupInstructions] = useState('');
+    
+    // VLM Testing states
+    const [testResults, setTestResults] = useState<string>('');
+    const [testResultsTitle, setTestResultsTitle] = useState<string>('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -24,30 +57,31 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
-  const fetchModels = () => {
-    fetch('/api/models')
-      .then(r => r.json())
-      .then(modelsData => {
-        setAvailableModels(modelsData.models || []);
-        
-        const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
-        if (modelsData.models && modelsData.models.length > 0) {
-          if (persistedModel === 'random') {
-            // Keep random selection
-            setSelectedModel('random');
-          } else if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
-            setSelectedModel(persistedModel);
-          } else {
-            const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || modelsData.models[0];
-            setSelectedModel(firstAvailableModel.m_code);
-            localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
-          }
-        }
-      })
-      .catch(() => {
-        // Handle error silently
-      });
-  };
+     const fetchModels = () => {
+     fetch('/api/models')
+       .then(r => r.json())
+       .then(modelsData => {
+         console.log('Models data received:', modelsData);
+         setAvailableModels(modelsData.models || []);
+         
+         const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
+         if (modelsData.models && modelsData.models.length > 0) {
+           if (persistedModel === 'random') {
+             // Keep random selection
+             setSelectedModel('random');
+           } else if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
+             setSelectedModel(persistedModel);
+           } else {
+             const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || modelsData.models[0];
+             setSelectedModel(firstAvailableModel.m_code);
+             localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
+           }
+         }
+       })
+       .catch(() => {
+         // Handle error silently
+       });
+   };
 
   const toggleModelAvailability = async (modelCode: string, currentStatus: boolean) => {
     try {
@@ -88,6 +122,148 @@ export default function AdminPage() {
     }
   };
 
+  // Model management functions
+  const handleAddModel = async () => {
+    try {
+      const response = await fetch('/api/admin/models', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(newModelData)
+      });
+
+      if (response.ok) {
+        // Prepare setup instructions
+        const instructions = `
+Model "${newModelData.label}" added successfully!
+
+⚠️  IMPORTANT: Model will NOT work until you complete these steps:
+
+1. 🔑 Ensure API key is set and valid.
+
+2. 📝 Verify model_id format.
+
+3. 📚 Check model specific documentation for details.
+        `;
+        
+        setSetupInstructions(instructions);
+        setShowSetupInstructionsModal(true);
+        
+        setShowAddModelForm(false);
+        setNewModelData({
+          m_code: '',
+          label: '',
+          model_type: 'custom',
+          provider: 'huggingface',
+          model_id: '',
+          is_available: false
+        });
+        fetchModels(); // Refresh the models list
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to add model: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert('Error adding model');
+    }
+  };
+
+     const handleEditModel = (model: any) => {
+     setEditingModel(model);
+     setNewModelData({
+       m_code: model.m_code,
+       label: model.label,
+       model_type: model.model_type || 'custom',
+       provider: model.provider || model.config?.provider || 'huggingface',
+       model_id: model.model_id || model.config?.model_id || model.m_code,
+       is_available: model.is_available
+     });
+     setShowEditModelForm(true);
+   };
+
+   const handleUpdateModel = async () => {
+     try {
+       console.log('Updating model with data:', newModelData);
+       
+       // Create update payload without m_code (it's in the URL)
+       const updatePayload = {
+         label: newModelData.label,
+         model_type: newModelData.model_type,
+         provider: newModelData.provider,
+         model_id: newModelData.model_id,
+         is_available: newModelData.is_available
+       };
+       
+       console.log('Update payload:', updatePayload);
+       
+       const response = await fetch(`/api/admin/models/${editingModel.m_code}`, {
+         method: 'PUT',
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+         },
+         body: JSON.stringify(updatePayload)
+       });
+
+       console.log('Update response status:', response.status);
+       
+       if (response.ok) {
+         const result = await response.json();
+         console.log('Update successful:', result);
+         
+         setShowEditModelForm(false);
+         setEditingModel(null);
+         setNewModelData({
+           m_code: '',
+           label: '',
+           model_type: 'custom',
+           provider: 'huggingface',
+           model_id: '',
+           is_available: false
+         });
+         
+         console.log('Refreshing models...');
+         fetchModels(); // Refresh the models list
+       } else {
+         const errorData = await response.json();
+         console.error('Update failed:', errorData);
+         alert(`Failed to update model: ${errorData.detail || 'Unknown error'}`);
+       }
+     } catch (error) {
+       console.error('Update error:', error);
+       alert('Error updating model');
+     }
+   };
+
+   const handleDeleteModel = async (modelCode: string) => {
+     setModelToDelete(modelCode);
+     setShowDeleteConfirmModal(true);
+   };
+
+  const handleDeleteModelConfirm = async () => {
+    try {
+      const response = await fetch(`/api/admin/models/${modelToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+
+      if (response.ok) {
+        setShowDeleteConfirmModal(false);
+        setModelToDelete('');
+        fetchModels(); // Refresh the models list
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete model: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert('Error deleting model');
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
@@ -116,6 +292,14 @@ export default function AdminPage() {
     setError('');
   };
 
+
+
+
+
+
+
+
+
   if (isLoading) {
     return (
       <PageContainer>
@@ -133,9 +317,9 @@ export default function AdminPage() {
     return (
       <PageContainer>
         <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-          <div className="text-center mb-8">
-            <Heading level={1}>Admin Login</Heading>
-          </div>
+                     <div className="text-center mb-8">
+             <Heading level={2}>Admin Login</Heading>
+           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
@@ -181,8 +365,8 @@ export default function AdminPage() {
 
   return (
     <PageContainer>
-      <div className="mx-auto max-w-screen-lg px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        <div className="flex justify-end mb-8">
+      <div className={styles.adminContainer}>
+        <div className={styles.adminHeader}>
           <Button
             name="logout"
             variant="secondary"
@@ -192,7 +376,7 @@ export default function AdminPage() {
           </Button>
         </div>
         
-        <div className="mt-8 space-y-8">
+        <div className={styles.adminSection}>
           {/* Model Selection Section */}
           <Container
             heading="VLM Model Selection"
@@ -200,68 +384,67 @@ export default function AdminPage() {
             withHeaderBorder
             withInternalPadding
           >
-            <div className="space-y-4">
+            <div className={styles.modelSelectionArea}>
               <p className="text-gray-700">
                 Select which Vision Language Model to use for caption generation.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <label className="text-sm font-medium text-gray-700">Model:</label>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => handleModelChange(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ifrcRed focus:border-transparent min-w-[200px]"
-                >
-                  <option value="random">Random</option>
-                  {availableModels
-                    .filter(model => model.is_available)
-                    .map(model => (
-                      <option key={model.m_code} value={model.m_code}>
-                        {model.label}
-                      </option>
-                    ))}
-                </select>
-                {selectedModel && (
-                  <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                    {selectedModel === 'random' 
-                      ? '✓ Random model selection active' 
-                      : '✓ Active for caption generation'
-                    }
-                  </span>
-                )}
+                             <div className={styles.modelSelectionRow}>
+                 <SelectInput
+                   label="Model"
+                   name="selected-model"
+                   value={selectedModel}
+                   onChange={(newValue) => handleModelChange(newValue || '')}
+                   options={[
+                     { value: 'random', label: 'Random' },
+                     ...availableModels
+                       .filter(model => model.is_available)
+                       .map(model => ({
+                         value: model.m_code,
+                         label: model.label
+                       }))
+                   ]}
+                   keySelector={(o) => o.value}
+                   labelSelector={(o) => o.label}
+                 />
+                                 
               </div>
             </div>
           </Container>
 
-          {/* Model Information Section */}
+          {/* Model Management Section */}
           <Container
-            heading="Model Information"
+            heading="Model Management"
             headingLevel={2}
             withHeaderBorder
             withInternalPadding
           >
-            <div className="space-y-4">
-              <p className="text-gray-700">
-                Detailed information about available models and their status. Use the toggle buttons to enable/disable models.
-              </p>
+            <div className={styles.modelManagementArea}>
+
               
-              <div className="overflow-x-auto">
-                <table className="min-w-full border border-gray-200">
-                  <thead className="bg-gray-50">
+              
+
+              {/* Models Table */}
+              <div className={styles.modelsTable}>
+                <table>
+                  <thead>
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available</th>
+                      <th>Code</th>
+                      <th>Label</th>
+                      <th>Provider</th>
+                      <th>Model ID</th>
+                      <th>Available</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody>
                     {availableModels.map(model => (
                       <tr key={model.m_code}>
-                        <td className="px-4 py-2 text-sm font-mono">{model.m_code}</td>
-                        <td className="px-4 py-2 text-sm">{model.label}</td>
-                        <td className="px-4 py-2 text-sm">{model.model_type}</td>
-                        <td className="px-4 py-2 text-sm">
+                        <td className={styles.modelCode}>{model.m_code}</td>
+                        <td>{model.label}</td>
+                                                 <td>{model.provider || model.config?.provider || 'huggingface'}</td>
+                         <td className={styles.modelId}>{model.model_id || model.config?.model_id || model.m_code || 'N/A'}</td>
+                        <td>
                           <Button
                             name={`toggle-${model.m_code}`}
                             variant={model.is_available ? "primary" : "secondary"}
@@ -271,135 +454,381 @@ export default function AdminPage() {
                             {model.is_available ? 'Enabled' : 'Disabled'}
                           </Button>
                         </td>
+                                                 <td>
+                           <div className={styles.modelActions}>
+                             <Button
+                               name={`edit-${model.m_code}`}
+                               variant="secondary"
+                               size={1}
+                               onClick={() => handleEditModel(model)}
+                             >
+                               Edit
+                             </Button>
+                             <Button
+                               name={`delete-${model.m_code}`}
+                               variant="secondary"
+                               size={1}
+                               onClick={() => handleDeleteModel(model.m_code)}
+                             >
+                               Delete
+                             </Button>
+                           </div>
+                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          </Container>
 
-                           {/* API Testing Section */}
-                 <Container
-                   heading="API Testing"
-                   headingLevel={2}
-                   withHeaderBorder
-                   withInternalPadding
-                 >
-                   <div className="space-y-4">
-                     <p className="text-gray-700">
-                       Test API endpoints and model functionality.
-                     </p>
-                     
-                     <div className="flex flex-wrap gap-4">
-                       <Button
-                         name="test-models-api"
-                         variant="secondary"
-                         onClick={() => {
-                           fetch('/api/models')
-                             .then(r => r.json())
-                             .then(() => {
-                               alert('Models API response received successfully');
-                             })
-                             .catch(() => {
-                               alert('Models API error occurred');
-                             });
-                         }}
-                       >
-                         Test Models API
-                       </Button>
-                       
-                       <Button
-                         name="test-selected-model"
-                         variant="secondary"
-                         disabled={!selectedModel}
-                         onClick={() => {
-                           if (!selectedModel) return;
-                           fetch(`/api/models/${selectedModel}/test`)
-                             .then(r => r.json())
-                             .then(() => {
-                               alert('Model test completed successfully');
-                             })
-                             .catch(() => {
-                               alert('Model test failed');
-                             });
-                         }}
-                       >
-                         Test Selected Model
-                       </Button>
-       
-                       <Button
-                         name="refresh-models"
-                         variant="secondary"
-                         onClick={fetchModels}
-                       >
-                         Refresh Models
-                       </Button>
+               {/* Add Model Button - now below the table */}
+               {!showAddModelForm && (
+                 <div className={styles.addModelButtonContainer}>
+                   <Button
+                     name="show-add-form"
+                     variant="primary"
+                     onClick={() => setShowAddModelForm(true)}
+                   >
+                     Add New Model
+                   </Button>
+                 </div>
+               )}
+
+              {/* Add Model Form - now below the table */}
+              {showAddModelForm && (
+                <div className={styles.addModelForm}>
+                  <h4 className={styles.addModelFormTitle}>Add New Model</h4>
+                  <div className={styles.addModelFormGrid}>
+                                         <div className={styles.addModelFormField}>
+                       <TextInput
+                         label="Model Code"
+                         name="model-code"
+                         value={newModelData.m_code}
+                         onChange={(value) => setNewModelData({...newModelData, m_code: value || ''})}
+                         placeholder="e.g., NEW_MODEL_123"
+                       />
+                     </div>
+                                         <div className={styles.addModelFormField}>
+                       <TextInput
+                         label="Label"
+                         name="model-label"
+                         value={newModelData.label}
+                         onChange={(value) => setNewModelData({...newModelData, label: value || ''})}
+                         placeholder="e.g., New Model Name"
+                       />
+                     </div>
+                                         <div className={styles.addModelFormField}>
+                       <SelectInput
+                         label="Provider"
+                         name="model-provider"
+                         value={newModelData.provider}
+                         onChange={(value) => setNewModelData({...newModelData, provider: value || 'huggingface'})}
+                         options={[
+                           { value: 'huggingface', label: 'HuggingFace' },
+                           { value: 'openai', label: 'OpenAI' },
+                           { value: 'google', label: 'Google' }
+                         ]}
+                         keySelector={(o) => o.value}
+                         labelSelector={(o) => o.label}
+                       />
+                     </div>
+                                         <div className={styles.addModelFormField}>
+                       <TextInput
+                         label="Model ID"
+                         name="model-id"
+                         value={newModelData.model_id}
+                         onChange={(value) => setNewModelData({...newModelData, model_id: value || ''})}
+                         placeholder="e.g., org/model-name"
+                       />
+                     </div>
+                                         <div className={styles.addModelFormField}>
+                       <div className={styles.addModelFormCheckbox}>
+                         <input
+                           type="checkbox"
+                           checked={newModelData.is_available}
+                           onChange={(e) => setNewModelData({...newModelData, is_available: e.target.checked})}
+                         />
+                         <span>Available for use</span>
+                       </div>
+                     </div>
+                  </div>
+                  <div className={styles.addModelFormActions}>
+                    <Button
+                      name="save-model"
+                      variant="primary"
+                      onClick={handleAddModel}
+                      disabled={!newModelData.m_code || !newModelData.label || !newModelData.model_id}
+                    >
+                      Save Model
+                    </Button>
+                    <Button
+                      name="cancel-add"
+                      variant="secondary"
+                      onClick={() => setShowAddModelForm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                                 </div>
+               )}
+
+               {/* Edit Model Form */}
+               {showEditModelForm && (
+                 <div className={styles.addModelForm}>
+                   <h4 className={styles.addModelFormTitle}>Edit Model: {editingModel?.label}</h4>
+                   <div className={styles.addModelFormGrid}>
+                     <div className={styles.addModelFormField}>
+                       <TextInput
+                         label="Model Code"
+                         name="model-code"
+                         value={newModelData.m_code}
+                         onChange={(value) => setNewModelData({...newModelData, m_code: value || ''})}
+                         placeholder="e.g., NEW_MODEL_123"
+                         disabled
+                       />
+                     </div>
+                     <div className={styles.addModelFormField}>
+                       <TextInput
+                         label="Label"
+                         name="model-label"
+                         value={newModelData.label}
+                         onChange={(value) => setNewModelData({...newModelData, label: value || ''})}
+                         placeholder="e.g., New Model Name"
+                       />
+                     </div>
+                     <div className={styles.addModelFormField}>
+                       <SelectInput
+                         label="Provider"
+                         name="model-provider"
+                         value={newModelData.provider}
+                         onChange={(value) => setNewModelData({...newModelData, provider: value || 'huggingface'})}
+                         options={[
+                           { value: 'huggingface', label: 'HuggingFace' },
+                           { value: 'openai', label: 'OpenAI' },
+                           { value: 'google', label: 'Google' }
+                         ]}
+                         keySelector={(o) => o.value}
+                         labelSelector={(o) => o.label}
+                       />
+                     </div>
+                     <div className={styles.addModelFormField}>
+                       <TextInput
+                         label="Model ID"
+                         name="model-id"
+                         value={newModelData.model_id}
+                         onChange={(value) => setNewModelData({...newModelData, model_id: value || ''})}
+                         placeholder="e.g., org/model-name"
+                       />
+                     </div>
+                     <div className={styles.addModelFormField}>
+                       <div className={styles.addModelFormCheckbox}>
+                         <input
+                           type="checkbox"
+                           checked={newModelData.is_available}
+                           onChange={(e) => setNewModelData({...newModelData, is_available: e.target.checked})}
+                         />
+                         <span>Available for use</span>
+                       </div>
                      </div>
                    </div>
-                 </Container>
-
-                 {/* Schema Validation Section */}
-                 <Container
-                   heading="Schema Validation"
-                   headingLevel={2}
-                   withHeaderBorder
-                   withInternalPadding
-                 >
-                   <div className="space-y-4">
-                     <p className="text-gray-700">
-                       Monitor and test JSON schema validation for VLM responses.
-                     </p>
-                     
-                     <div className="flex flex-wrap gap-4">
-                       <Button
-                         name="view-schemas"
-                         variant="secondary"
-                         onClick={() => {
-                           fetch('/api/schemas', {
-                             headers: {
-                               'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-                             }
-                           })
-                             .then(r => r.json())
-                             .then(data => {
-                               console.log('Schemas:', data);
-                               alert(`Found ${data.length} schemas. Check console for details.`);
-                             })
-                             .catch(() => {
-                               alert('Failed to fetch schemas');
-                             });
-                         }}
-                       >
-                         View Schemas
-                       </Button>
-                       
-                       <Button
-                         name="validation-stats"
-                         variant="secondary"
-                         onClick={() => {
-                           fetch('/api/schemas/validation-stats', {
-                             headers: {
-                               'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-                             }
-                           })
-                             .then(r => r.json())
-                             .then(data => {
-                               console.log('Validation Stats:', data);
-                               alert(`Validation: ${data.validation_passed} passed, ${data.validation_failed} failed. Check console for details.`);
-                             })
-                             .catch(() => {
-                               alert('Failed to fetch validation stats');
-                             });
-                         }}
-                       >
-                         Validation Stats
-                       </Button>
-                     </div>
+                   <div className={styles.addModelFormActions}>
+                     <Button
+                       name="update-model"
+                       variant="primary"
+                       onClick={handleUpdateModel}
+                       disabled={!newModelData.m_code || !newModelData.label || !newModelData.model_id}
+                     >
+                       Update Model
+                     </Button>
+                     <Button
+                       name="cancel-edit"
+                       variant="secondary"
+                       onClick={() => {
+                         setShowEditModelForm(false);
+                         setEditingModel(null);
+                         setNewModelData({
+                           m_code: '',
+                           label: '',
+                           model_type: 'custom',
+                           provider: 'huggingface',
+                           model_id: '',
+                           is_available: false
+                         });
+                       }}
+                     >
+                       Cancel
+                     </Button>
                    </div>
-                 </Container>
+                 </div>
+               )}
+             </div>
+           </Container>
+
+
+
+                     {/* Utilities Section */}
+           <Container
+             heading="Utilities"
+             headingLevel={2}
+             withHeaderBorder
+             withInternalPadding
+           >
+             <div className="flex flex-wrap gap-4">
+               <Button
+                 name="test-connection"
+                 variant="secondary"
+                 onClick={async () => {
+                   setTestResults('Testing API connection...');
+                   setTestResultsTitle('Connection Test Results');
+                   
+                   try {
+                     // Test basic API connectivity
+                     const response = await fetch('/api/models');
+                     if (response.ok) {
+                       const data = await response.json();
+                       const results = `✅ API connection successful!\n\nFound ${data.models?.length || 0} models in database.\n\nAvailable models:\n${data.models?.filter((m: any) => m.is_available).map((m: any) => `- ${m.label} (${m.m_code})`).join('\n') || 'None'}`;
+                       setTestResults(results);
+                     } else {
+                       const results = `❌ API connection failed: HTTP ${response.status}`;
+                       setTestResults(results);
+                     }
+                     setShowTestResultsModal(true);
+                   } catch (error) {
+                     const results = `❌ Connection error: ${error}`;
+                     setTestResults(results);
+                     setShowTestResultsModal(true);
+                   }
+                 }}
+               >
+                 Test Connection
+               </Button>
+               
+               <Button
+                 name="view-schemas"
+                 variant="secondary"
+                 onClick={() => {
+                   fetch('/api/schemas', {
+                     headers: {
+                       'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                     }
+                   })
+                     .then(r => r.json())
+                     .then(data => {
+                       console.log('Schemas Response:', data);
+                       
+                       let results = '';
+                       let title = 'Schemas Response';
+                       
+                       if (data && Array.isArray(data)) {
+                         results = `Found ${data.length} schemas:\n\n`;
+                         data.forEach((schema, index) => {
+                           results += `=== Schema ${index + 1} ===\n`;
+                           results += JSON.stringify(schema, null, 2);
+                           results += '\n\n';
+                         });
+                       } else if (data && typeof data === 'object') {
+                         results = `Schemas Response:\n\nResponse type: ${typeof data}\nKeys: ${Object.keys(data).join(', ')}\n\nRaw data:\n${JSON.stringify(data, null, 2)}`;
+                       } else {
+                         results = `Schemas Response:\n\nUnexpected data type: ${typeof data}\nValue: ${data}`;
+                       }
+                       
+                       setTestResults(results);
+                       setTestResultsTitle(title);
+                       setShowTestResultsModal(true);
+                     })
+                     .catch((error) => {
+                       console.error('Schemas Error:', error);
+                       const results = `Failed to fetch schemas: ${error.message || 'Unknown error'}`;
+                       setTestResults(results);
+                       setTestResultsTitle('Schemas Error');
+                       setShowTestResultsModal(true);
+                     });
+                 }}
+               >
+                 View Schemas
+               </Button>
+             </div>
+           </Container>
         </div>
       </div>
+
+      {/* Delete Model Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowDeleteConfirmModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalBody}>
+              <h3 className={styles.modalTitle}>Delete Model</h3>
+              <p className={styles.modalText}>
+                Are you sure you want to delete model <span className={styles.modelCode}>{modelToDelete}</span>? 
+                This action cannot be undone.
+              </p>
+              <div className={styles.modalButtons}>
+                <Button
+                  name="cancel-delete"
+                  variant="tertiary"
+                  onClick={() => setShowDeleteConfirmModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  name="confirm-delete"
+                  variant="secondary"
+                  onClick={handleDeleteModelConfirm}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Setup Instructions Modal */}
+      {showSetupInstructionsModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowSetupInstructionsModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalBody}>
+              <h3 className={styles.modalTitle}>Model Added Successfully!</h3>
+              <div className={`${styles.modalText} ${styles.modalTextLeft}`}>
+                {setupInstructions}
+              </div>
+              <div className={styles.modalButtons}>
+                <Button
+                  name="close-setup-instructions"
+                  variant="secondary"
+                  onClick={() => setShowSetupInstructionsModal(false)}
+                >
+                  Got it!
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+             {/* Test Results Modal */}
+       {showTestResultsModal && (
+         <div className={styles.modalOverlay} onClick={() => setShowTestResultsModal(false)}>
+           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+             <div className={styles.modalBody}>
+               <h3 className={styles.modalTitle}>{testResultsTitle}</h3>
+               <div className={`${styles.modalText} ${styles.modalTextLeft}`}>
+                 <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                   {testResults}
+                 </div>
+               </div>
+               <div className={styles.modalButtons}>
+                 <Button
+                   name="close-test-results"
+                   variant="secondary"
+                   onClick={() => setShowTestResultsModal(false)}
+                 >
+                   Close
+                 </Button>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
     </PageContainer>
   );
 }
