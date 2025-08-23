@@ -1,0 +1,13 @@
+{
+    "namespace": "countryProfileOverview",
+    "strings": {
+        "climateChartMax": "Max",
+        "climateChangeAverage": "Average",
+        "climateChangeMin": "Min",
+        "climateChangePrecipitation": "Precipitation",
+        "climateChangeChart": "Climate chart (Avg. country values)",
+        "climateChartTemperature": "Average min and max temperature (°C)",
+        "climateChartSource": "Source",
+        "climateKnowledgePortal": "The World Bank"
+    }
+}

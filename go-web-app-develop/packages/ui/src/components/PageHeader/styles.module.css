@@ -1,0 +1,29 @@
+.page-header {
+    padding: var(--go-ui-spacing-lg) 0;
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--go-ui-spacing-xl);
+
+        .breadcrumbs-container {
+            flex-shrink: unset;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            gap: var(--go-ui-spacing-lg);
+
+            .heading {
+                text-align: center;
+            }
+
+            .description {
+                max-width: var(--go-ui-page-header-description-width-max);
+                text-align: center;
+            }
+        }
+    }
+}

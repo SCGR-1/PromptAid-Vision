@@ -11,11 +11,11 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-     const [availableModels, setAvailableModels] = useState<Array<{
-     m_code: string;
-     label: string;
-     model_type: string;
-     is_available: boolean;
+  const [availableModels, setAvailableModels] = useState<Array<{
+    m_code: string;
+    label: string;
+    model_type: string;
+    is_available: boolean;
      provider?: string;
      model_id?: string;
      config?: {
@@ -24,7 +24,7 @@ export default function AdminPage() {
        model?: string;
        stub?: boolean;
      };
-   }>>([]);
+  }>>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   
      // Model management state
@@ -57,31 +57,31 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
-     const fetchModels = () => {
-     fetch('/api/models')
-       .then(r => r.json())
-       .then(modelsData => {
+  const fetchModels = () => {
+    fetch('/api/models')
+      .then(r => r.json())
+      .then(modelsData => {
          console.log('Models data received:', modelsData);
-         setAvailableModels(modelsData.models || []);
-         
-         const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
-         if (modelsData.models && modelsData.models.length > 0) {
-           if (persistedModel === 'random') {
-             // Keep random selection
-             setSelectedModel('random');
-           } else if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
-             setSelectedModel(persistedModel);
-           } else {
-             const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || modelsData.models[0];
-             setSelectedModel(firstAvailableModel.m_code);
-             localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
-           }
-         }
-       })
-       .catch(() => {
-         // Handle error silently
-       });
-   };
+        setAvailableModels(modelsData.models || []);
+        
+        const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
+        if (modelsData.models && modelsData.models.length > 0) {
+          if (persistedModel === 'random') {
+            // Keep random selection
+            setSelectedModel('random');
+          } else if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
+            setSelectedModel(persistedModel);
+          } else {
+            const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || modelsData.models[0];
+            setSelectedModel(firstAvailableModel.m_code);
+            localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
+          }
+        }
+      })
+      .catch(() => {
+        // Handle error silently
+      });
+  };
 
   const toggleModelAvailability = async (modelCode: string, currentStatus: boolean) => {
     try {
@@ -317,9 +317,9 @@ Model "${newModelData.label}" added successfully!
     return (
       <PageContainer>
         <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-                     <div className="text-center mb-8">
+          <div className="text-center mb-8">
              <Heading level={2}>Admin Login</Heading>
-           </div>
+          </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
@@ -393,12 +393,12 @@ Model "${newModelData.label}" added successfully!
                  <SelectInput
                    label="Model"
                    name="selected-model"
-                   value={selectedModel}
+                  value={selectedModel}
                    onChange={(newValue) => handleModelChange(newValue || '')}
                    options={[
                      { value: 'random', label: 'Random' },
                      ...availableModels
-                       .filter(model => model.is_available)
+                    .filter(model => model.is_available)
                        .map(model => ({
                          value: model.m_code,
                          label: model.label
@@ -473,7 +473,7 @@ Model "${newModelData.label}" added successfully!
                                Delete
                              </Button>
                            </div>
-                         </td>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -490,7 +490,7 @@ Model "${newModelData.label}" added successfully!
                    >
                      Add New Model
                    </Button>
-                 </div>
+            </div>
                )}
 
               {/* Add Model Form - now below the table */}
@@ -560,13 +560,13 @@ Model "${newModelData.label}" added successfully!
                     >
                       Save Model
                     </Button>
-                    <Button
+                       <Button
                       name="cancel-add"
-                      variant="secondary"
+                         variant="secondary"
                       onClick={() => setShowAddModelForm(false)}
                     >
                       Cancel
-                    </Button>
+                       </Button>
                   </div>
                                  </div>
                )}
@@ -639,10 +639,10 @@ Model "${newModelData.label}" added successfully!
                      >
                        Update Model
                      </Button>
-                     <Button
+                       <Button
                        name="cancel-edit"
-                       variant="secondary"
-                       onClick={() => {
+                         variant="secondary"
+                         onClick={() => {
                          setShowEditModelForm(false);
                          setEditingModel(null);
                          setNewModelData({
@@ -652,27 +652,27 @@ Model "${newModelData.label}" added successfully!
                            provider: 'huggingface',
                            model_id: '',
                            is_available: false
-                         });
-                       }}
-                     >
+                             });
+                         }}
+                       >
                        Cancel
-                     </Button>
-                   </div>
+                       </Button>
+                     </div>
                  </div>
                )}
-             </div>
-           </Container>
+                   </div>
+                 </Container>
 
 
 
                      {/* Utilities Section */}
-           <Container
+                 <Container
              heading="Utilities"
-             headingLevel={2}
-             withHeaderBorder
-             withInternalPadding
-           >
-             <div className="flex flex-wrap gap-4">
+                   headingLevel={2}
+                   withHeaderBorder
+                   withInternalPadding
+                 >
+                     <div className="flex flex-wrap gap-4">
                <Button
                  name="test-connection"
                  variant="secondary"
@@ -702,17 +702,17 @@ Model "${newModelData.label}" added successfully!
                  Test Connection
                </Button>
                
-               <Button
-                 name="view-schemas"
-                 variant="secondary"
-                 onClick={() => {
-                   fetch('/api/schemas', {
-                     headers: {
-                       'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-                     }
-                   })
-                     .then(r => r.json())
-                     .then(data => {
+                       <Button
+                         name="view-schemas"
+                         variant="secondary"
+                         onClick={() => {
+                           fetch('/api/schemas', {
+                             headers: {
+                               'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                             }
+                           })
+                             .then(r => r.json())
+                             .then(data => {
                        console.log('Schemas Response:', data);
                        
                        let results = '';
@@ -741,13 +741,13 @@ Model "${newModelData.label}" added successfully!
                        setTestResults(results);
                        setTestResultsTitle('Schemas Error');
                        setShowTestResultsModal(true);
-                     });
-                 }}
-               >
-                 View Schemas
-               </Button>
-             </div>
-           </Container>
+                             });
+                         }}
+                       >
+                         View Schemas
+                       </Button>
+                   </div>
+                 </Container>
         </div>
       </div>
 

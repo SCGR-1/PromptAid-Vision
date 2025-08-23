@@ -1,0 +1,7 @@
+{
+    "namespace": "riskImminentEventMap",
+    "strings": {
+        "riskImminentEventsMap": "Risk Imminent Events Map",
+        "emptyImminentEventMessage": "No imminent event forecasted"
+    }
+}

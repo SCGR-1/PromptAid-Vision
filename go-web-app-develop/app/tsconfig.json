@@ -1,0 +1,41 @@
+{
+    "compilerOptions": {
+        "paths": {
+            /* Issue with turf library https://github.com/Turfjs/turf/issues/2598#issuecomment-2084656403 */
+            "@turf/bbox": ["../node_modules/@turf/bbox/dist/js/index.d.ts"],
+            "@turf/circle": ["../node_modules/@turf/circle/dist/js/index.d.ts"],
+            "@turf/buffer": ["../node_modules/@turf/buffer/index.d.ts"],
+
+            "#generated/*": ["./generated/*"],
+            "#assets/*": ["./src/assets/*"],
+            "#components/*": ["./src/components/*"],
+            "#config": ["./src/config"],
+            "#contexts/*": ["./src/contexts/*"],
+            "#hooks/*": ["./src/hooks/*"],
+            "#strings/*": ["./src/strings/*"],
+            "#utils/*": ["./src/utils/*"],
+            "#views/*": ["./src/views/*"]
+        },
+
+        "target": "ESNext",
+        "lib": ["DOM", "DOM.Iterable", "ESNext"],
+        "module": "ESNext",
+        "skipLibCheck": true,
+
+        /* Bundler mode */
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "jsx": "react-jsx",
+
+        /* Linting */
+        "strict": true,
+        "types": ["vite-plugin-svgr/client", "node"],
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true
+    },
+    "include": ["src", "env.ts"]
+}

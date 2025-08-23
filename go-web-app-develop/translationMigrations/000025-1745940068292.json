@@ -1,0 +1,1657 @@
+{
+    "parent": "000024-1745835426360.json",
+    "actions": [
+        {
+            "action": "remove",
+            "key": "threeWTableCountry",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableDisasterType",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableNS",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTablePeopleReached2",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTablePeopleTargeted",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableProgrammeType",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableProjectName",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableSector",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableTotalBudget",
+            "namespace": "accountMyFormsThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWCountry",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWDisasterType",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWHeading",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWNS",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWPeopleReached",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWPeopleTargeted",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWProgrammeType",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWProjectName",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWSector",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWTitle",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "allThreeWTotalBudget",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "failedToCreateExport",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "threeWEdit",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "remove",
+            "key": "threeWViewDetails",
+            "namespace": "allThreeWProject"
+        },
+        {
+            "action": "update",
+            "key": "headerMenuThreeW",
+            "namespace": "common",
+            "newValue": "Programmatic Partnerships"
+        },
+        {
+            "action": "update",
+            "key": "userMenuGlobal3WProjectDescription",
+            "namespace": "common",
+            "newValue": "The Programmatic Partnership is an innovative and ambitious three-year partnership between the IFRC, many of our member National Societies, and the European Union."
+        },
+        {
+            "action": "update",
+            "key": "userMenuGlobal3WProjects",
+            "namespace": "common",
+            "newValue": "Programmatic Partnerships"
+        },
+        {
+            "action": "remove",
+            "key": "addNSActivity",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "countriesNSWork",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "countryNSMapTitle",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "countryNSReceivingCountry",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "countryNSReportingNationalSociety",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nsActivitiesTitle",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSActivityDescription",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSAllProjects",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSContactPerson",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSCountryProjects",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFailedToCreateExport",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFilterOperationTypes",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFilterProgrammeTypes",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFilterProvinces",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFilterReportingNs",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFilterSectors",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFilterTags",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSFundingRequirementsTitle",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSProgrammeType",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSProjectByCountryTitle",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSProjectDataNotAvailable",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSProjectStatus",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSStartDate",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTableCountries",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTableDisasterType",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTablePeopleReached",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTablePeopleTargeted",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTableProjectName",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTableSector",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTableTotalBudget",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTargetedPopulationTitle",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "nSTotalProjectsTitle",
+            "namespace": "countryNsOverviewActivities"
+        },
+        {
+            "action": "remove",
+            "key": "activeDeploymentsTitle",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "addThreeWProject",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "countryThreeWDataNotAvailable",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "failedToCreateExport",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "localNSProjects",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "multipleTypesLegend",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "ongoingProjectBudgetTitle",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "otherNSProjects",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "otherProjects",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "programmeType",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "projectEdit",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "projectStatus",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "provinceProjects",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "targetedPopulationTitle",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterOperationTypes",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterProgrammeTypes",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterProvinces",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterReportingNs",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterSectors",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterTags",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWInCountryMapSidebarTitle",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWMapBudget",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWMapLastUpdate",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWMapProgrammeType",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWMapStatus",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWMapTitle",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWOngoingProjectsTitle",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWProjectDescription",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableDisasterType",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableNS",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTablePeopleReached",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTablePeopleTargeted",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableProgrammeType",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableProjectName",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableSector",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTableTotalBudget",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "totalProjectsTitle",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "remove",
+            "key": "viewAllProjects",
+            "namespace": "countryOngoingActivitiesThreeWProjects"
+        },
+        {
+            "action": "add",
+            "key": "pageHeading",
+            "namespace": "globalThreeW",
+            "value": "Programmatic Partnerships"
+        },
+        {
+            "action": "add",
+            "key": "pageTitle",
+            "namespace": "globalThreeW",
+            "value": "IFRC GO - Programmatic Partnerships"
+        },
+        {
+            "action": "remove",
+            "key": "exploreRegional3WButton",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "failedToCreateExport",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWAddProjectButtonLabel",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWChartProgrammeTypeTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWChartProjectPerSectorTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWChartTopTagsTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWExploreRegionalButtonLabel",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWKeyFigureActiveNSTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWKeyFigureOngoingProjectsTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWKeyTargetedPopulationTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWMapHeading",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWNSOngoingProjectsTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWPageDescriptionP1",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWPageDescriptionP2",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWPageHeading",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "globalThreeWPageTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "mapNSOngoingProjects",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "mapTargetedPopulation",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "mapTopProjectSectors",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "menu3WRegionNotAvailable",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "menu3WRegions",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "menuRegionsTooltip",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "multipleTypesLegend",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "ongoingProjectsMap",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "PPPMapTitle",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterProgrammeTypes",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterReportingNs",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterSectors",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterTags",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "update",
+            "key": "PPPMapDescription",
+            "newKey": "pageDescription",
+            "namespace": "globalThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "actionDropdownEditLabel",
+            "namespace": "projectActions"
+        },
+        {
+            "action": "remove",
+            "key": "deleteProject",
+            "namespace": "projectActions"
+        },
+        {
+            "action": "remove",
+            "key": "deleteProjectMessage",
+            "namespace": "projectActions"
+        },
+        {
+            "action": "remove",
+            "key": "projectDeleteFailureMessage",
+            "namespace": "projectActions"
+        },
+        {
+            "action": "remove",
+            "key": "projectDuplicate",
+            "namespace": "projectActions"
+        },
+        {
+            "action": "remove",
+            "key": "projectHistory",
+            "namespace": "projectActions"
+        },
+        {
+            "action": "remove",
+            "key": "projectViewDetails",
+            "namespace": "projectActions"
+        },
+        {
+            "action": "remove",
+            "key": "activeNsCount",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "activitySector",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "addThreeW",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "budget",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "completedProjects",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "export",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "movementActivities",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "nationalSocietyWithOngoingActivities",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "ongoingProjects",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "peopleReached",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "peopleTargeted",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "plannedProjects",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "programmeType",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "projectsCount",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "reportingNationalSociety",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "status",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "targetedPopulation",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterOperationTypes",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterProgrammeTypes",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterProvinces",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterSectors",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterStatus",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFilterTags",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "totalBudget",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "totalPeopleReached",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "totalProjects",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "totalProjectsByStatus",
+            "namespace": "regionThreeW"
+        },
+        {
+            "action": "remove",
+            "key": "searchIfrcEmergencies",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchIfrcProjects",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchIfrcReport",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectsTitle",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectTableEmergency",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectTableNationalSociety",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectTablePeopleTargeted",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectTableProjectName",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectTableProvince",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectTableSector",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "searchProjectTableStartEndDate",
+            "namespace": "search"
+        },
+        {
+            "action": "remove",
+            "key": "newThreeWActivityTabLabel",
+            "namespace": "threeWActivityForm"
+        },
+        {
+            "action": "remove",
+            "key": "newThreeWProjectTabLabel",
+            "namespace": "threeWActivityForm"
+        },
+        {
+            "action": "add",
+            "key": "description",
+            "namespace": "threeWDecommissionMessage",
+            "value": "3W Projects have been removed from this page. All 3W project data will continue to be accessible through the GO API till the end of 2025. This change is part of our efforts to streamline data collection throughout IFRC data systems."
+        },
+        {
+            "action": "add",
+            "key": "heading",
+            "namespace": "threeWDecommissionMessage",
+            "value": "3W Projects section shutdown"
+        },
+        {
+            "action": "add",
+            "key": "pageHeading",
+            "namespace": "threeWDecommissionMessage",
+            "value": "3W Projects shutdown"
+        },
+        {
+            "action": "add",
+            "key": "rationale",
+            "namespace": "threeWDecommissionMessage",
+            "value": "The GO 3W for projects was initiated at the request of the IFRC Regional Offices and was used extensively in the COVID-19 response. However, due to the desire to reinforce the Unified Planning process as the single means of reporting on programmatic work by the IFRC, the decision was taken by the GO Advisory Group to remove the 3W for projects to remove any confusion over its use case. The GO 3W for operations is still required for use emergency reporting, especially large-scale emergencies."
+        },
+        {
+            "action": "add",
+            "key": "rationaleHeading",
+            "namespace": "threeWDecommissionMessage",
+            "value": "Rationale"
+        },
+        {
+            "action": "add",
+            "key": "title",
+            "namespace": "threeWDecommissionMessage",
+            "value": "IFRC GO - 3W Projects shutdown"
+        },
+        {
+            "action": "remove",
+            "key": "budgetAmountLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "countryAndRegionTitle",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "disasterTypeLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "editProject",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "lastModifiedDetail",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "lastModifiedDetailByUser",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "lastModifiedOnTitle",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "linkedOperationLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "nsContactLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "nSContactTitle",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "peopleReached",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "peopleReachedToolTipLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "peopleReachedToolTipValue",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "peopleTargeted",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "primarySectorLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "programmeTypeLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "projectTypeLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "projectTypeToolTipLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "projectTypeToolTipValue",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "reportingNationalSocietyTitle",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "statusLabel",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "tagsTitle",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWBudgetAmount",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWDetailsHeading",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWDetailsTitle",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWEndDate",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFemale",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWMale",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWOther",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWPeopleReached",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWPeopleReached1",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWPeopleReachedHelpText",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWPeopleTargeted",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWStartDate",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTagsTooltip",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetFemale",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetMale",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetOther",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetTotal",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTotal",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "threeWYear",
+            "namespace": "threeWProjectDetail"
+        },
+        {
+            "action": "remove",
+            "key": "addNewSplit",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "backToCountry",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "buttonSelectProvince",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "deleteAnnualSplitTitle",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "districtButtonSelectProvince",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "labelDistricts",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "listEmptyMessage",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "newThreeWActivityTabLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "newThreeWProjectTabLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormActualExpenditure",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormAnnually",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormAnnualReportingLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormBudget",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormBudgetText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormBudgetTitle",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormCountryHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormCountryLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormCountryTitle",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormCountryTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormCurrentEmergency",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormCurrentEmergencyHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormCurrentOperation",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDescription",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDescriptionHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDescriptionTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDisasterType",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDisasterTypeDefaultPlaceholder",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDisasterTypeMandatory",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDisasterTypePlaceholder",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormDistrictLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormEndDate",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormFemale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormMale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormMultiLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormMultiLabelHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormMultiLabelTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormOperationDefaultPlaceholder",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormOperationType",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormOther",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleReached2",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleReachedFemale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleReachedHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleReachedMale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleReachedOther",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleReachedTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleTargeted",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleTargetedHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPeopleTargetedTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPrimarySector",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPrimarySectorSelect",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormPrimarySectorText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProgrammeTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProgrammeType",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProgrammeTypeLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectBudget",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectCompleted",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectName",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectStatus",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectStatusText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectStatusTitle",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectVisibility",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectVisibilityHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormProjectVisibilityTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingHelpText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingNational",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingNationalContact",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingNationalContactText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingNsEmail",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingNsName",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingNsRole",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormReportingTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormSecondarySectorLabel",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormSectorTitle",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormSelectAllDistricts",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormStartDate",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormSubmit",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormSubmitting",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTagging",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTaggingText",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTaggingTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTotal",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTotalRequired",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTypeOfOperation",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormTypeOfOperationTooltip",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "projectFormUpdateRequestFailure",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "removeAdmin2",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "removeDistrict",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "save",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWBudgetAmount",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWCreateSuccessMessage",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFormDescription",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFormHeading",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWFormTitle",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWReachedFemale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWReachedMale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWReachedOther",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWReachedTotal",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetFemale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetMale",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetOther",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWTargetTotal",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWUpdateSuccessMessage",
+            "namespace": "threeWProjectForm"
+        },
+        {
+            "action": "remove",
+            "key": "threeWYear",
+            "namespace": "threeWProjectForm"
+        }
+    ]
+}

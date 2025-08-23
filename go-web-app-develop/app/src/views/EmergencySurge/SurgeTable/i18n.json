@@ -1,0 +1,16 @@
+{
+    "namespace": "emergencySurge",
+    "strings": {
+        "surgeAlertHeading": "Open Surge Alerts",
+        "surgeAlertDate": "Alert Date",
+        "surgeAlertDuration": "Duration",
+        "surgeAlertPosition": "Position",
+        "surgeAlertStartDate": "Start Date",
+        "surgeAlertKeywords": "Keywords",
+        "surgeAlertEmergency": "Emergency",
+        "surgeAlertCountry": "Country",
+        "surgeAlertStatus": "Status",
+        "surgeAlertsViewAllForCurrentEmergency": "View all Surge Alerts for this Emergency",
+        "emergencySurgeImmediately": "Immediately"
+    }
+}

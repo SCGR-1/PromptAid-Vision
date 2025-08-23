@@ -1,0 +1,8 @@
+{
+    "namespace": "sourceInformationInput",
+    "strings": {
+        "sourceInformationNameLabel": "Name",
+        "sourceInformationLinkLabel": "Link",
+        "sourceInformationDeleteButton": "Delete Source Information"
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "namespace": "riskImminentEvents",
+    "strings": {
+        "eventMoreDetailsLink": "More Details",
+        "eventSourceLabel": "Forecast provider",
+        "eventDeathLabel": "Estimated deaths",
+        "eventDisplacedLabel": "Estimated number of people displaced",
+        "eventPopulationLabel": "Population exposed",
+        "eventPeopleAffectedLabel": "People affected",
+        "eventImpactLabel": "Impact",
+        "eventSeverityLabel": "Severity",
+        "eventAlertType": "Alert Type"
+    }
+}

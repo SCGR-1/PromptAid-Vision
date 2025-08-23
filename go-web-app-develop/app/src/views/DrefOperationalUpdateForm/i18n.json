@@ -1,0 +1,32 @@
+{
+    "namespace": "drefOperationalUpdateForm",
+    "strings": {
+        "formPageTitle": "IFRC GO - DREF Operational Update",
+        "formSaveButtonLabel": "Save",
+        "formSubmitButtonLabel": "Submit",
+        "formContinueButtonLabel": "Continue",
+        "formSaveRequestSuccessMessage": "DREF Operational Update created/updated successfully",
+        "formSaveRequestFailureMessage": "Failed to create/update DREF Operational Update",
+        "formExportLabel": "Export",
+        "formPageHeading": "DREF Operational Update",
+        "formTabOverviewLabel": "Operation Overview",
+        "formTabEventDetailLabel": "Event Detail",
+        "formTabActionsLabel": "Actions/Needs",
+        "formTabOperationLabel": "Operation",
+        "formTabSubmissionLabel": "Operational timeframes and contacts",
+        "formNotAvailableInSelectedLanguageMessage": "DREF Operational Update is not available for edit in the selected language!",
+        "formLoadingMessage": "Loading DREF Operational Update...",
+        "formLoadErrorTitle": "Failed to load DREF Operational Update",
+        "formLoadErrorHelpText": "Please make sure that the operational update with given id exists and you have the permission to view it",
+        "formBackButtonLabel": "Back",
+        "drefOperationalUpdateFormTimeframe": "Please select a different timeframe when selected yes on changing the operation timeframe",
+        "drefOperationalUpdateFormOperationTimeframe": "Please select yes on changing the operation timeframe",
+        "drefOperationAdditionalBudget": "When requesting for additional budget allocation, the fields \"Are you making changes to the budget\" and \"Are you requesting an additional allocation\" both should be marked \"Yes\" in \"Event Details\" section",
+        "drefOperationAdditionalAllocation": "The field \"Additional Allocation Requested\" should be filled in \"Operation\" section to change the budget or for an additional allocation",
+        "drefOperationSelectDistrict": "Please select a different district when selected yes on changing geographic location",
+        "drefOperationSelectLocation": "Please select yes on changing geographic location",
+        "drefOperationTargetedPopulation": "Please select a different value for targeted population when selected yes on changing target population",
+        "drefOperationChangingTargetPopulation": "Please select yes on changing target population",
+        "drefFeedbackForm": "Provide feedback on IFRC DREF"
+    }
+}

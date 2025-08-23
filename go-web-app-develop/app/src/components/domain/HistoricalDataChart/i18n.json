@@ -1,0 +1,11 @@
+{
+    "namespace": "historicalDataChart",
+    "strings": {
+        "historicalChartHeading": "Past Events and Historical Impact",
+        "hazardFilterPlaceholder": "All Hazards",
+        "peopleAffectedLabel": "People Affected",
+        "fundedLabel": "Funding (CHF)",
+        "fundingCoverageLabel": "Funding Coverage",
+        "peopleExposed": "People Exposed / Affected"
+    }
+}

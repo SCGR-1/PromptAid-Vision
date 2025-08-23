@@ -1,0 +1,7 @@
+{
+    "namespace": "riskImminentEvents",
+    "strings": {
+        "gdacsEventViewDetails": "View / Hide Details",
+        "gdacsEventStartedOn": "Started On"
+    }
+}

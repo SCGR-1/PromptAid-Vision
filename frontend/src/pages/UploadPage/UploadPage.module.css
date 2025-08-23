@@ -579,7 +579,21 @@
   display: flex;
   gap: var(--go-ui-spacing-md);
   justify-content: center;
-  flex-wrap: wrap;
+  margin-top: var(--go-ui-spacing-lg);
+}
+
+.preprocessingProgress {
+  margin-top: var(--go-ui-spacing-lg);
+  text-align: center;
+  padding: var(--go-ui-spacing-lg);
+  background-color: var(--go-ui-color-background-light);
+  border-radius: var(--go-ui-border-radius-md);
+}
+
+.preprocessingProgress p {
+  margin-bottom: var(--go-ui-spacing-md);
+  color: var(--go-ui-color-text);
+  font-weight: var(--go-ui-font-weight-medium);
 }
 
 

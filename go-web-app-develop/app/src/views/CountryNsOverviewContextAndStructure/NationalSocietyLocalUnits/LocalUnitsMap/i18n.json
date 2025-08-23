@@ -1,0 +1,14 @@
+{
+    "namespace": "countryNsOverviewContextAndStructure",
+    "strings": {
+        "localUnitsMapAddress": "Address",
+        "localUnitsMapPhoneNumber": "Phone number",
+        "localUnitsMapLastUpdate": "Last updated",
+        "localUnitsMapFocalPerson": "Focal person",
+        "localUnitsMapTooltipMoreDetails": "More details",
+        "localUnitsMapLocalUnitType": "Local unit type",
+        "localUnitsMapHealthFacilityType": "Health facility type",
+        "localUnitsMapPresentationModeButton": "Presentation mode",
+        "localUnitsMapLatestChangesFailureMessage": "Failed to get latest changes"
+    }
+}

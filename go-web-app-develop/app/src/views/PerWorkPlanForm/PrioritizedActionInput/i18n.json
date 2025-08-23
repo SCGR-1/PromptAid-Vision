@@ -1,0 +1,15 @@
+{
+    "namespace": "perWorkPlanForm",
+    "strings": {
+        "componentActionsInputPlaceholder": "Enter actions",
+        "componentSupportedByInputLabel": "Supporting National Society",
+        "componentSupportedByInputPlaceholder": "National Society",
+        "componentDueDateInputLabel": "Due date",
+        "componentStatusInputLabel": "Status",
+        "componentSupportedByOrganizationInputLabel":"Supported by",
+        "componentOrganizationInputPlaceholder":"Organization type",
+        "componentStatusInputPlaceholder": "Status",
+        "componentHeading": "{componentNumber} ({componentLetter}). {componentTitle}",
+        "componentHeadingOther": "{componentNumber}. {componentTitle}"
+    }
+}

@@ -1,0 +1,27 @@
+.severity-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1.25em;
+    overflow: hidden;
+    line-height: 0;
+
+    .icon {
+        border-radius: 1em;
+        width: 0.75em;
+        height: 0.75em;
+
+        &.yellow {
+            background-color: var(--go-ui-color-yellow);
+        }
+
+        &.red {
+            background-color: var(--go-ui-color-red);
+        }
+
+        &.orange {
+            background-color: var(--go-ui-color-orange);
+        }
+    }
+}

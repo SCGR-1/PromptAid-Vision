@@ -1,0 +1,15 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "go-web-app": "7.20.2",
+    "go-ui-storybook": "1.0.7",
+    "@ifrc-go/ui": "1.5.1"
+  },
+  "changesets": [
+    "lovely-kids-boil",
+    "solid-clubs-care",
+    "sweet-gifts-cheer",
+    "whole-lions-guess"
+  ]
+}

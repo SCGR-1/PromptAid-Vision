@@ -1,0 +1,95 @@
+{
+    "parent": "000034-1749016435785.json",
+    "actions": [
+        {
+            "action": "update",
+            "key": "boysLabel",
+            "namespace": "drefFinalReportExport",
+            "newValue": "Assisted Boys (under 18)"
+        },
+        {
+            "action": "update",
+            "key": "girlsLabel",
+            "namespace": "drefFinalReportExport",
+            "newValue": "Assisted Girls (under 18)"
+        },
+        {
+            "action": "update",
+            "key": "menLabel",
+            "namespace": "drefFinalReportExport",
+            "newValue": "Assisted Men"
+        },
+        {
+            "action": "update",
+            "key": "peopleAssistedLabel",
+            "namespace": "drefFinalReportExport",
+            "newValue": "Total Population Assisted"
+        },
+        {
+            "action": "update",
+            "key": "targetPopulationSectionHeading",
+            "namespace": "drefFinalReportExport",
+            "newValue": "Total Assisted Population"
+        },
+        {
+            "action": "update",
+            "key": "womenLabel",
+            "namespace": "drefFinalReportExport",
+            "newValue": "Assisted Women"
+        },
+        {
+            "action": "add",
+            "key": "drefFormOperationClickEmergencyResponseFramework",
+            "namespace": "drefFinalReportForm",
+            "value": "Click to view Emergency Response Framework"
+        },
+        {
+            "action": "update",
+            "key": "drefFinalReportTotalTargeted",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Total assisted population is not equal to sum of other population fields"
+        },
+        {
+            "action": "update",
+            "key": "drefFormAssistedPopulation",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Total Assisted Population"
+        },
+        {
+            "action": "update",
+            "key": "drefFormBoys",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Assisted Boys (under 18)"
+        },
+        {
+            "action": "update",
+            "key": "drefFormGirls",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Assisted Girls (under 18)"
+        },
+        {
+            "action": "update",
+            "key": "drefFormMen",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Assisted Men"
+        },
+        {
+            "action": "update",
+            "key": "drefFormPeopleAssisted",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Total population assisted"
+        },
+        {
+            "action": "update",
+            "key": "drefFormTargetedPopulation",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Assisted Population"
+        },
+        {
+            "action": "update",
+            "key": "drefFormWomen",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Assisted Women"
+        }
+    ]
+}

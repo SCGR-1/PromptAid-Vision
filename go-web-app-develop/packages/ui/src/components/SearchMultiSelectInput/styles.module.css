@@ -1,0 +1,23 @@
+.option {
+    display: flex;
+    align-items: center;
+    padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-md);
+    overflow: auto;
+
+    &.active {
+        color: var(--go-ui-color-primary-red);
+    }
+
+    .icon {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .label {
+        flex-grow: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

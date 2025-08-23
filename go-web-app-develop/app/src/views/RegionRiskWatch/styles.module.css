@@ -1,0 +1,9 @@
+.region-risk-watch {
+    display: flex;
+    flex-direction: column;
+    padding: var(--go-ui-spacing-2xl) 0;
+
+    .wiki-link {
+        align-self: flex-end;
+    }
+}

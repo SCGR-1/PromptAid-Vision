@@ -1,0 +1,8 @@
+{
+    "namespace": "exportButton",
+    "strings": {
+        "exportButtonLabel": "Export",
+        "exportDownloadingButtonLabel": "Downloading... ({progress}%)",
+        "pendingExportLabel": "Downloading..."
+    }
+}

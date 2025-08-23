@@ -12,7 +12,7 @@ anthropic
 google-generativeai
 aiohttp
 asyncio
-Pillow
+Pillow>=10.4.0
 huggingface-hub
 pytest
 httpx
@@ -23,3 +23,6 @@ python-multipart
 PyJWT
 jsonschema
 aiohttp>=3.9
+PyMuPDF>=1.23.0
+Pillow-Heif>=1.0.0
+imageio>=2.31.0

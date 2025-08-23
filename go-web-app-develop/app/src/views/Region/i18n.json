@@ -1,0 +1,12 @@
+{
+    "namespace": "region",
+    "strings": {
+        "regionTitle": "IFRC GO - Region",
+        "regionOperationsTab": "Operations",
+        "region3WTab":"3w",
+        "regionRiskTab":"Risk Watch",
+        "regionProfileTab":"Regional Profile",
+        "regionPreparednessTab":"Preparedness",
+        "regionAdditionalInfoTab":"Additional Info"
+    }
+}

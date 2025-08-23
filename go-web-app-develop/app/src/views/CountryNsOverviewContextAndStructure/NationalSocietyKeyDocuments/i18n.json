@@ -1,0 +1,8 @@
+{
+    "namespace": "countryNsOverviewContextAndStructure",
+    "strings": {
+        "nSSocietyKeyDocumentsTitle": "Key Documents",
+        "source": "Source",
+        "sourceFDRS": "{nationalSociety} on FDRS"
+    }
+}

@@ -1,0 +1,33 @@
+.basic-layout {
+    display: flex;
+    align-items: flex-start;
+
+    &.with-wrap {
+        flex-wrap: wrap;
+    }
+
+    .icons-container {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .children-container {
+        display: flex;
+        flex-grow: 1;
+    }
+
+    .actions-container {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    &:not(.with-wrap) {
+        .icons-container {
+            flex-shrink: 0;
+        }
+
+        .actions-container {
+            flex-shrink: 0;
+        }
+    }
+}

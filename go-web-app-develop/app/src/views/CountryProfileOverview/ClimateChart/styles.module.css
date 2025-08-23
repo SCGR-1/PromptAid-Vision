@@ -1,0 +1,19 @@
+.climate-chart {
+    .precipitation-chart-container,
+    .temperature-chart-container {
+        height: 16rem;
+
+        .rect {
+            fill: currentColor;
+            pointer-events: none;
+        }
+
+        .temperature {
+            color: var(--go-ui-color-red-50);
+        }
+
+        .precipitation {
+            color: var(--go-ui-color-blue);
+        }
+    }
+}

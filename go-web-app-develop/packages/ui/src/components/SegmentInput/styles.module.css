@@ -1,0 +1,32 @@
+.segment-input {
+    width: fit-content;
+
+    .segment-list {
+        flex-wrap: nowrap;
+        border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+        border-radius: var(--go-ui-border-radius-full);
+        background-color: var(--go-ui-color-background);
+        padding: 0;
+        width: fit-content;
+        gap: 0;
+    }
+
+    .segment {
+        border-radius: var(--go-ui-border-radius-full);
+        padding: var(--go-ui-spacing-3xs) var(--go-ui-spacing-md);
+
+        &.active {
+            background-color: var(--go-ui-color-primary-red);
+            color: var(--go-ui-color-white);
+        }
+    }
+
+    &.secondary-variant {
+        .segment {
+            &.active {
+                background-color: var(--go-ui-color-blue-90);
+                color: var(--go-ui-color-white);
+            }
+        }
+    }
+}

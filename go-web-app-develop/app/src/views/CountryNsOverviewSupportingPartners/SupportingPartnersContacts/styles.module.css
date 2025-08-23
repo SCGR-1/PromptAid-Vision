@@ -1,0 +1,15 @@
+.supporting-partners-contacts {
+    .table {
+        min-height: 0;
+
+        .name {
+            font-weight: var(--go-ui-font-weight-semibold);
+        }
+
+        .caption {
+            display: flex;
+            padding: var(--go-ui-spacing-md) 0 var(--go-ui-spacing-sm);
+            font-weight: var(--go-ui-font-weight-semibold);
+        }
+    }
+}

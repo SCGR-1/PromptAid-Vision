@@ -1,0 +1,7 @@
+{
+    "namespace": "countryNsOverviewCapacity",
+    "strings": {
+        "capacityListItemDateOfAssessment": "Date of Assessment",
+        "capacityListItemAssessment": "Assessment"
+    }
+}

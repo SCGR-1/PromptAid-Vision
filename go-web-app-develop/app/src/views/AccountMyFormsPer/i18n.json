@@ -1,0 +1,13 @@
+{
+    "namespace":"accountMyFormsPer",
+    "strings":{
+        "processStatusTitle":"PER Process Status",
+        "newProcessButtonLabel": "Start New PER Process",
+        "tableCountryTitle":"Country",
+        "tableStartDateTitle": "Start Date",
+        "tablePerCycleTitle": "PER Cycle",
+        "tablePerPhaseTitle": "PER Phase",
+        "allRegions": "All Regions",
+        "allCountries": "All Countries"
+    }
+}

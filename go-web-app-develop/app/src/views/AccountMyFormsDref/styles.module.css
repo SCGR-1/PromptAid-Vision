@@ -1,0 +1,14 @@
+.account-dref-applications {
+    display: flex;
+    flex-direction: column;
+    gap: var(--go-ui-spacing-2xl) 0;
+
+    .dref-feedback-form {
+        display: flex;
+        justify-content: center;
+    }
+
+    .icon {
+        font-size: var(--go-ui-height-icon-multiplier);
+    }
+}

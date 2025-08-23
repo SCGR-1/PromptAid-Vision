@@ -295,6 +295,12 @@ export default function UploadPage() {
     setDraft('');
     setShowFallbackNotification(false);
     setFallbackInfo(null);
+    setShowPreprocessingNotification(false);
+    setPreprocessingInfo(null);
+    setShowPreprocessingModal(false);
+    setPreprocessingFile(null);
+    setIsPreprocessing(false);
+    setPreprocessingProgress('');
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
@@ -315,15 +321,152 @@ export default function UploadPage() {
     reason: string;
   } | null>(null);
 
+  const [showPreprocessingNotification, setShowPreprocessingNotification] = useState(false);
+  const [preprocessingInfo, setPreprocessingInfo] = useState<{
+    original_filename: string;
+    processed_filename: string;
+    original_mime_type: string;
+    processed_mime_type: string;
+    was_preprocessed: boolean;
+    error?: string;
+  } | null>(null);
+
+  // Enhanced preprocessing flow state
+  const [showPreprocessingModal, setShowPreprocessingModal] = useState(false);
+  const [preprocessingFile, setPreprocessingFile] = useState<File | null>(null);
+  const [isPreprocessing, setIsPreprocessing] = useState(false);
+  const [preprocessingProgress, setPreprocessingProgress] = useState<string>('');
+
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const dropped = e.dataTransfer.files?.[0];
-    if (dropped) setFile(dropped);
+    if (dropped) {
+      // Use onFileChange to trigger preprocessing detection
+      onFileChange(dropped);
+    }
   };
 
   const onFileChange = (file: File | undefined) => {
-    if (file) setFile(file);
+    if (file) {
+      console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
+      
+      // Check if file needs preprocessing
+      if (needsPreprocessing(file)) {
+        console.log('File needs preprocessing, showing modal');
+        setPreprocessingFile(file);
+        setShowPreprocessingModal(true);
+      } else {
+        console.log('File does not need preprocessing, setting directly');
+        setFile(file);
+      }
+    }
+  };
+
+  // Check if file needs preprocessing (non-JPEG/PNG)
+  const needsPreprocessing = (file: File): boolean => {
+    const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const supportedExtensions = ['.jpg', '.jpeg', '.png'];
+    
+    // Check MIME type first
+    let needsPreprocess = !supportedTypes.includes(file.type);
+    
+    // If MIME type check is inconclusive, check file extension
+    if (!needsPreprocess && file.name) {
+      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      needsPreprocess = !supportedExtensions.includes(fileExtension);
+    }
+    
+    console.log('Preprocessing check:', {
+      fileName: file.name,
+      fileType: file.type,
+      fileExtension: file.name ? file.name.toLowerCase().substring(file.name.lastIndexOf('.')) : 'none',
+      supportedTypes,
+      supportedExtensions,
+      needsPreprocess
+    });
+    
+    return needsPreprocess;
+  };
+
+  // Handle preprocessing confirmation
+  const handlePreprocessingConfirm = async () => {
+    if (!preprocessingFile) return;
+    
+    setIsPreprocessing(true);
+    setPreprocessingProgress('Starting file conversion...');
+    
+    try {
+      // Create FormData for preprocessing
+      const formData = new FormData();
+      formData.append('file', preprocessingFile);
+      formData.append('preprocess_only', 'true'); // Flag to indicate preprocessing only
+      
+      setPreprocessingProgress('Converting file format...');
+      
+      // Call preprocessing endpoint
+      const response = await fetch('/api/images/preprocess', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Preprocessing failed');
+      }
+      
+      const result = await response.json();
+      
+      setPreprocessingProgress('Finalizing conversion...');
+      
+      // Decode base64 content
+      const processedContent = atob(result.processed_content);
+      const processedBytes = new Uint8Array(processedContent.length);
+      for (let i = 0; i < processedContent.length; i++) {
+        processedBytes[i] = processedContent.charCodeAt(i);
+      }
+      
+      // Create a new File object from the processed data
+      const processedFile = new File(
+        [processedBytes], 
+        result.processed_filename, 
+        { type: result.processed_mime_type }
+      );
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(processedFile);
+      
+      // Update the main file state
+      setFile(processedFile);
+      setPreview(previewUrl);
+      
+      setPreprocessingProgress('Conversion complete!');
+      
+      // Close modal after a brief delay
+      setTimeout(() => {
+        setShowPreprocessingModal(false);
+        setPreprocessingFile(null);
+        setIsPreprocessing(false);
+        setPreprocessingProgress('');
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Preprocessing error:', error);
+      setPreprocessingProgress('Conversion failed. Please try again.');
+      setTimeout(() => {
+        setShowPreprocessingModal(false);
+        setPreprocessingFile(null);
+        setIsPreprocessing(false);
+        setPreprocessingProgress('');
+      }, 2000);
+    }
+  };
+
+  // Handle preprocessing cancellation
+  const handlePreprocessingCancel = () => {
+    setShowPreprocessingModal(false);
+    setPreprocessingFile(null);
+    setIsPreprocessing(false);
+    setPreprocessingProgress('');
   };
 
   useEffect(() => {
@@ -393,6 +536,15 @@ export default function UploadPage() {
       const mapJson = await readJsonSafely(mapRes);
       if (!mapRes.ok) throw new Error((mapJson.error as string) || 'Upload failed');
       setImageUrl(mapJson.image_url as string);
+
+      // Check for preprocessing info and show notification if needed
+      if (mapJson.preprocessing_info && 
+          typeof mapJson.preprocessing_info === 'object' && 
+          'was_preprocessed' in mapJson.preprocessing_info && 
+          mapJson.preprocessing_info.was_preprocessed === true) {
+        setPreprocessingInfo(mapJson.preprocessing_info as any);
+        setShowPreprocessingNotification(true);
+      }
 
       const mapIdVal = mapJson.image_id as string;
       if (!mapIdVal) throw new Error('Upload failed: image_id not found');
@@ -506,6 +658,15 @@ export default function UploadPage() {
       });
       const json = await readJsonSafely(res);
       if (!res.ok) throw new Error((json.error as string) || 'Upload failed');
+  
+      // Check for preprocessing info and show notification if needed
+      if (json.preprocessing_info && 
+          typeof json.preprocessing_info === 'object' && 
+          'was_preprocessed' in json.preprocessing_info && 
+          json.preprocessing_info.was_preprocessed === true) {
+        setPreprocessingInfo(json.preprocessing_info as any);
+        setShowPreprocessingNotification(true);
+      }
   
       const newId = json.image_id as string;
       setUploadedImageId(newId);
@@ -1302,6 +1463,70 @@ export default function UploadPage() {
                     Got it
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Image Preprocessing Notification Modal */}
+        {showPreprocessingNotification && preprocessingInfo && (
+          <div className={styles.fullSizeModalOverlay} onClick={() => setShowPreprocessingNotification(false)}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>File Converted</h3>
+                <p className={styles.ratingWarningText}>
+                  Your file <strong>{preprocessingInfo.original_filename}</strong> has been converted from 
+                  <strong> {preprocessingInfo.original_mime_type}</strong> to 
+                  <strong> {preprocessingInfo.processed_mime_type}</strong> for better compatibility.
+                  <br /><br />
+                  This process may take a bit longer, but ensures your file works properly in the system.
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="close-preprocessing"
+                    variant="secondary"
+                    onClick={() => setShowPreprocessingNotification(false)}
+                  >
+                    Got it
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Preprocessing Modal */}
+        {showPreprocessingModal && (
+          <div className={styles.fullSizeModalOverlay} onClick={handlePreprocessingCancel}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>File Conversion Required</h3>
+                <p className={styles.ratingWarningText}>
+                  The file you selected is not in a supported format (JPEG or PNG).
+                  We will convert it to a compatible format for better compatibility.
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="confirm-preprocessing"
+                    variant="secondary"
+                    onClick={handlePreprocessingConfirm}
+                  >
+                    Convert File
+                  </Button>
+                  <Button
+                    name="cancel-preprocessing"
+                    variant="tertiary"
+                    onClick={handlePreprocessingCancel}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {isPreprocessing && (
+                  <div className={styles.preprocessingProgress}>
+                    <p>{preprocessingProgress}</p>
+                    <Spinner className="text-ifrcRed" />
+                  </div>
+                )}
               </div>
             </div>
           </div>

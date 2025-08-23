@@ -72,6 +72,7 @@ class Models(Base):
     config = Column(JSONB, nullable=True)
     provider = Column(String, nullable=True)
     model_id = Column(String, nullable=True)
+    delete_count = Column(SmallInteger, nullable=False, default=0)
 
 class JSONSchema(Base):
     __tablename__ = "json_schemas"

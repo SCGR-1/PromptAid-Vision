@@ -1,0 +1,19 @@
+{
+    "namespace": "perWorkPlanForm",
+    "strings": {
+        "workPlanDate": "Work-plan date",
+        "perResponsibleLabel": "Responsible",
+        "editResponsibleButtonLabel": "Edit",
+        "saveRequestSuccessMessage": "PER Process created/updated successfully",
+        "saveRequestFailureMessage": "Failed to create/update PER Process",
+        "saveAndFinalizeWorkPlan": "Save and Finalize Work-plan",
+        "prioritizedComponentsHeading": "Actions related to Prioritized Components",
+        "actionsHeading": "Additional actions",
+        "addActionButtonLabel": "Add an Action",
+        "noActionsLabel": "No Actions",
+        "confirmHeading": "Confirm Work Plan",
+        "confirmMessage": "You're about to submit the results of PER Work Plan. Once submitted, you'll be redirected to the accounts page",
+        "saveButtonLabel": "Save",
+        "perWorkPlanResource": "Resource not found"
+    }
+}

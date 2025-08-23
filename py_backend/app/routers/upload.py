@@ -4,9 +4,11 @@ import io
 from sqlalchemy.orm import Session
 from .. import crud, schemas, storage, database
 from ..config import settings
+from ..services.image_preprocessor import ImagePreprocessor
 from typing import List, Optional
 import boto3
 import time
+import base64
 
 router = APIRouter()
 
@@ -165,9 +167,54 @@ async def upload_image(
         std_v_m = None
     
     content = await file.read()
-    sha     = crud.hash_bytes(content)
+    
+    # Preprocess image if needed
+    try:
+        processed_content, processed_filename, mime_type = ImagePreprocessor.preprocess_image(
+            content, 
+            file.filename,
+            target_format='PNG',  # Default to PNG for better quality
+            quality=95
+        )
+        
+        # Log preprocessing info
+        preprocessing_info = None
+        if processed_filename != file.filename:
+            print(f"Image preprocessed: {file.filename} -> {processed_filename} ({mime_type})")
+            preprocessing_info = {
+                "original_filename": file.filename,
+                "processed_filename": processed_filename,
+                "original_mime_type": ImagePreprocessor.detect_mime_type(content, file.filename),
+                "processed_mime_type": mime_type,
+                "was_preprocessed": True
+            }
+        else:
+            preprocessing_info = {
+                "original_filename": file.filename,
+                "processed_filename": file.filename,
+                "original_mime_type": mime_type,
+                "processed_mime_type": mime_type,
+                "was_preprocessed": False
+            }
+        
+    except Exception as e:
+        print(f"Image preprocessing failed: {str(e)}")
+        # Fall back to original content if preprocessing fails
+        processed_content = content
+        processed_filename = file.filename
+        mime_type = 'image/png'  # Default fallback
+        preprocessing_info = {
+            "original_filename": file.filename,
+            "processed_filename": file.filename,
+            "original_mime_type": "unknown",
+            "processed_mime_type": mime_type,
+            "was_preprocessed": False,
+            "error": str(e)
+        }
+    
+    sha = crud.hash_bytes(processed_content)
 
-    key = storage.upload_fileobj(io.BytesIO(content), file.filename)
+    key = storage.upload_fileobj(io.BytesIO(processed_content), processed_filename)
 
     try:
         img = crud.create_image(
@@ -184,6 +231,8 @@ async def upload_image(
         url = f"/api/images/{img.image_id}/file"
 
     img_dict = convert_image_to_dict(img, url)
+    # Add preprocessing info to the response
+    img_dict['preprocessing_info'] = preprocessing_info
     result = schemas.ImageOut(**img_dict)
     return result
 
@@ -384,3 +433,54 @@ def delete_image(image_id: str, db: Session = Depends(get_db)):
     db.commit()
     
     return {"message": "Image deleted successfully"}
+
+@router.post("/preprocess")
+async def preprocess_image_only(
+    file: UploadFile = Form(...),
+    preprocess_only: bool = Form(False)
+):
+    """Preprocess image without storing it - returns processed file data"""
+    try:
+        # Read file content
+        file_content = await file.read()
+        
+        # Preprocess the image
+        processed_content, processed_filename, processed_mime_type = ImagePreprocessor.preprocess_image(
+            file_content, 
+            file.filename or "unknown",
+            target_format='PNG',
+            quality=95
+        )
+        
+        # Check if preprocessing actually occurred
+        was_preprocessed = (
+            processed_filename != (file.filename or "unknown") or
+            processed_mime_type != file.content_type
+        )
+        
+        # Encode processed content as base64 for JSON response
+        processed_content_b64 = base64.b64encode(processed_content).decode('utf-8')
+        
+        # Create preprocessing info
+        preprocessing_info = {
+            "original_filename": file.filename or "unknown",
+            "processed_filename": processed_filename,
+            "original_mime_type": file.content_type or "application/octet-stream",
+            "processed_mime_type": processed_mime_type,
+            "was_preprocessed": was_preprocessed
+        }
+        
+        # Return processed file data
+        return {
+            "processed_content": processed_content_b64,
+            "processed_filename": processed_filename,
+            "processed_mime_type": processed_mime_type,
+            "preprocessing_info": preprocessing_info,
+            "was_preprocessed": was_preprocessed
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Preprocessing failed: {str(e)}"
+        )

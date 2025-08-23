@@ -1,0 +1,25 @@
+.component-input {
+    .heading-container {
+        @media screen and (max-width: 50rem) {
+            flex-wrap: wrap;
+        }
+    }
+
+    .heading {
+        flex-grow: 1;
+    }
+
+    .status-selection {
+        width: 100%;
+        max-width: 20rem;
+    }
+
+    .description {
+        padding: 0 0 0 var(--go-ui-spacing-md);
+    }
+}
+
+.non-expandable-component-input {
+    border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+    background-color: var(--go-ui-color-foreground);
+}

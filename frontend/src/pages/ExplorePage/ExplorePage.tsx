@@ -1,9 +1,8 @@
-import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput, Spinner, Button } from '@ifrc-go/ui';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './ExplorePage.module.css';
+import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput, Spinner, Button, Checkbox } from '@ifrc-go/ui';
 import { useFilterContext } from '../../contexts/FilterContext';
-import { useAdmin } from '../../contexts/AdminContext';
+import styles from './ExplorePage.module.css';
 
 interface ImageWithCaptionOut {
   image_id: string;
@@ -31,7 +30,6 @@ interface ImageWithCaptionOut {
 
 export default function ExplorePage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAdmin();
   const [view, setView] = useState<'explore' | 'mapDetails'>('explore');
   const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
   
@@ -54,6 +52,14 @@ export default function ExplorePage() {
   const [imageTypes, setImageTypes] = useState<{image_type: string, label: string}[]>([]);
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(true);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportModalStage, setExportModalStage] = useState<'filters' | 'export'>('filters');
+  const [exportMode, setExportMode] = useState<'standard' | 'fine-tuning'>('standard');
+  const [trainSplit, setTrainSplit] = useState(80);
+  const [testSplit, setTestSplit] = useState(10);
+  const [valSplit, setValSplit] = useState(10);
+  const [crisisMapsSelected, setCrisisMapsSelected] = useState(true);
+  const [droneImagesSelected, setDroneImagesSelected] = useState(true);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'List' },
@@ -163,6 +169,301 @@ export default function ExplorePage() {
     });
   }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
 
+  const exportDataset = async (images: ImageWithCaptionOut[], mode: 'standard' | 'fine-tuning' = 'fine-tuning') => {
+    if (images.length === 0) {
+      alert('No images to export');
+      return;
+    }
+
+    try {
+      // Create a JSZip instance
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      // Separate images by type
+      const crisisMaps = images.filter(img => img.image_type === 'crisis_map');
+      const droneImages = images.filter(img => img.image_type === 'drone_image');
+      
+      // Create crisis_maps dataset
+      if (crisisMaps.length > 0) {
+        const crisisFolder = zip.folder('crisis_maps_dataset');
+        const crisisImagesFolder = crisisFolder?.folder('images');
+        
+        if (crisisImagesFolder) {
+          // Download crisis map images and add to zip
+          const crisisImagePromises = crisisMaps.map(async (image, index) => {
+            try {
+              const response = await fetch(image.image_url);
+              if (!response.ok) throw new Error(`Failed to fetch image ${image.image_id}`);
+              
+              const blob = await response.blob();
+              const fileExtension = image.file_key.split('.').pop() || 'jpg';
+              const fileName = `${String(index + 1).padStart(4, '0')}.${fileExtension}`;
+              
+              crisisImagesFolder.file(fileName, blob);
+              return { success: true, fileName, image };
+            } catch (error) {
+              console.error(`Failed to process image ${image.image_id}:`, error);
+              return { success: false, fileName: '', image };
+            }
+          });
+
+          const crisisImageResults = await Promise.all(crisisImagePromises);
+          const successfulCrisisImages = crisisImageResults.filter(result => result.success);
+
+          if (mode === 'fine-tuning') {
+            // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
+            const crisisTrainData: any[] = [];
+            const crisisTestData: any[] = [];
+            const crisisValData: any[] = [];
+
+            // Group crisis images by source for stratified sampling
+            const crisisImagesBySource = new Map<string, any[]>();
+            successfulCrisisImages.forEach(result => {
+              const source = result.image.source || 'unknown';
+              if (!crisisImagesBySource.has(source)) {
+                crisisImagesBySource.set(source, []);
+              }
+              crisisImagesBySource.get(source)!.push(result);
+            });
+
+            // Distribute images from each source proportionally across splits
+            crisisImagesBySource.forEach((images, source) => {
+              const totalImages = images.length;
+              const trainCount = Math.floor(totalImages * (trainSplit / 100));
+              const testCount = Math.floor(totalImages * (testSplit / 100));
+              const valCount = totalImages - trainCount - testCount;
+
+              // Shuffle images within each source group for randomness
+              const shuffledImages = [...images].sort(() => Math.random() - 0.5);
+
+              // Add to train set
+              crisisTrainData.push(...shuffledImages.slice(0, trainCount).map(result => ({
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              })));
+
+              // Add to test set
+              crisisTestData.push(...shuffledImages.slice(trainCount, trainCount + testCount).map(result => ({
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              })));
+
+              // Add to validation set
+              crisisValData.push(...shuffledImages.slice(trainCount + testCount).map(result => ({
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              })));
+            });
+
+            // Add JSONL files to crisis folder
+            if (crisisFolder) {
+              crisisFolder.file('train.jsonl', JSON.stringify(crisisTrainData, null, 2));
+              crisisFolder.file('test.jsonl', JSON.stringify(crisisTestData, null, 2));
+              crisisFolder.file('val.jsonl', JSON.stringify(crisisValData, null, 2));
+            }
+          } else {
+            // Standard mode: create individual JSON files for each image
+            successfulCrisisImages.forEach((result, index) => {
+              const jsonData = {
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              };
+              
+              if (crisisFolder) {
+                crisisFolder.file(`${String(index + 1).padStart(4, '0')}.json`, JSON.stringify(jsonData, null, 2));
+              }
+            });
+          }
+        }
+      }
+      
+      // Create drone_images dataset
+      if (droneImages.length > 0) {
+        const droneFolder = zip.folder('drone_images_dataset');
+        const droneImagesFolder = droneFolder?.folder('images');
+        
+        if (droneImagesFolder) {
+          // Download drone images and add to zip
+          const droneImagePromises = droneImages.map(async (image, index) => {
+            try {
+              const response = await fetch(image.image_url);
+              if (!response.ok) throw new Error(`Failed to fetch image ${image.image_id}`);
+              
+              const blob = await response.blob();
+              const fileExtension = image.file_key.split('.').pop() || 'jpg';
+              const fileName = `${String(index + 1).padStart(4, '0')}.${fileExtension}`;
+              
+              droneImagesFolder.file(fileName, blob);
+              return { success: true, fileName, image };
+            } catch (error) {
+              console.error(`Failed to process image ${image.image_id}:`, error);
+              return { success: false, fileName: '', image };
+            }
+          });
+
+          const droneImageResults = await Promise.all(droneImagePromises);
+          const successfulDroneImages = droneImageResults.filter(result => result.success);
+
+          if (mode === 'fine-tuning') {
+            // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
+            const droneTrainData: any[] = [];
+            const droneTestData: any[] = [];
+            const droneValData: any[] = [];
+
+            // Group drone images by event type for stratified sampling
+            const droneImagesByEventType = new Map<string, any[]>();
+            successfulDroneImages.forEach(result => {
+              const eventType = result.image.event_type || 'unknown';
+              if (!droneImagesByEventType.has(eventType)) {
+                droneImagesByEventType.set(eventType, []);
+              }
+              droneImagesByEventType.get(eventType)!.push(result);
+            });
+
+            // Distribute images from each event type proportionally across splits
+            droneImagesByEventType.forEach((images, eventType) => {
+              const totalImages = images.length;
+              const trainCount = Math.floor(totalImages * (trainSplit / 100));
+              const testCount = Math.floor(totalImages * (testSplit / 100));
+              const valCount = totalImages - trainCount - testCount;
+
+              // Shuffle images within each event type group for randomness
+              const shuffledImages = [...images].sort(() => Math.random() - 0.5);
+
+              // Add to train set
+              droneTrainData.push(...shuffledImages.slice(0, trainCount).map(result => ({
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              })));
+
+              // Add to test set
+              droneTestData.push(...shuffledImages.slice(trainCount, trainCount + testCount).map(result => ({
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              })));
+
+              // Add to validation set
+              droneValData.push(...shuffledImages.slice(trainCount + testCount).map(result => ({
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              })));
+            });
+
+            // Add JSONL files to drone folder
+            if (droneFolder) {
+              droneFolder.file('train.jsonl', JSON.stringify(droneTrainData, null, 2));
+              droneFolder.file('test.jsonl', JSON.stringify(droneTestData, null, 2));
+              droneFolder.file('val.jsonl', JSON.stringify(droneValData, null, 2));
+            }
+          } else {
+            // Standard mode: create individual JSON files for each image
+            successfulDroneImages.forEach((result, index) => {
+              const jsonData = {
+                image: `images/${result.fileName}`,
+                caption: result.image.edited || result.image.generated || '',
+                metadata: {
+                  image_id: result.image.image_id,
+                  title: result.image.title,
+                  source: result.image.source,
+                  event_type: result.image.event_type,
+                  image_type: result.image.image_type,
+                  countries: result.image.countries,
+                  starred: result.image.starred
+                }
+              };
+              
+              if (droneFolder) {
+                droneFolder.file(`${String(index + 1).padStart(4, '0')}.json`, JSON.stringify(jsonData, null, 2));
+              }
+            });
+          }
+        }
+      }
+
+      // Generate and download zip
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `datasets_${mode}_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      const totalImages = (crisisMaps.length || 0) + (droneImages.length || 0);
+      console.log(`Exported ${mode} datasets with ${totalImages} total images:`);
+      if (crisisMaps.length > 0) console.log(`- Crisis maps: ${crisisMaps.length} images`);
+      if (droneImages.length > 0) console.log(`- Drone images: ${droneImages.length} images`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export dataset. Please try again.');
+    }
+  };
 
   return (
     <PageContainer>
@@ -183,6 +484,23 @@ export default function ExplorePage() {
             keySelector={(o) => o.key}
             labelSelector={(o) => o.label}
           />
+          
+          {/* Export Dataset Button */}
+          <Button
+            name="export-dataset"
+            variant="secondary"
+                            onClick={() => {
+                  setShowExportModal(true);
+                  // Skip to export stage if no filters are applied
+                  if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
+                    setExportModalStage('filters');
+                  } else {
+                    setExportModalStage('export');
+                  }
+                }}
+          >
+            Export Dataset
+          </Button>
         </div>
 
         {view === 'explore' ? (
@@ -200,26 +518,24 @@ export default function ExplorePage() {
                   />
                 </Container>
 
-                {/* Reference Examples Filter - Admin Only */}
-                {isAuthenticated && (
-                  <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                    <Button
-                      name="reference-examples"
-                      variant={showReferenceExamples ? "primary" : "secondary"}
-                      onClick={() => setShowReferenceExamples(!showReferenceExamples)}
-                      className="whitespace-nowrap"
-                    >
-                      <span className="mr-2">
-                        {showReferenceExamples ? (
-                          <span className="text-yellow-400">★</span>
-                        ) : (
-                          <span className="text-yellow-400">☆</span>
-                        )}
-                      </span>
-                      Reference Examples
-                    </Button>
-                  </Container>
-                )}
+                {/* Reference Examples Filter - Available to all users */}
+                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                  <Button
+                    name="reference-examples"
+                    variant={showReferenceExamples ? "primary" : "secondary"}
+                    onClick={() => setShowReferenceExamples(!showReferenceExamples)}
+                    className="whitespace-nowrap"
+                  >
+                    <span className="mr-2">
+                      {showReferenceExamples ? (
+                        <span className="text-yellow-400">★</span>
+                      ) : (
+                        <span className="text-yellow-400">☆</span>
+                      )}
+                    </span>
+                    Reference Examples
+                  </Button>
+                </Container>
 
                 <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
                   <Button
@@ -347,7 +663,7 @@ export default function ExplorePage() {
                         <h3 className={styles.mapItemTitle}>
                           <div className="flex items-center gap-2">
                             <span>{c.title || 'Untitled'}</span>
-                            {isAuthenticated && c.starred && (
+                            {c.starred && (
                               <span className="text-red-500 text-lg" title="Starred image">★</span>
                             )}
                           </div>
@@ -399,6 +715,244 @@ export default function ExplorePage() {
           </div>
         )}
       </div>
+
+      {/* Export Selection Modal */}
+      {showExportModal && (
+        <div className={styles.fullSizeModalOverlay} onClick={() => setShowExportModal(false)}>
+          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.ratingWarningContent}>
+              {exportModalStage === 'filters' ? (
+                <>
+                  <h3 className={styles.ratingWarningTitle}>Export Dataset</h3>
+                  
+                  {/* Filter Status Message */}
+                  <div className={styles.filterStatusContainer}>
+                    {(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) ? (
+                      <>
+                        <div className={styles.filterStatusMessage}>
+                          Filters are being applied
+                        </div>
+                        <div className={styles.filterStatusCount}>
+                          {filtered.length} of {captions.length} examples
+                        </div>
+                        <div className={styles.activeFiltersList}>
+                          {search && <span className={styles.activeFilter}>Search: "{search}"</span>}
+                          {srcFilter && <span className={styles.activeFilter}>Source: {sources.find(s => s.s_code === srcFilter)?.label || srcFilter}</span>}
+                          {catFilter && <span className={styles.activeFilter}>Category: {types.find(t => t.t_code === catFilter)?.label || catFilter}</span>}
+                          {regionFilter && <span className={styles.activeFilter}>Region: {regions.find(r => r.r_code === regionFilter)?.label || regionFilter}</span>}
+                          {countryFilter && <span className={styles.activeFilter}>Country: {countries.find(c => c.c_code === countryFilter)?.label || countryFilter}</span>}
+                          {imageTypeFilter && <span className={styles.activeFilter}>Type: {imageTypes.find(it => it.image_type === imageTypeFilter)?.label || imageTypeFilter}</span>}
+                          {showReferenceExamples && <span className={styles.activeFilter}>Reference Examples Only</span>}
+                        </div>
+                        <div className={styles.filterStatusActions}>
+                          <Button
+                            name="clear-filters-modal"
+                            variant="secondary"
+                            size={1}
+                            onClick={clearAllFilters}
+                          >
+                            Clear Filters
+                          </Button>
+                          <Button
+                            name="continue-with-filters"
+                            variant="primary"
+                            size={1}
+                            onClick={() => setExportModalStage('export')}
+                          >
+                            Continue
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className={styles.filterStatusCount}>
+                          {captions.length} examples available
+                        </div>
+                        <Button
+                          name="continue-no-filters"
+                          variant="primary"
+                          size={1}
+                          onClick={() => setExportModalStage('export')}
+                        >
+                          Continue
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className={styles.ratingWarningButtons}>
+                    <Button
+                      name="cancel-export"
+                      variant="tertiary"
+                      onClick={() => {
+                        setShowExportModal(false);
+                        setExportModalStage('filters');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                                    <h3 className={styles.ratingWarningTitle}>Export Dataset</h3>
+                  
+                  {/* Export Mode Switch */}
+                  <div className={styles.exportModeSection}>
+                <SegmentInput
+                  name="export-mode"
+                  value={exportMode}
+                  onChange={(value) => {
+                    if (value === 'standard' || value === 'fine-tuning') {
+                      setExportMode(value);
+                    }
+                  }}
+                  options={[
+                    { key: 'standard' as const, label: 'Standard' },
+                    { key: 'fine-tuning' as const, label: 'Fine-tuning' }
+                  ]}
+                  keySelector={(o) => o.key}
+                  labelSelector={(o) => o.label}
+                />
+              </div>
+              
+              {/* Train/Test/Val Split Configuration - Only show for Fine-tuning mode */}
+              {exportMode === 'fine-tuning' && (
+                <div className={styles.splitConfigSection}>
+                  <div className={styles.splitConfigTitle}>Dataset Split Configuration</div>
+                  <div className={styles.splitInputsContainer}>
+                    <div className={styles.splitInputGroup}>
+                      <label htmlFor="train-split" className={styles.splitInputLabel}>Train (%)</label>
+                      <input
+                        id="train-split"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={trainSplit}
+                        onChange={(e) => {
+                          const newTrain = parseInt(e.target.value) || 0;
+                          const remaining = 100 - newTrain;
+                          if (remaining >= 0) {
+                            setTrainSplit(newTrain);
+                            // Distribute remaining between test and val
+                            if (testSplit + valSplit > remaining) {
+                              setTestSplit(Math.floor(remaining / 2));
+                              setValSplit(remaining - Math.floor(remaining / 2));
+                            }
+                          }
+                        }}
+                        className={styles.splitInput}
+                      />
+                    </div>
+                    
+                    <div className={styles.splitInputGroup}>
+                      <label htmlFor="test-split" className={styles.splitInputLabel}>Test (%)</label>
+                      <input
+                        id="test-split"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={testSplit}
+                        onChange={(e) => {
+                          const newTest = parseInt(e.target.value) || 0;
+                          const remaining = 100 - trainSplit - newTest;
+                          if (remaining >= 0) {
+                            setTestSplit(newTest);
+                            setValSplit(remaining);
+                          }
+                        }}
+                        className={styles.splitInput}
+                      />
+                    </div>
+                    
+                    <div className={styles.splitInputGroup}>
+                      <label htmlFor="val-split" className={styles.splitInputLabel}>Val (%)</label>
+                      <input
+                        id="val-split"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={valSplit}
+                        onChange={(e) => {
+                          const newVal = parseInt(e.target.value) || 0;
+                          const remaining = 100 - trainSplit - newVal;
+                          if (remaining >= 0) {
+                            setValSplit(newVal);
+                            setTestSplit(remaining);
+                          }
+                        }}
+                        className={styles.splitInput}
+                      />
+                    </div>
+                  </div>
+                  
+                  {trainSplit + testSplit + valSplit !== 100 && (
+                    <div className={styles.splitTotal}>
+                      <span className={styles.splitTotalError}>Must equal 100%</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className={styles.checkboxesContainer}>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    name="crisis-maps"
+                    label={`Crisis Maps (${filtered.filter(img => img.image_type === 'crisis_map').length} images)`}
+                    value={crisisMapsSelected}
+                    onChange={(value, name) => setCrisisMapsSelected(value)}
+                    disabled={isLoadingFilters}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    name="drone-images"
+                    label={`Drone Images (${filtered.filter(img => img.image_type === 'drone_image').length} images)`}
+                    value={droneImagesSelected}
+                    onChange={(value, name) => setDroneImagesSelected(value)}
+                    disabled={isLoadingFilters}
+                  />
+                </div>
+              </div>
+              
+                                <div className={styles.ratingWarningButtons}>
+                    {(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) && (
+                      <Button
+                        name="back-to-filters"
+                        variant="secondary"
+                        onClick={() => setExportModalStage('filters')}
+                      >
+                        Back to Filters
+                      </Button>
+                    )}
+                <Button
+                  name="confirm-export"
+                  onClick={() => {
+                    if (!crisisMapsSelected && !droneImagesSelected) {
+                      alert('Please select at least one image type to export.');
+                      return;
+                    }
+                    
+                    const selectedTypes: string[] = [];
+                    if (crisisMapsSelected) selectedTypes.push('crisis_map');
+                    if (droneImagesSelected) selectedTypes.push('drone_image');
+                    
+                    const filteredByType = filtered.filter(img => selectedTypes.includes(img.image_type));
+                    exportDataset(filteredByType, exportMode);
+                    setShowExportModal(false);
+                    setExportModalStage('filters');
+                  }}
+                >
+                  Export Selected
+                </Button>
+              </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

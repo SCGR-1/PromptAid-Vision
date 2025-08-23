@@ -1,0 +1,12 @@
+.account-notifications {
+    display: flex;
+    flex-direction: column;
+    gap: var(--go-ui-spacing-2xl);
+    padding: var(--go-ui-spacing-2xl) 0;
+
+    .operations-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--go-ui-spacing-md);
+    }
+}

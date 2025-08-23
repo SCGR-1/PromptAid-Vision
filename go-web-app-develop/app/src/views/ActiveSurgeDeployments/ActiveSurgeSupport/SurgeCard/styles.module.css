@@ -1,0 +1,31 @@
+.surge-card {
+    border-radius: var(--go-ui-border-radius-lg);
+    box-shadow: var(--go-ui-box-shadow-md);
+
+    .severity-indicator {
+        font-size: var(--go-ui-font-size-xl);
+    }
+
+    .content {
+        display: grid;
+        grid-template-columns: 4fr var(--go-ui-width-separator-thin) 5fr;
+        gap: var(--go-ui-spacing-md);
+
+        .figure {
+            padding: 0;
+        }
+
+        .separator {
+            grid-column: span 3;
+            border-top: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+        }
+
+        .vertical-separator {
+            border-left: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+        }
+
+        .deploying-organizations {
+            grid-column: span 3;
+        }
+    }
+}

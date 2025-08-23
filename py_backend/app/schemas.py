@@ -68,6 +68,9 @@ class ImageOut(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
+    # Preprocessing information
+    preprocessing_info: Optional[dict] = None
+    
     # Drone-specific fields
     center_lon: Optional[float] = None
     center_lat: Optional[float] = None

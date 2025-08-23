@@ -1,0 +1,29 @@
+{
+    "parent": "000027-1747040901514.json",
+    "actions": [
+        {
+            "action": "add",
+            "key": "drefFormNationalSocietiesActionsDescription",
+            "namespace": "drefFinalReportForm",
+            "value": "Please indicate a description of the ongoing response with if possible: Branches involved, number of volunteers/staff involved in actions, assets deployed/distributed, number of people reach. Impact/added value of the NS in the response already ongoing."
+        },
+        {
+            "action": "add",
+            "key": "finalReportDescriptionOfAdditionalActivities",
+            "namespace": "drefFinalReportForm",
+            "value": "Please provide a brief description of those additional activities"
+        },
+        {
+            "action": "add",
+            "key": "finalReportHaveNationalSocietyConducted",
+            "namespace": "drefFinalReportForm",
+            "value": "Have the National Society conducted any intervention additionally to those part of this DREF Operation?"
+        },
+        {
+            "action": "add",
+            "key": "finalReportNationalSocietiesActions",
+            "namespace": "drefFinalReportForm",
+            "value": "National Society Actions"
+        }
+    ]
+}

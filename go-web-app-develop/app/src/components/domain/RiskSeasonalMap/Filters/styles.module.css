@@ -1,0 +1,6 @@
+.additional-options {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--go-ui-spacing-md);
+}

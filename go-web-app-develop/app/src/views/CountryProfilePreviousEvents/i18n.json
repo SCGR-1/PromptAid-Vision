@@ -1,0 +1,13 @@
+{
+    "namespace": "countryProfilePreviousEvents",
+    "strings": {
+        "emergenciesByDisasterTypeHeading": "Emergencies by disaster type",
+        "emergenciesOverMonthHeading": "Emergencies over month",
+        "previousOperationsHeading": "Previous Operations",
+        "filterThisYearLabel": "This year",
+        "filterPastYearLabel": "Past year",
+        "filterLastTwoYearsLabel": "Last 2 years",
+        "filterLastFiveYearsLabel": "Last 5 years",
+        "filterLastTenYearsLabel": "Last 10 years"
+    }
+}

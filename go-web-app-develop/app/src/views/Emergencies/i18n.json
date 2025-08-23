@@ -1,0 +1,15 @@
+{
+    "namespace": "emergencies",
+    "strings": {
+        "emergenciesTitle": "IFRC GO - Emergencies",
+        "emergenciesTableTitle":"Emergencies in the last 30 days",
+        "emergenciesStatsTitle":"Emergencies",
+        "emergenciesStatsAffected":"Affected People",
+        "emergenciesByTypeTitle": "Emergencies by Type",
+        "emergenciesOverLastYearTitle": "Emergencies over the last year",
+        "emergenciesStatsRequested":"Requested Amount",
+        "emergenciesStatsFunding":"Funding (CHF)",
+        "emergencyViewAllReport": "View all field reports in",
+        "emergencyPerformanceProblems": "(Performance problems with Export Table)"
+    }
+}

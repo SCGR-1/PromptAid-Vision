@@ -1,0 +1,23 @@
+{
+    "namespace": "flashUpdateDetails",
+    "strings": {
+        "flashUpdateDetailsPageTitle": "IFRC GO - Flash Update - {flashUpdateName}",
+        "flashUpdatePageTitleFallback": "IFRC GO - Flash Update",
+        "flashUpdateDetailsHeading": "Flash Update",
+        "flashUpdateExport": "Export",
+        "flashUpdateShare": "Share",
+        "flashUpdateEdit": "Edit",
+        "flashUpdateSituationalOverviewHeading": "Situational Overview",
+        "flashUpdateMapHeading": "Maps",
+        "flashUpdateImagesHeading": "Images",
+        "flashUpdateActionTakenHeading": "Actions Taken",
+        "flashUpdateActionDescription": "Description",
+        "flashUpdateActions": "Actions",
+        "flashUpdateResourcesHeading": "Resources",
+        "flashUpdateDownloadDocument": "Download Document",
+        "flashUpdateMapImage": "Map",
+        "flashUpdateReference": "Go to Reference",
+        "home": "Home",
+        "emergencies": "Emergencies"
+    }
+}

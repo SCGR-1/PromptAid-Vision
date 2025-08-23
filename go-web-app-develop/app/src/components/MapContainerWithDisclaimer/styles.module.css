@@ -1,0 +1,94 @@
+.map-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+
+    .download-header {
+    border-bottom: var(--go-ui-width-separator-lg) solid var(--go-ui-color-primary-red);
+    background-color: var(--go-ui-color-background);
+    padding: var(--go-ui-spacing-sm);
+
+    .download-heading {
+        align-items: baseline;
+        gap: var(--go-ui-spacing-xs);
+        color: var(--go-ui-color-primary-red);
+
+        .header-date {
+            font-size: var(--go-ui-font-size-xs);
+        }
+    }
+
+    .go-icon {
+        height: var(--go-ui-height-compact-status-icon);
+    }
+}
+
+.map-container-with-disclaimer {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    z-index: 0;
+
+    &.print-mode {
+        border: var(--go-ui-width-separator-sm) solid var(--go-ui-color-separator);
+    }
+
+    .map-wrapper {
+        display: flex;
+        position: relative;
+        flex-direction: column;
+        flex-grow: 1;
+
+        .container {
+            flex-grow: 1;
+        }
+    }
+
+    .map-disclaimer {
+        position: absolute;
+        bottom: var(--go-ui-spacing-xs);
+        left: calc(var(--mapbox-icon-width) + var(--go-ui-spacing-sm));
+        background-color: var(--go-ui-color-white);
+        padding: 0 var(--go-ui-spacing-2xs);
+        font-size: var(--go-ui-font-size-sm);
+    }
+
+    .download-button {
+        position: absolute;
+        top: 5rem;
+        /* NOTE: Exactly as mapbox */
+        right: calc(10px - var(--go-ui-width-separator-md));
+        border: var(--go-ui-width-separator-md) solid var(--go-ui-color-separator);
+        border-radius: var(--go-ui-border-radius-md);
+        background-color: var(--go-ui-color-foreground);
+        padding: 0 var(--go-ui-spacing-2xs);
+        font-size: var(--go-ui-height-icon-multiplier);
+
+        &:hover {
+            background-color: var(--go-ui-color-background);
+        }
+    }
+}
+
+.disclaimer-popup-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--go-ui-spacing-sm);
+
+    .attribution {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--go-ui-spacing-2xs) var(--go-ui-spacing-sm);
+    }
+}
+
+.header {
+    background-color: var(--go-ui-color-background);
+    padding: var(--go-ui-spacing-md);
+
+    .actions {
+        align-items: center;
+    }
+}
+
+}

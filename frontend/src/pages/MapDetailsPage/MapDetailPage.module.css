@@ -1,7 +1,8 @@
 .tabSelector {
   margin-bottom: var(--go-ui-spacing-lg);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .backButton {
@@ -239,6 +240,8 @@
   gap: var(--go-ui-spacing-md);
   justify-content: center;
   flex-wrap: wrap;
+  margin-top: var(--go-ui-spacing-xl);
+  text-align: center;
 }
 
 /* Responsive adjustments for modal */
@@ -251,4 +254,97 @@
     max-width: 100vw;
     max-height: 100vh;
   }
+}
+
+/* Export mode and split configuration styles */
+.exportModeSection {
+  margin-bottom: var(--go-ui-spacing-lg);
+  text-align: center;
+}
+
+.exportModeLabel {
+  font-size: var(--go-ui-font-size-sm);
+  font-weight: var(--go-ui-font-weight-medium);
+  color: var(--go-ui-color-gray-700);
+  margin-bottom: var(--go-ui-spacing-sm);
+}
+
+.splitConfigSection {
+  margin-bottom: var(--go-ui-spacing-lg);
+  text-align: center;
+}
+
+.splitConfigTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--go-ui-spacing-md);
+  color: var(--go-ui-color-text-primary);
+}
+
+.splitInputsContainer {
+  display: flex;
+  justify-content: center;
+  gap: var(--go-ui-spacing-md);
+  margin-bottom: var(--go-ui-spacing-md);
+  flex-wrap: wrap;
+}
+
+.splitInputGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.splitInputLabel {
+  margin-bottom: var(--go-ui-spacing-xs);
+  font-weight: 500;
+  color: var(--go-ui-color-text-primary);
+}
+
+.splitInput {
+  width: 80px;
+  padding: var(--go-ui-spacing-sm);
+  border: 1px solid var(--go-ui-color-border);
+  border-radius: var(--go-ui-border-radius);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.splitInput:focus {
+  outline: none;
+  border-color: var(--go-ui-color-red-50);
+  box-shadow: 0 0 0 2px var(--go-ui-color-red-20);
+}
+
+.splitInput:hover {
+  border-color: var(--go-ui-color-gray-400);
+}
+
+.splitTotal {
+  font-size: var(--go-ui-font-size-xs);
+  color: var(--go-ui-color-gray-500);
+  text-align: center;
+  margin-top: var(--go-ui-spacing-xs);
+}
+
+.splitTotalError {
+  color: var(--go-ui-color-negative);
+  margin-left: var(--go-ui-spacing-xs);
+}
+
+/* Responsive adjustments for split inputs */
+@media (max-width: 768px) {
+  .splitInputsContainer {
+    gap: var(--go-ui-spacing-md);
+  }
+  
+  .splitInput {
+    width: 3.5rem;
+  }
+}
+
+.checkboxesContainer {
+  text-align: center;
+  margin-bottom: var(--go-ui-spacing-lg);
 }

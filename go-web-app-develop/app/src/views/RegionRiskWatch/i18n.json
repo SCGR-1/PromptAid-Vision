@@ -1,0 +1,7 @@
+{
+    "namespace": "regionRiskWatch",
+    "strings": {
+        "regionRiskWatchImminent": "Imminent",
+        "regionRiskWatchSeasonal": "Seasonal"
+    }
+}

@@ -242,13 +242,17 @@ def update_model(db: Session, m_code: str, update_data: dict):
     return model
 
 def delete_model(db: Session, m_code: str):
-    """Delete a model"""
+    """Soft delete a model by incrementing delete count and marking as unavailable"""
     model = db.get(models.Models, m_code)
     if not model:
         return False
     
-    db.delete(model)
+    # Increment delete count and mark as unavailable
+    model.delete_count += 1
+    model.is_available = False
+    
     db.commit()
+    db.refresh(model)
     return True
 
 def get_all_schemas(db: Session):

@@ -1,0 +1,38 @@
+.footer {
+    background-color: var(--go-ui-color-primary-gray);
+    color: var(--go-ui-color-white);
+
+    .content {
+        display: flex;
+        gap: var(--go-ui-spacing-2xl);
+        flex-wrap: wrap;
+
+        .section {
+            display: flex;
+            flex-basis: 12rem;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: var(--go-ui-spacing-lg);
+
+            .sub-section {
+                display: flex;
+                flex-direction: column;
+                gap: var(--go-ui-spacing-sm);
+            }
+
+            .social-icons {
+                display: flex;
+                gap: var(--go-ui-spacing-sm);
+
+                .social-icon {
+                    flex-shrink: 0;
+                    font-size: var(--go-ui-height-social-icon);
+                }
+            }
+        }
+    }
+
+    @media print {
+        display: none;
+    }
+}

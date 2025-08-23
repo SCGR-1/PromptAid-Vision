@@ -1,0 +1,65 @@
+{
+    "parent": "000025-1745940068292.json",
+    "actions": [
+        {
+            "action": "update",
+            "key": "complianceDateOwnerHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "Compliance with any Applicable Conditions from Data Owner"
+        },
+        {
+            "action": "update",
+            "key": "dataProvenanceHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "Data Provenance"
+        },
+        {
+            "action": "update",
+            "key": "finalProvisionsHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "Final Provisions"
+        },
+        {
+            "action": "update",
+            "key": "liabilityOfIFRCHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "Liability of IFRC"
+        },
+        {
+            "action": "update",
+            "key": "privilegesAndImmunitiesHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "Privileges and Immunities"
+        },
+        {
+            "action": "update",
+            "key": "protectionUsersPersonalDataHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "Protection of User's Personal Data"
+        },
+        {
+            "action": "update",
+            "key": "unAuthorisedUsesHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "Unauthorised Uses"
+        },
+        {
+            "action": "update",
+            "key": "userRegistrationDescriptionList",
+            "namespace": "termsAndConditions",
+            "newValue": "Information management - International Federation of Red Cross Crescent(IFRC).2024.Montandon - Global Crisis Data Bank: Revision 1."
+        },
+        {
+            "action": "update",
+            "key": "userRegistrationDescriptionToLink",
+            "namespace": "termsAndConditions",
+            "newValue": "To request access and register, please use {registerLink}."
+        },
+        {
+            "action": "update",
+            "key": "userRegistrationHeading",
+            "namespace": "termsAndConditions",
+            "newValue": "User Registration"
+        }
+    ]
+}

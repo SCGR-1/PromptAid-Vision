@@ -1,0 +1,19 @@
+{
+    "namespace": "common",
+    "strings": {
+        "infoLabel": "Sources: ICRC, UN CODs",
+        "mapDisclaimer":"The maps used do not imply the expression of any opinion on the part of the International Federation of Red Cross and Red Crescent Societies or National Society concerning the legal status of a territory or of its authorities.",
+        "copyrightMapbox":"© Mapbox",
+        "copyrightOSM":"© OpenStreetMap",
+        "downloadButtonTitle":"Download",
+        "failureToDownloadMessage":"Failed to download map. Try again.",
+        "improveMapLabel": "Improve this map",
+        "mapSourcesLabel": "Sources: ICRC, {uncodsLink}",
+        "mapSourceUNCODsLabel": "UNCODs",
+        "feedbackAriaLabel" : "Map feedback",
+        "mapContainerMapbox": "Mapbox",
+        "downloadHeaderLogoAltText":"IFRC GO logo",
+        "mapContainerOpenStreetMap": "OpenStreetMap",
+        "mapContainerIconButton": "Close"
+    }
+}

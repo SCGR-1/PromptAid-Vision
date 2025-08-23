@@ -1,0 +1,12 @@
+{
+    "namespace": "countryAdditionalInfo",
+    "strings": {
+        "contactTitle": "Contacts",
+        "columnName": "Name",
+        "columnTitle": "Title",
+        "columnType": "Type",
+        "columnEmail": "Email",
+        "linkTitle": "Additional links",
+        "noDataMessage": "No data to display"
+    }
+}

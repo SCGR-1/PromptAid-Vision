@@ -1,0 +1,122 @@
+.risk-seasonal-map-container {
+    display: flex;
+    flex-direction: column;
+
+    .wiki-link {
+        font-size: var(--go-ui-font-size-3xl);
+    }
+
+    .header-description {
+        display: flex;
+        flex-direction: column;
+        gap: var(--go-ui-spacing-sm);
+    }
+
+    .footer {
+        background-color: var(--go-ui-color-background);
+        padding: var(--go-ui-spacing-md);
+    }
+
+    .footer-actions {
+        flex-shrink: unset;
+    }
+
+    .legend-label {
+        font-size: var(--go-ui-font-size-sm);
+        font-weight: var(--go-ui-font-weight-medium);
+    }
+
+    .severity-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--go-ui-spacing-xs) var(--go-ui-spacing-md);
+
+        .legend-content {
+            .severity-gradient {
+                width: 10rem;
+                height: 0.5rem;
+            }
+
+            .label-list {
+                display: flex;
+                justify-content: space-between;
+                font-size: var(--go-ui-font-size-xs);
+                font-weight: var(--go-ui-font-weight-medium);
+            }
+        }
+    }
+
+    .type-of-hazard-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--go-ui-spacing-xs) var(--go-ui-spacing-md);
+
+        .legend-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--go-ui-spacing-xs) var(--go-ui-spacing-sm);
+        }
+    }
+
+    .main-content {
+        display: flex;
+        height: 40rem;
+        gap: var(--go-ui-spacing-md);
+
+        .map-container {
+            flex-grow: 1;
+        }
+
+        .country-list {
+            flex-basis: calc(14vw + 16rem);
+            background-color: var(--go-ui-color-background);
+
+            .content {
+                overflow: auto;
+
+                .country {
+                    .name {
+                        font-size: var(--go-ui-font-size-sm);
+                    }
+
+                    .track {
+                        display: flex;
+                        background-color: var(--go-ui-color-separator);
+                        height: 0.5rem;
+
+                        .bar {
+                            height: 100%;
+                        }
+                    }
+                }
+            }
+        }
+
+        @media screen and (max-width: 50rem) {
+            flex-direction: column;
+            height: initial;
+
+            .map-container {
+                height: min(40rem, 60vh);
+            }
+
+            .country-list {
+                flex-basis: unset;
+            }
+        }
+    }
+}
+
+.tooltip-hazard-indicator {
+    display: flex;
+    align-items: center;
+    width: 1rem;
+    height: 1.2rem;
+
+    .color {
+        flex-shrink: 0;
+        border-radius: 0.3rem;
+        width: 0.6rem;
+        height: 0.6rem;
+    }
+}

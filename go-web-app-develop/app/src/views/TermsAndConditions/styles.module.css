@@ -1,0 +1,29 @@
+.terms-and-conditions {
+    .main-section {
+        display: flex;
+        gap: var(--go-ui-spacing-xl);
+
+        .sidebar {
+            flex-shrink: 0;
+            width: calc(8rem + 10%);
+
+            .tab-list {
+                position: sticky;
+                top: var(--go-ui-spacing-md);
+            }
+        }
+
+        @media screen and (max-width: 40rem) {
+            flex-direction: column;
+
+            .sidebar {
+                flex-shrink: unset;
+                width: 100%;
+
+                .tab-list {
+                    position: initial;
+                }
+            }
+        }
+    }
+}

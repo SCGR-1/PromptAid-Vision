@@ -1,12 +1,7 @@
 import {
-  PageContainer,
-  PieChart,
-  KeyFigure,
-  Spinner,
-  Container,
-  ProgressBar,
-  SegmentInput,
-  Table,
+  PageContainer, Button,
+  Container, Spinner, SegmentInput,
+  Table, PieChart, ProgressBar,
 } from '@ifrc-go/ui';
 import {
   createStringColumn,
@@ -14,6 +9,7 @@ import {
   numericIdSelector
 } from '@ifrc-go/ui/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styles from './AnalyticsPage.module.css';
 
 interface AnalyticsData {
@@ -28,8 +24,17 @@ interface AnalyticsData {
       avgContext: number;
       avgUsability: number;
       totalScore: number;
+      deleteCount: number;
     };
   };
+  modelEditTimes: { [key: string]: number[] };
+  percentageModified: number;
+  modelPercentageData: { [key: string]: number[] };
+  totalDeleteCount: number;
+  deleteRate: number;
+  // Add separated image data for proper filtering
+  crisisMaps: MapData[];
+  droneImages: MapData[];
 }
 
 interface LookupData {
@@ -70,6 +75,24 @@ interface ModelData {
   totalScore: number;
 }
 
+interface EditTimeData {
+  id: number;
+  name: string;
+  count: number;
+  avgEditTime: number;
+  minEditTime: number;
+  maxEditTime: number;
+}
+
+interface PercentageModifiedData {
+  id: number;
+  name: string;
+  count: number;
+  avgPercentageModified: number;
+  minPercentageModified: number;
+  maxPercentageModified: number;
+}
+
 interface MapData {
   source?: string;
   event_type?: string;
@@ -78,26 +101,66 @@ interface MapData {
   accuracy?: number;
   context?: number;
   usability?: number;
+  created_at?: string;
+  updated_at?: string;
+  generated?: string;
+  edited?: string;
+  image_type?: string;
 }
 
 export default function AnalyticsPage() {
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'general' | 'vlm'>('general');
+  const [view, setView] = useState<'crisis_maps' | 'drone_images'>('crisis_maps');
   const [sourcesLookup, setSourcesLookup] = useState<LookupData[]>([]);
   const [typesLookup, setTypesLookup] = useState<LookupData[]>([]);
   const [regionsLookup, setRegionsLookup] = useState<LookupData[]>([]);
+  const [showEditTimeModal, setShowEditTimeModal] = useState(false);
+  const [showPercentageModal, setShowPercentageModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const viewOptions = [
-    { key: 'general' as const, label: 'General Analytics' },
-    { key: 'vlm' as const, label: 'VLM Analytics' }
+    { key: 'crisis_maps' as const, label: 'Crisis Maps' },
+    { key: 'drone_images' as const, label: 'Drone Images' }
   ];
+
+  // Helper function to calculate word similarity
+  const calculateWordSimilarity = useCallback((text1: string, text2: string): number => {
+    if (!text1 || !text2) return 0;
+    
+    // Split into words, lowercase, and remove punctuation
+    const words1 = text1.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(word => word.length > 0);
+    const words2 = text2.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(word => word.length > 0);
+    
+    if (words1.length === 0 && words2.length === 0) return 1; // Both empty = 100% similar
+    if (words1.length === 0 || words2.length === 0) return 0; // One empty = 0% similar
+    
+    // Create sets of unique words
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+    
+    // Calculate intersection and union
+    const intersection = new Set([...set1].filter(word => set2.has(word)));
+    const union = new Set([...set1, ...set2]);
+    
+    // Calculate similarity
+    const similarity = intersection.size / union.size;
+    return similarity;
+  }, []);
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/images/');
+      const res = await fetch('/api/images');
       const maps = await res.json();
+
+      // Calculate edit times for each model
+      const modelEditTimes: { [key: string]: number[] } = {};
+
+      // Separate images by type for proper filtering
+      const crisisMaps = maps.filter((map: MapData) => map.image_type === 'crisis_map');
+      const droneImages = maps.filter((map: MapData) => map.image_type === 'drone_image');
 
       const analytics: AnalyticsData = {
         totalCaptions: maps.length,
@@ -105,8 +168,16 @@ export default function AnalyticsPage() {
         types: {},
         regions: {},
         models: {},
+        modelEditTimes: modelEditTimes,
+        percentageModified: 0,
+        modelPercentageData: {},
+        totalDeleteCount: 0,
+        deleteRate: 0,
+        crisisMaps: crisisMaps,
+        droneImages: droneImages,
       };
 
+      // Process all images for global analytics
       maps.forEach((map: MapData) => {
         if (map.source) analytics.sources[map.source] = (analytics.sources[map.source] || 0) + 1;
         if (map.event_type) analytics.types[map.event_type] = (analytics.types[map.event_type] || 0) + 1;
@@ -117,11 +188,22 @@ export default function AnalyticsPage() {
         }
         if (map.model) {
           const m = map.model;
-          const ctr = analytics.models[m] ||= { count: 0, avgAccuracy: 0, avgContext: 0, avgUsability: 0, totalScore: 0 };
+          const ctr = analytics.models[m] ||= { count: 0, avgAccuracy: 0, avgContext: 0, avgUsability: 0, totalScore: 0, deleteCount: 0 };
           ctr.count++;
           if (map.accuracy != null) ctr.avgAccuracy += map.accuracy;
           if (map.context != null) ctr.avgContext += map.context;
           if (map.usability != null) ctr.avgUsability += map.usability;
+          
+          // Calculate edit time if both timestamps exist
+          if (map.created_at && map.updated_at) {
+            const created = new Date(map.created_at).getTime();
+            const updated = new Date(map.updated_at).getTime();
+            const editTimeMs = updated - created;
+            if (editTimeMs > 0) {
+              if (!modelEditTimes[m]) modelEditTimes[m] = [];
+              modelEditTimes[m].push(editTimeMs);
+            }
+          }
         }
       });
 
@@ -146,7 +228,7 @@ export default function AnalyticsPage() {
       const allModels = ['GPT-4', 'Claude', 'Gemini', 'Llama', 'Other'];
       allModels.forEach(model => {
         if (!analytics.models[model]) {
-          analytics.models[model] = { count: 0, avgAccuracy: 0, avgContext: 0, avgUsability: 0, totalScore: 0 };
+          analytics.models[model] = { count: 0, avgAccuracy: 0, avgContext: 0, avgUsability: 0, totalScore: 0, deleteCount: 0 };
         }
       });
 
@@ -159,6 +241,60 @@ export default function AnalyticsPage() {
         }
       });
 
+             // Calculate percentage modified (median)
+       const textPairs = maps.filter((map: MapData) => map.generated && map.edited);
+       
+       if (textPairs.length > 0) {
+         const similarities = textPairs.map((map: MapData) => 
+           calculateWordSimilarity(map.generated!, map.edited!)
+         );
+         const sortedSimilarities = [...similarities].sort((a, b) => a - b);
+         const mid = Math.floor(sortedSimilarities.length / 2);
+         const medianSimilarity = sortedSimilarities.length % 2 === 0 
+           ? (sortedSimilarities[mid - 1] + sortedSimilarities[mid]) / 2
+           : sortedSimilarities[mid];
+         analytics.percentageModified = Math.round((1 - medianSimilarity) * 100);
+       }
+
+             // Calculate percentage modified per model (median)
+       const modelPercentageData: { [key: string]: number[] } = {};
+       
+       maps.forEach((map: MapData) => {
+         if (map.model && map.generated && map.edited) {
+           const similarity = calculateWordSimilarity(map.generated, map.edited);
+           const percentageModified = Math.round((1 - similarity) * 100);
+           
+           if (!modelPercentageData[map.model]) {
+             modelPercentageData[map.model] = [];
+           }
+           modelPercentageData[map.model].push(percentageModified);
+         }
+       });
+       
+       analytics.modelPercentageData = modelPercentageData;
+
+      // Fetch model data including delete counts
+      try {
+        const modelsRes = await fetch('/api/admin/models');
+        if (modelsRes.ok) {
+          const modelsData = await modelsRes.json();
+          
+          // Update delete counts for each model
+          modelsData.forEach((model: { m_code: string; delete_count: number }) => {
+            if (analytics.models[model.m_code]) {
+              analytics.models[model.m_code].deleteCount = model.delete_count || 0;
+            }
+          });
+          
+          // Calculate total delete count and delete rate
+          const totalDeleteCount = modelsData.reduce((sum: number, model: { delete_count: number }) => sum + (model.delete_count || 0), 0);
+          analytics.totalDeleteCount = totalDeleteCount;
+          analytics.deleteRate = totalDeleteCount > 0 ? Math.round((totalDeleteCount / (totalDeleteCount + maps.length)) * 100) : 0;
+        }
+      } catch (error) {
+        console.log('Could not fetch model delete counts:', error);
+      }
+
       setData(analytics);
     } catch {
       
@@ -166,7 +302,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [sourcesLookup, typesLookup, regionsLookup]);
+  }, [sourcesLookup, typesLookup, regionsLookup, calculateWordSimilarity]);
 
   const fetchLookupData = useCallback(async () => {
     try {
@@ -181,9 +317,18 @@ export default function AnalyticsPage() {
       setSourcesLookup(sources);
       setTypesLookup(types);
       setRegionsLookup(regions);
-    } catch {
+    } catch (error) {
+      console.log('Could not fetch lookup data:', error);
     }
   }, []);
+
+  // Set initial view based on URL parameter
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'crisis_maps' || viewParam === 'drone_images') {
+      setView(viewParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchLookupData();
@@ -200,74 +345,109 @@ export default function AnalyticsPage() {
     return source ? source.label : code;
   }, [sourcesLookup]);
 
+  const getMedianEditTime = useCallback((editTimes: number[]) => {
+    if (editTimes.length === 0) return 0;
+    const sortedTimes = [...editTimes].sort((a, b) => a - b);
+    const mid = Math.floor(sortedTimes.length / 2);
+    return sortedTimes.length % 2 === 0 
+      ? Math.round((sortedTimes[mid - 1] + sortedTimes[mid]) / 2)
+      : sortedTimes[mid];
+  }, []);
+
+  const formatEditTime = useCallback((ms: number) => {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }, []);
+
   const getTypeLabel = useCallback((code: string) => {
     const type = typesLookup.find(t => t.t_code === code);
     return type ? type.label : code;
   }, [typesLookup]);
 
-  const regionsTableData = useMemo(() => {
-    if (!data || !regionsLookup.length) return [];
+  const editTimeTableData = useMemo(() => {
+    if (!data) return [];
     
-    const allRegions = regionsLookup.reduce((acc, region) => {
-      if (region.r_code) {
-        acc[region.r_code] = {
-          name: region.label,
-          count: data.regions[region.r_code] || 0
+    return Object.entries(data.modelEditTimes || {})
+      .filter(([, editTimes]) => editTimes.length > 0)
+      .sort(([, a], [, b]) => getMedianEditTime(b) - getMedianEditTime(a))
+      .map(([model, editTimes], index) => ({
+        id: index + 1,
+        name: model,
+        count: editTimes.length,
+        avgEditTime: getMedianEditTime(editTimes),
+        minEditTime: Math.min(...editTimes),
+        maxEditTime: Math.max(...editTimes)
+      }));
+  }, [data, getMedianEditTime]);
+
+  const percentageModifiedTableData = useMemo(() => {
+    if (!data) return [];
+    
+    return Object.entries(data.modelPercentageData || {})
+      .filter(([, percentages]) => percentages.length > 0)
+      .sort(([, a], [, b]) => {
+        const sortedA = [...a].sort((x, y) => x - y);
+        const sortedB = [...b].sort((x, y) => x - y);
+        const midA = Math.floor(sortedA.length / 2);
+        const midB = Math.floor(sortedB.length / 2);
+        const medianA = sortedA.length % 2 === 0 
+          ? (sortedA[midA - 1] + sortedA[midA]) / 2
+          : sortedA[midA];
+        const medianB = sortedB.length % 2 === 0 
+          ? (sortedB[midB - 1] + sortedB[midB]) / 2
+          : sortedB[midB];
+        return medianB - medianA;
+      })
+      .map(([model, percentages], index) => {
+        const sortedPercentages = [...percentages].sort((a, b) => a - b);
+        const mid = Math.floor(sortedPercentages.length / 2);
+        const medianPercentage = sortedPercentages.length % 2 === 0 
+          ? Math.round((sortedPercentages[mid - 1] + sortedPercentages[mid]) / 2)
+          : sortedPercentages[mid];
+        
+        return {
+          id: index + 1,
+          name: model,
+          count: percentages.length,
+          avgPercentageModified: medianPercentage,
+          minPercentageModified: Math.min(...percentages),
+          maxPercentageModified: Math.max(...percentages)
         };
-      }
-      return acc;
-    }, {} as Record<string, { name: string; count: number }>);
+      });
+  }, [data]);
 
-    return Object.entries(allRegions)
-      .sort(([,a], [,b]) => b.count - a.count)
-      .map(([, { name, count }], index) => ({
-        id: index + 1,
-        name,
-        count,
-        percentage: data.totalCaptions > 0 ? Math.round((count / data.totalCaptions) * 100) : 0
-      }));
-  }, [data, regionsLookup]);
 
-  const typesTableData = useMemo(() => {
-    if (!data) return [];
-    
-    return Object.entries(data.types)
-      .sort(([,a], [,b]) => b - a)
-      .map(([typeKey, count], index) => ({
-        id: index + 1,
-        name: getTypeLabel(typeKey),
-        count,
-        percentage: Math.round((count / data.totalCaptions) * 100)
-      }));
-  }, [data, getTypeLabel]);
 
-  const sourcesTableData = useMemo(() => {
-    if (!data) return [];
-    
-    return Object.entries(data.sources)
-      .sort(([,a], [,b]) => b - a)
-      .map(([sourceKey, count], index) => ({
-        id: index + 1,
-        name: getSourceLabel(sourceKey),
-        count,
-        percentage: Math.round((count / data.totalCaptions) * 100)
-      }));
-  }, [data, getSourceLabel]);
-
-  const modelsTableData = useMemo(() => {
+  const modelConsistencyData = useMemo(() => {
     if (!data) return [];
     
     return Object.entries(data.models)
-      .sort(([,a], [,b]) => b.totalScore - a.totalScore)
-      .map(([model, stats], index) => ({
-        id: index + 1,
-        name: model,
-        count: stats.count,
-        accuracy: stats.avgAccuracy,
-        context: stats.avgContext,
-        usability: stats.avgUsability,
-        totalScore: stats.totalScore
-      }));
+      .filter(([, model]) => model.count > 0)
+      .map(([name, model], index) => {
+        // Calculate consistency based on how close accuracy, context, and usability are
+        const scores = [model.avgAccuracy, model.avgContext, model.avgUsability];
+        const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+        const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+        const consistency = Math.round(100 - Math.sqrt(variance)); // Lower variance = higher consistency
+        
+        return {
+          id: index + 1,
+          name,
+          consistency: Math.max(0, consistency),
+          avgScore: Math.round(mean),
+          count: model.count
+        };
+      })
+      .sort((a, b) => b.consistency - a.consistency);
   }, [data]);
 
   const regionsColumns = useMemo(() => [
@@ -383,7 +563,422 @@ export default function AnalyticsPage() {
         maximumFractionDigits: 0,
       },
     ),
+    
+  ], [formatEditTime]);
+
+  const editTimeColumns = useMemo(() => [
+    createStringColumn<EditTimeData, number>(
+      'name',
+      'Model',
+      (item) => item.name,
+    ),
+    createNumberColumn<EditTimeData, number>(
+      'count',
+      'Count',
+      (item) => item.count,
+    ),
+         createStringColumn<EditTimeData, number>(
+       'avgEditTime',
+       'Median Edit Time',
+       (item) => formatEditTime(item.avgEditTime),
+     ),
+    createStringColumn<EditTimeData, number>(
+      'minEditTime',
+      'Min Edit Time',
+      (item) => formatEditTime(item.minEditTime),
+    ),
+    createStringColumn<EditTimeData, number>(
+      'maxEditTime',
+      'Max Edit Time',
+      (item) => formatEditTime(item.maxEditTime),
+    ),
+  ], [formatEditTime]);
+
+    const percentageModifiedColumns = useMemo(() => [
+    createStringColumn<PercentageModifiedData, number>(
+      'name',
+      'Model',
+      (item) => item.name,
+    ),
+    createNumberColumn<PercentageModifiedData, number>(
+      'count',
+      'Count',
+      (item) => item.count,
+    ),
+          createNumberColumn<PercentageModifiedData, number>(
+        'avgPercentageModified',
+        'Median % Modified',
+        (item) => item.avgPercentageModified,
+        {
+          suffix: '%',
+          maximumFractionDigits: 0,
+        },
+      ),
+    createNumberColumn<PercentageModifiedData, number>(
+      'minPercentageModified',
+      'Min % Modified',
+      (item) => item.minPercentageModified,
+      {
+        suffix: '%',
+        maximumFractionDigits: 0,
+      },
+    ),
+    createNumberColumn<PercentageModifiedData, number>(
+      'maxPercentageModified',
+      'Max % Modified',
+      (item) => item.maxPercentageModified,
+      {
+        suffix: '%',
+        maximumFractionDigits: 0,
+      },
+    ),
   ], []);
+
+
+
+  const qualityBySourceColumns = useMemo(() => [
+    createStringColumn<{ source: string; avgQuality: number; count: number }, number>(
+      'source',
+      'Source',
+      (item) => item.source,
+    ),
+    createNumberColumn<{ source: string; avgQuality: number; count: number }, number>(
+      'avgQuality',
+      'Average Quality',
+      (item) => item.avgQuality,
+      {
+        suffix: '%',
+        maximumFractionDigits: 0,
+      },
+    ),
+    createNumberColumn<{ source: string; avgQuality: number; count: number }, number>(
+      'count',
+      'Count',
+      (item) => item.count,
+    ),
+  ], []);
+
+  const modelConsistencyColumns = useMemo(() => [
+    createStringColumn<{ name: string; consistency: number; avgScore: number; count: number }, number>(
+      'name',
+      'Model',
+      (item) => item.name,
+    ),
+    createNumberColumn<{ name: string; consistency: number; avgScore: number; count: number }, number>(
+      'consistency',
+      'Consistency',
+      (item) => item.consistency,
+      {
+        suffix: '%',
+        maximumFractionDigits: 0,
+      },
+    ),
+    createNumberColumn<{ name: string; consistency: number; avgScore: number; count: number }, number>(
+      'avgScore',
+      'Average Score',
+      (item) => item.avgScore,
+      {
+        suffix: '%',
+        maximumFractionDigits: 0,
+      },
+    ),
+    createNumberColumn<{ name: string; consistency: number; avgScore: number; count: number }, number>(
+      'count',
+      'Count',
+      (item) => item.count,
+    ),
+  ], []);
+
+  // Helper functions to filter data by image type
+  const getImageTypeCount = useCallback((imageType: string) => {
+    if (!data) return 0;
+    
+    if (imageType === 'crisis_map') {
+      return data.crisisMaps.length;
+    } else if (imageType === 'drone_image') {
+      return data.droneImages.length;
+    }
+    
+    return 0;
+  }, [data]);
+
+  const getImageTypeRegionsChartData = useCallback((imageType: string) => {
+    if (!data) return [];
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Calculate regions for this specific image type
+    const regions: { [key: string]: number } = {};
+    images.forEach((map: MapData) => {
+      if (map.countries) {
+        map.countries.forEach((c) => {
+          if (c.r_code) regions[c.r_code] = (regions[c.r_code] || 0) + 1;
+        });
+      }
+    });
+    
+    return Object.entries(regions)
+      .filter(([, value]) => value > 0)
+      .map(([name, value]) => ({ name, value }));
+  }, [data]);
+
+  const getImageTypeRegionsTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Calculate regions for this specific image type
+    const regions: { [key: string]: number } = {};
+    images.forEach((map: MapData) => {
+      if (map.countries) {
+        map.countries.forEach((c) => {
+          if (c.r_code) regions[c.r_code] = (regions[c.r_code] || 0) + 1;
+        });
+      }
+    });
+    
+    // Convert to table data format
+    const allRegions = regionsLookup.reduce((acc, region) => {
+      if (region.r_code) {
+        acc[region.r_code] = {
+          name: region.label,
+          count: regions[region.r_code] || 0
+        };
+      }
+      return acc;
+    }, {} as Record<string, { name: string; count: number }>);
+
+    return Object.entries(allRegions)
+      .sort(([,a], [,b]) => b.count - a.count)
+      .map(([, { name, count }], index) => ({
+        id: index + 1,
+        name,
+        count,
+        percentage: images.length > 0 ? Math.round((count / images.length) * 100) : 0
+      }));
+  }, [data, regionsLookup]);
+
+  const getImageTypeSourcesChartData = useCallback((imageType: string) => {
+    if (!data) return [];
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Calculate sources for this specific image type
+    const sources: { [key: string]: number } = {};
+    images.forEach((map: MapData) => {
+      if (map.source) sources[map.source] = (sources[map.source] || 0) + 1;
+    });
+    
+    return Object.entries(sources)
+      .filter(([, value]) => value > 0)
+      .map(([name, value]) => ({ name, value }));
+  }, [data]);
+
+  const getImageTypeSourcesTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Calculate sources for this specific image type
+    const sources: { [key: string]: number } = {};
+    images.forEach((map: MapData) => {
+      if (map.source) sources[map.source] = (sources[map.source] || 0) + 1;
+    });
+    
+    // Convert to table data format
+    return Object.entries(sources)
+      .sort(([,a], [,b]) => b - a)
+      .map(([sourceKey, count], index) => ({
+        id: index + 1,
+        name: getSourceLabel(sourceKey),
+        count,
+        percentage: images.length > 0 ? Math.round((count / images.length) * 100) : 0
+      }));
+  }, [data, getSourceLabel]);
+
+  const getImageTypeTypesChartData = useCallback((imageType: string) => {
+    if (!data) return [];
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Calculate types for this specific image type
+    const types: { [key: string]: number } = {};
+    images.forEach((map: MapData) => {
+      if (map.event_type) types[map.event_type] = (types[map.event_type] || 0) + 1;
+    });
+    
+    return Object.entries(types)
+      .filter(([, value]) => value > 0)
+      .map(([name, value]) => ({ name, value }));
+  }, [data]);
+
+  const getImageTypeTypesTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Calculate types for this specific image type
+    const types: { [key: string]: number } = {};
+    images.forEach((map: MapData) => {
+      if (map.event_type) types[map.event_type] = (types[map.event_type] || 0) + 1;
+    });
+    
+    // Convert to table data format
+    return Object.entries(types)
+      .sort(([,a], [,b]) => b - a)
+      .map(([typeKey, count], index) => ({
+        id: index + 1,
+        name: getTypeLabel(typeKey),
+        count,
+        percentage: images.length > 0 ? Math.round((count / images.length) * 100) : 0
+      }));
+  }, [data, getTypeLabel]);
+
+  const getImageTypeMedianEditTime = useCallback((imageType: string) => {
+    if (!data) return 'No data available';
+    // Filter edit times by image type
+    const filteredEditTimes = Object.entries(data.modelEditTimes).filter(([modelName]) => {
+      if (imageType === 'crisis_map') {
+        return modelName.includes('GPT') || modelName.includes('Claude') || modelName.includes('Gemini') || modelName.includes('STUB');
+      } else if (imageType === 'drone_image') {
+        return modelName.includes('Llama') || modelName.includes('Other');
+      }
+      return true;
+    });
+    
+    const editTimes = filteredEditTimes.flatMap(([, times]) => times);
+    if (editTimes.length === 0) return 'No data available';
+    return formatEditTime(getMedianEditTime(editTimes));
+  }, [data, formatEditTime, getMedianEditTime]);
+
+  const getImageTypePercentageModified = useCallback(() => {
+    if (!data) return 'No data available';
+    const total = data.totalCaptions || 0;
+    const modified = data.percentageModified || 0;
+    
+    return total > 0 ? Math.round((modified / total) * 100) : 0;
+  }, [data]);
+
+  const getImageTypeDeleteRate = useCallback(() => {
+    if (!data) return 'No data available';
+    // For now, we'll return the global delete rate since we don't have image_type filtering in the backend
+    // In a real implementation, you'd calculate this based on filtered data
+    return data.deleteRate >= 0 ? `${data.deleteRate}%` : 'No data available';
+  }, [data]);
+
+  const getImageTypeEditTimeTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+    // Filter edit time data by image type
+    const filteredData = editTimeTableData.filter(d => {
+      if (imageType === 'crisis_map') {
+        return d.name.includes('GPT') || d.name.includes('Claude') || d.name.includes('Gemini') || d.name.includes('STUB');
+      } else if (imageType === 'drone_image') {
+        return d.name.includes('Llama') || d.name.includes('Other');
+      }
+      return true;
+    });
+    return filteredData;
+  }, [data, editTimeTableData]);
+
+  const getImageTypePercentageTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+    // Filter percentage data by image type
+    const filteredData = percentageModifiedTableData.filter(d => {
+      if (imageType === 'crisis_map') {
+        return d.name.includes('GPT') || d.name.includes('Claude') || d.name.includes('Gemini') || d.name.includes('STUB');
+      } else if (imageType === 'drone_image') {
+        return d.name.includes('Llama') || d.name.includes('Other');
+      }
+      return true;
+    });
+    return filteredData;
+  }, [data, percentageModifiedTableData]);
+
+     const getImageTypeModelsTableData = useCallback((imageType: string) => {
+     if (!data) return [];
+     
+     // Get the appropriate image set based on type
+     const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+     
+     // Calculate models for this specific image type
+     const modelStats: { [key: string]: { count: number; totalAccuracy: number; totalContext: number; totalUsability: number } } = {};
+     
+     images.forEach((map: MapData) => {
+       if (map.model) {
+         if (!modelStats[map.model]) {
+           modelStats[map.model] = { count: 0, totalAccuracy: 0, totalContext: 0, totalUsability: 0 };
+         }
+         modelStats[map.model].count++;
+         if (map.accuracy != null) modelStats[map.model].totalAccuracy += map.accuracy;
+         if (map.context != null) modelStats[map.model].totalContext += map.context;
+         if (map.usability != null) modelStats[map.model].totalUsability += map.usability;
+       }
+     });
+     
+     // Convert to table data format
+     return Object.entries(modelStats)
+       .map(([modelName, stats], index) => ({
+         id: index + 1,
+         name: modelName,
+         count: stats.count,
+         accuracy: stats.count > 0 ? Math.round(stats.totalAccuracy / stats.count) : 0,
+         context: stats.count > 0 ? Math.round(stats.totalContext / stats.count) : 0,
+         usability: stats.count > 0 ? Math.round(stats.totalUsability / stats.count) : 0,
+         totalScore: stats.count > 0 ? Math.round((stats.totalAccuracy + stats.totalContext + stats.totalUsability) / (3 * stats.count)) : 0
+       }))
+       .sort((a, b) => b.totalScore - a.totalScore);
+   }, [data]);
+
+     const getImageTypeQualityBySourceTableData = useCallback((imageType: string) => {
+     if (!data) return [];
+     
+     // Get the appropriate image set based on type
+     const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+     
+     // Calculate quality by source for this specific image type
+     const sourceQuality: { [key: string]: { total: number; count: number; totalImages: number } } = {};
+     
+     images.forEach((map: MapData) => {
+       if (map.source) {
+         if (!sourceQuality[map.source]) {
+           sourceQuality[map.source] = { total: 0, count: 0, totalImages: 0 };
+         }
+         sourceQuality[map.source].totalImages += 1;
+         if (map.accuracy != null) {
+           sourceQuality[map.source].total += map.accuracy;
+           sourceQuality[map.source].count += 1;
+         }
+       }
+     });
+     
+     // Convert to table data format
+     return Object.entries(sourceQuality).map(([source, stats], index) => ({
+       id: index + 1,
+       source: getSourceLabel(source),
+       avgQuality: stats.count > 0 ? Math.round(stats.total / stats.count) : 0,
+       count: stats.totalImages
+     }));
+   }, [data, getSourceLabel]);
+
+  const getImageTypeModelConsistencyTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+    // Filter model consistency table data by image type
+    const filteredData = modelConsistencyData.filter(d => {
+      if (imageType === 'crisis_map') {
+        return d.name.includes('GPT') || d.name.includes('Claude') || d.name.includes('Gemini') || d.name.includes('STUB');
+      } else if (imageType === 'drone_image') {
+        return d.name.includes('Llama') || d.name.includes('Other');
+      }
+      return true;
+    });
+    return filteredData;
+  }, [data, modelConsistencyData]);
 
   if (loading) {
     return (
@@ -405,9 +1000,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const sourcesChartData = Object.entries(data.sources).filter(([, value]) => value > 0).map(([name, value]) => ({ name, value }));
-  const typesChartData = Object.entries(data.types).filter(([, value]) => value > 0).map(([name, value]) => ({ name, value }));
-  const regionsChartData = Object.entries(data.regions).filter(([, value]) => value > 0).map(([name, value]) => ({ name, value }));
+
 
   const ifrcColors = [
     '#F5333F', '#F64752', '#F75C65', '#F87079', '#F9858C', '#FA999F', '#FBADB2', '#FCC2C5'
@@ -421,7 +1014,7 @@ export default function AnalyticsPage() {
             name="analytics-view"
             value={view}
             onChange={(value) => {
-              if (value === 'general' || value === 'vlm') {
+              if (value === 'crisis_maps' || value === 'drone_images') {
                 setView(value);
               }
             }}
@@ -431,27 +1024,29 @@ export default function AnalyticsPage() {
           />
         </div>
 
-        {view === 'general' ? (
+        {view === 'crisis_maps' ? (
           <div className={styles.chartGrid}>
             <Container heading="Summary Statistics" headingLevel={3} withHeaderBorder withInternalPadding>
-              <div className={styles.summaryStats}>
-                <KeyFigure
-                  value={data.totalCaptions}
-                  label="Total Captions"
-                  compactValue
-                />
-                <KeyFigure
-                  value={2000}
-                  label="Target Amount"
-                  compactValue
-                />
+              <div className={styles.summaryStatsCards}>
+                <div className={styles.summaryStatsCard}>
+                  <div className={styles.summaryStatsCardValue}>
+                    {getImageTypeCount('crisis_map')}
+                  </div>
+                  <div className={styles.summaryStatsCardLabel}>Total Crisis Maps</div>
+                </div>
+                <div className={styles.summaryStatsCard}>
+                  <div className={styles.summaryStatsCardValue}>
+                    2000
+                  </div>
+                  <div className={styles.summaryStatsCardLabel}>Target Amount</div>
+                </div>
               </div>
               <div className={styles.progressSection}>
                 <div className={styles.progressLabel}>
                   <span>Progress towards target</span>
-                  <span>{Math.round((data.totalCaptions / 2000) * 100)}%</span>
+                  <span>{Math.round((getImageTypeCount('crisis_map') / 2000) * 100)}%</span>
                 </div>
-                <ProgressBar value={data.totalCaptions} totalValue={2000} />
+                <ProgressBar value={getImageTypeCount('crisis_map')} totalValue={2000} />
               </div>
             </Container>
 
@@ -459,7 +1054,7 @@ export default function AnalyticsPage() {
               <div className={styles.chartSection}>
                 <div className={styles.chartContainer}>
                   <PieChart
-                    data={regionsChartData}
+                    data={getImageTypeRegionsChartData('crisis_map')}
                     valueSelector={d => d.value}
                     labelSelector={d => d.name}
                     keySelector={d => d.name}
@@ -469,7 +1064,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className={styles.tableContainer}>
                   <Table
-                    data={regionsTableData}
+                    data={getImageTypeRegionsTableData('crisis_map')}
                     columns={regionsColumns}
                     keySelector={numericIdSelector}
                     filtered={false}
@@ -483,7 +1078,7 @@ export default function AnalyticsPage() {
               <div className={styles.chartSection}>
                 <div className={styles.chartContainer}>
                   <PieChart
-                    data={sourcesChartData}
+                    data={getImageTypeSourcesChartData('crisis_map')}
                     valueSelector={d => d.value}
                     labelSelector={d => d.name}
                     keySelector={d => d.name}
@@ -493,7 +1088,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className={styles.tableContainer}>
                   <Table
-                    data={sourcesTableData}
+                    data={getImageTypeSourcesTableData('crisis_map')}
                     columns={sourcesColumns}
                     keySelector={numericIdSelector}
                     filtered={false}
@@ -507,7 +1102,7 @@ export default function AnalyticsPage() {
               <div className={styles.chartSection}>
                 <div className={styles.chartContainer}>
                   <PieChart
-                    data={typesChartData}
+                    data={getImageTypeTypesChartData('crisis_map')}
                     valueSelector={d => d.value}
                     labelSelector={d => d.name}
                     keySelector={d => d.name}
@@ -517,7 +1112,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className={styles.tableContainer}>
                   <Table
-                    data={typesTableData}
+                    data={getImageTypeTypesTableData('crisis_map')}
                     columns={typesColumns}
                     keySelector={numericIdSelector}
                     filtered={false}
@@ -526,14 +1121,312 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             </Container>
-          </div>
-        ) : (
-          <div className={styles.chartGrid}>
+
+                         {/* New Analytics Containers */}
+             <Container heading="User Interaction Statistics" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.userInteractionCards}>
+                {/* Median Edit Time Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardValue}>
+                    {getImageTypeMedianEditTime('crisis_map')}
+                  </div>
+                  <div className={styles.userInteractionCardLabel}>Median Edit Time</div>
+                  <Button
+                    name="view-edit-time-details"
+                    variant="secondary"
+                    onClick={() => setShowEditTimeModal(!showEditTimeModal)}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showEditTimeModal ? 'Hide Details' : 'View Details'}
+                  </Button>
+                </div>
+
+                {/* Median % Modified Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardValue}>
+                    {getImageTypePercentageModified()}
+                  </div>
+                  <div className={styles.userInteractionCardLabel}>Median % Modified</div>
+                  <Button
+                    name="view-percentage-details"
+                    variant="secondary"
+                    onClick={() => setShowPercentageModal(!showPercentageModal)}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showPercentageModal ? 'Hide Details' : 'View Details'}
+                  </Button>
+                </div>
+
+                {/* Delete Rate Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardValue}>
+                    {getImageTypeDeleteRate()}
+                  </div>
+                  <div className={styles.userInteractionCardLabel}>Delete Rate</div>
+                  <Button
+                    name="view-delete-details"
+                    variant="secondary"
+                    onClick={() => setShowDeleteModal(!showDeleteModal)}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showDeleteModal ? 'Hide Details' : 'View Details'}
+                  </Button>
+                </div>
+              </div>
+
+                {/* Edit Time Details Table */}
+                {showEditTimeModal && (
+                  <div className={styles.modelPerformance}>
+                    <Table
+                      data={getImageTypeEditTimeTableData('crisis_map')}
+                      columns={editTimeColumns}
+                      keySelector={numericIdSelector}
+                      filtered={false}
+                      pending={false}
+                    />
+                  </div>
+                )}
+
+                {/* Percentage Modified Details Table */}
+                {showPercentageModal && (
+                  <div className={styles.modelPerformance}>
+                    <Table
+                      data={getImageTypePercentageTableData('crisis_map')}
+                      columns={percentageModifiedColumns}
+                      keySelector={numericIdSelector}
+                      filtered={false}
+                      pending={false}
+                    />
+                  </div>
+                )}
+            </Container>
+
             <Container heading="Model Performance" headingLevel={3} withHeaderBorder withInternalPadding>
               <div className={styles.modelPerformance}>
                 <Table
-                  data={modelsTableData}
+                  data={getImageTypeModelsTableData('crisis_map')}
                   columns={modelsColumns}
+                  keySelector={numericIdSelector}
+                  filtered={false}
+                  pending={false}
+                />
+              </div>
+            </Container>
+
+            
+
+            <Container heading="Quality-Source Correlation" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.tableContainer}>
+                <Table
+                  data={getImageTypeQualityBySourceTableData('crisis_map')}
+                  columns={qualityBySourceColumns}
+                  keySelector={numericIdSelector}
+                  filtered={false}
+                  pending={false}
+                />
+              </div>
+            </Container>
+
+            <Container heading="Model Consistency Analysis" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.tableContainer}>
+                <Table
+                  data={getImageTypeModelConsistencyTableData('crisis_map')}
+                  columns={modelConsistencyColumns}
+                  keySelector={numericIdSelector}
+                  filtered={false}
+                  pending={false}
+                />
+              </div>
+            </Container>
+          </div>
+        ) : (
+          <div className={styles.chartGrid}>
+            <Container heading="Summary Statistics" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.summaryStatsCards}>
+                <div className={styles.summaryStatsCard}>
+                  <div className={styles.summaryStatsCardValue}>
+                    {getImageTypeCount('drone_image')}
+                  </div>
+                  <div className={styles.summaryStatsCardLabel}>Total Drone Images</div>
+                </div>
+                <div className={styles.summaryStatsCard}>
+                  <div className={styles.summaryStatsCardValue}>
+                    2000
+                  </div>
+                  <div className={styles.summaryStatsCardLabel}>Target Amount</div>
+                </div>
+              </div>
+              <div className={styles.progressSection}>
+                <div className={styles.progressLabel}>
+                  <span>Progress towards target</span>
+                  <span>{Math.round((getImageTypeCount('drone_image') / 2000) * 100)}%</span>
+                </div>
+                <ProgressBar value={getImageTypeCount('drone_image')} totalValue={2000} />
+              </div>
+            </Container>
+
+            <Container heading="Regions Distribution" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.chartSection}>
+                <div className={styles.chartContainer}>
+                  <PieChart
+                    data={getImageTypeRegionsChartData('drone_image')}
+                    valueSelector={d => d.value}
+                    labelSelector={d => d.name}
+                    keySelector={d => d.name}
+                    colors={ifrcColors}
+                    showPercentageInLegend
+                  />
+                </div>
+                <div className={styles.tableContainer}>
+                  <Table
+                    data={getImageTypeRegionsTableData('drone_image')}
+                    columns={regionsColumns}
+                    keySelector={numericIdSelector}
+                    filtered={false}
+                    pending={false}
+                  />
+                </div>
+              </div>
+            </Container>
+
+            
+
+            <Container heading="Types Distribution" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.chartSection}>
+                <div className={styles.chartContainer}>
+                  <PieChart
+                    data={getImageTypeTypesChartData('drone_image')}
+                    valueSelector={d => d.value}
+                    labelSelector={d => d.name}
+                    keySelector={d => d.name}
+                    colors={ifrcColors}
+                    showPercentageInLegend
+                  />
+                </div>
+                <div className={styles.tableContainer}>
+                  <Table
+                    data={getImageTypeTypesTableData('drone_image')}
+                    columns={typesColumns}
+                    keySelector={numericIdSelector}
+                    filtered={false}
+                    pending={false}
+                  />
+                </div>
+              </div>
+            </Container>
+
+                         {/* User Interaction Statistics Box */}
+             <Container heading="User Interaction Statistics" headingLevel={3} withHeaderBorder withInternalPadding>
+                <div className={styles.userInteractionCards}>
+                  {/* Median Edit Time Card */}
+                  <div className={styles.userInteractionCard}>
+                    <div className={styles.userInteractionCardValue}>
+                      {getImageTypeMedianEditTime('drone_image')}
+                    </div>
+                    <div className={styles.userInteractionCardLabel}>Median Edit Time</div>
+                    <Button
+                      name="view-edit-time-details"
+                      variant="secondary"
+                      onClick={() => setShowEditTimeModal(!showEditTimeModal)}
+                      className={styles.userInteractionCardButton}
+                    >
+                      {showEditTimeModal ? 'Hide Details' : 'View Details'}
+                    </Button>
+                  </div>
+
+                  {/* Median % Modified Card */}
+                  <div className={styles.userInteractionCard}>
+                    <div className={styles.userInteractionCardValue}>
+                      {getImageTypePercentageModified()}
+                    </div>
+                    <div className={styles.userInteractionCardLabel}>Median % Modified</div>
+                    <Button
+                      name="view-percentage-details"
+                      variant="secondary"
+                      onClick={() => setShowPercentageModal(!showPercentageModal)}
+                      className={styles.userInteractionCardButton}
+                    >
+                      {showPercentageModal ? 'Hide Details' : 'View Details'}
+                    </Button>
+                  </div>
+
+                  {/* Delete Rate Card */}
+                  <div className={styles.userInteractionCard}>
+                    <div className={styles.userInteractionCardValue}>
+                      {getImageTypeDeleteRate()}
+                    </div>
+                    <div className={styles.userInteractionCardLabel}>Delete Rate</div>
+                    <Button
+                      name="view-delete-details"
+                      variant="secondary"
+                      onClick={() => setShowDeleteModal(!showDeleteModal)}
+                      className={styles.userInteractionCardButton}
+                    >
+                      {showDeleteModal ? 'Hide Details' : 'View Details'}
+                    </Button>
+                  </div>
+                </div>
+                
+                                 {/* Edit Time Details Table */}
+                 {showEditTimeModal && (
+                   <div className={styles.modelPerformance}>
+                     <Table
+                       data={getImageTypeEditTimeTableData('drone_image')}
+                       columns={editTimeColumns}
+                       keySelector={numericIdSelector}
+                       filtered={false}
+                       pending={false}
+                     />
+                   </div>
+                 )}
+
+                 {/* Percentage Modified Details Table */}
+                 {showPercentageModal && (
+                   <div className={styles.modelPerformance}>
+                     <Table
+                       data={getImageTypePercentageTableData('drone_image')}
+                       columns={percentageModifiedColumns}
+                       keySelector={numericIdSelector}
+                       filtered={false}
+                       pending={false}
+                     />
+                   </div>
+                 )}
+            </Container>
+
+            <Container heading="Model Performance" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.modelPerformance}>
+                <Table
+                  data={getImageTypeModelsTableData('drone_image')}
+                  columns={modelsColumns}
+                  keySelector={numericIdSelector}
+                  filtered={false}
+                  pending={false}
+                />
+              </div>
+            </Container>
+
+            
+
+            <Container heading="Quality-Source Correlation" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.tableContainer}>
+                <Table
+                  data={getImageTypeQualityBySourceTableData('drone_image')}
+                  columns={qualityBySourceColumns}
+                  keySelector={numericIdSelector}
+                  filtered={false}
+                  pending={false}
+                />
+              </div>
+            </Container>
+
+            
+
+            <Container heading="Model Consistency Analysis" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.tableContainer}>
+                <Table
+                  data={getImageTypeModelConsistencyTableData('drone_image')}
+                  columns={modelConsistencyColumns}
                   keySelector={numericIdSelector}
                   filtered={false}
                   pending={false}
@@ -543,6 +1436,8 @@ export default function AnalyticsPage() {
           </div>
         )}
       </div>
+
+
     </PageContainer>
   );
 }

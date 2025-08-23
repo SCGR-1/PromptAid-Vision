@@ -299,11 +299,11 @@ async def delete_model(
                 detail=f"Cannot delete model '{model_code}' - it is used by {image_count} image(s)"
             )
         
-        # Delete model
+        # Soft delete model (increment delete count and mark as unavailable)
         crud.delete_model(db, model_code)
         
         return {
-            "message": f"Model '{model_code}' deleted successfully"
+            "message": f"Model '{model_code}' soft deleted successfully (delete count incremented)"
         }
     except Exception as e:
         raise HTTPException(

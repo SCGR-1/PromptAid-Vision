@@ -1,0 +1,22 @@
+{
+    "namespace": "fieldReportForm",
+    "strings": {
+        "formRedirectMessage": "Field report updated, redirecting...",
+        "formErrorLabel": "Failed to create/update!",
+        "title": "IFRC GO - Field Report",
+        "updateHeading": "Update Field Report",
+        "createHeading": "Create Field Report",
+        "formItemActionsLabel": "Actions",
+        "formItemContextLabel": "Context",
+        "formItemEarlyActionsLabel": "Early Actions",
+        "formItemResponseLabel": "Response",
+        "formItemRiskAnalysisLabel": "Risk Analysis",
+        "formItemSituationLabel": "Situation",
+        "submitButtonLabel": "Submit",
+        "backButtonLabel": "Back",
+        "continueButtonLabel": "Continue",
+        "formLoadingMessage": "Loading Field Report...",
+        "formLoadErrorTitle": "Failed to load Field Report!"
+    }
+}
+

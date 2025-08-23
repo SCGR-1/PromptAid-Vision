@@ -1,0 +1,10 @@
+.preparedness-catalogue-resources {
+    aspect-ratio: 3 / 4;
+
+    .catalogue-iframe {
+        border: none;
+        /* background-color: var(--go-ui-color-gray-30); */
+        width: 100%;
+        height: 100%;
+    }
+}

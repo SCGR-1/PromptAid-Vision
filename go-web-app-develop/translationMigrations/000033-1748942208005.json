@@ -1,0 +1,76 @@
+{
+    "parent": "000032-1748241014639.json",
+    "actions": [
+        {
+            "action": "add",
+            "key": "drefFormRequestAmountDescriptionForTypeLoan",
+            "namespace": "drefApplicationForm",
+            "value": "General funding requested to fund the interventions. "
+        },
+        {
+            "action": "add",
+            "key": "drefFormRequestAmountForTypeLoan",
+            "namespace": "drefApplicationForm",
+            "value": "Requested Amount in CHF"
+        },
+        {
+            "action": "add",
+            "key": "drefFormUploadTargetingSupportingDescription",
+            "namespace": "drefApplicationForm",
+            "value": "Assessment report file types: pdf, docx, pptx, xlsx"
+        },
+        {
+            "action": "remove",
+            "key": "drefFormTotalTargeted",
+            "namespace": "drefApplicationForm"
+        },
+        {
+            "action": "update",
+            "key": "drefFormUploadPhotosLimitation",
+            "namespace": "drefApplicationForm",
+            "newValue": "Add maximum 4 photos"
+        },
+        {
+            "action": "add",
+            "key": "targetedFemaleLabel",
+            "namespace": "drefFinalReportExport",
+            "value": "Targeted Female"
+        },
+        {
+            "action": "add",
+            "key": "targetedMaleLabel",
+            "namespace": "drefFinalReportExport",
+            "value": "Targeted Male"
+        },
+        {
+            "action": "add",
+            "key": "drefFormUploadTargetingSupportingDescription",
+            "namespace": "drefFinalReportForm",
+            "value": "Financial report file types: pdf"
+        },
+        {
+            "action": "update",
+            "key": "drefFormUploadPhotosLimitation",
+            "namespace": "drefFinalReportForm",
+            "newValue": "Add maximum 4 photos"
+        },
+        {
+            "action": "add",
+            "key": "targetedFemaleLabel",
+            "namespace": "drefOperationalUpdateExport",
+            "value": "Targeted Female"
+        },
+        {
+            "action": "add",
+            "key": "targetedMaleLabel",
+            "namespace": "drefOperationalUpdateExport",
+            "value": "Targeted Male"
+        },
+        {
+            "action": "update",
+            "key": "drefFormUploadPhotosLimitation",
+            "namespace": "drefOperationalUpdateForm",
+            "newValue": "Add maximum 4 photos"
+        }
+    ]
+}

@@ -1,0 +1,21 @@
+{
+    "namespace": "allFieldReports",
+    "strings": {
+        "allFieldReportsTitle": "All Field Reports",
+        "failedToCreateExport": "Failed to generate export.",
+        "allFieldReportsHeading": "All Field Reports ({numFieldReports})",
+        "allFieldReportsCreatedAt":"Created At",
+        "allFieldReportsName":"Name",
+        "allFieldReportsEmergency":"Emergency",
+        "allFieldReportsDisasterType":"Disaster Type",
+        "allFieldReportsCountry":"Countries",
+        "allFieldReportsCountries":"Countries",
+        "allFieldReportsRegions":"Regions",
+        "allFieldReportsViewAllReports":"View All Field Reports",
+        "allFieldReportsFilterCountryPlaceholder": "All Countries",
+        "allFieldReportsFilterRegionPlaceholder": "All Regions",
+        "allFieldReportsFilterDisastersPlaceholder": "All Disaster Types",
+        "allFieldReportsFilterCreatedDateAfter": "Created After",
+        "allFieldReportsFilterCreatedDateBefore": "Created Before"
+    }
+}

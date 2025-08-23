@@ -1,0 +1,7 @@
+{
+    "namespace": "emergencySurge",
+    "strings": {
+        "emergencyActiveDeployments": "Ongoing Rapid Response Deployments",
+        "emergencyActiveErus": "Deployed ERUs"
+    }
+}

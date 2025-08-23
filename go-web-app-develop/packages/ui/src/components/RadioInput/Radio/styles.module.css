@@ -1,0 +1,59 @@
+.radio {
+    --cursor: default;
+    cursor: var(--cursor);
+
+    .icon {
+        transition: var(--go-ui-duration-transition-medium) color ease-in-out;
+        font-size: var(--go-ui-height-icon-multiplier);
+    }
+
+    .content {
+        flex-direction: column;
+        gap: 0;
+        line-height: var(--go-ui-line-height-sm);
+    }
+
+    .description {
+        color: var(--go-ui-color-text-light);
+        font-size: var(--go-ui-font-size-sm);
+    }
+
+    .input {
+        position: absolute;
+        opacity: 0;
+        margin: 0;
+        padding: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+
+        &:focus-visible  + div {
+            outline: var(--go-ui-width-separator-thin) dashed var(--go-ui-color-gray-40);
+            outline-offset: 1px;
+            border-radius: 50%;
+        }
+    }
+
+    &.active {
+        .icon {
+            color: var(--go-ui-color-primary-red);
+        }
+    }
+
+    &.disabled {
+        opacity: var(--go-ui-opacity-disabled-element);
+    }
+
+    &:not(.disabled) {
+        &:focus,
+        &:hover {
+            .icon {
+                color: var(--go-ui-color-primary-red);
+            }
+        }
+
+        &:not(.read-only) {
+            --cursor: pointer;
+        }
+    }
+}

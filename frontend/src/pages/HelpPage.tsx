@@ -1,10 +1,28 @@
-import { PageContainer, Heading, Container } from '@ifrc-go/ui';
+import { PageContainer, Heading, Container, Button } from '@ifrc-go/ui';
+import { useNavigate } from 'react-router-dom';
+import { useFilterContext } from '../contexts/FilterContext';
 
 export default function HelpPage() {
+  const navigate = useNavigate();
+  const { setShowReferenceExamples } = useFilterContext();
+
+  const handleUploadNow = () => {
+    navigate('/upload');
+  };
+
+  const handleSeeExamples = () => {
+    setShowReferenceExamples(true);
+    navigate('/explore');
+  };
+
+  const handleViewVlmDetails = () => {
+    navigate('/analytics?view=crisis_maps');
+  };
+
   return (
     <PageContainer className="py-10">
       <Container withInternalPadding className="max-w-4xl mx-auto">
-        <Heading level={2} className="text-center mb-12 text-gray-900">Help &amp; Support</Heading>
+
         
         <div className="space-y-8">
           <Container withInternalPadding className="p-8">
@@ -16,6 +34,15 @@ export default function HelpPage() {
               cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in 
               culpa qui officia deserunt mollit anim id est laborum.
             </p>
+            <div className="mt-6">
+              <Button
+                name="upload-now"
+                variant="primary"
+                onClick={handleUploadNow}
+              >
+                Upload now →
+              </Button>
+            </div>
           </Container>
 
           <Container withInternalPadding className="p-8">
@@ -26,6 +53,15 @@ export default function HelpPage() {
               dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, 
               sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
             </p>
+            <div className="mt-6">
+              <Button
+                name="see-examples"
+                variant="primary"
+                onClick={handleSeeExamples}
+              >
+                See examples →
+              </Button>
+            </div>
           </Container>
 
           <Container withInternalPadding className="p-8">
@@ -36,6 +72,15 @@ export default function HelpPage() {
               provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum 
               fuga. Et harum quidem rerum facilis est et expedita distinctio.
             </p>
+            <div className="mt-6">
+              <Button
+                name="view-vlm-details"
+                variant="primary"
+                onClick={handleViewVlmDetails}
+              >
+                View VLM details →
+              </Button>
+            </div>
           </Container>
         </div>
       </Container>

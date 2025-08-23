@@ -1,0 +1,14 @@
+{
+    "namespace": "accountDetails",
+    "strings": {
+        "changePasswordModalHeading": "Change User Password",
+        "oldPasswordInputLabel": "Old Password",
+        "newPasswordInputLabel": "New Password",
+        "confirmNewPasswordInputLabel": "Confirm New Password",
+        "changePasswordCancelButtonLabel": "Cancel",
+        "changePasswordConfirmButtonLabel": "Confirm",
+        "changePasswordSuccessMessage": "Successfully changed password!",
+        "changePasswordFailureMessage": "Failed to change password!",
+        "changePasswordDoNotMatch": "Passwords do not match"
+    }
+}

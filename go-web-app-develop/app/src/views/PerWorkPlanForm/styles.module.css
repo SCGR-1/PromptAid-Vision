@@ -1,0 +1,41 @@
+.per-work-plan-form {
+    .content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--go-ui-spacing-xl);
+
+        .overview {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--go-ui-color-foreground);
+            padding: var(--go-ui-spacing-lg);
+            gap: var(--go-ui-spacing-lg);
+
+            .responsible {
+                display: flex;
+                align-items: center;
+                gap: var(--go-ui-spacing-lg);
+            }
+        }
+
+        .prioritized-components {
+            background-color: var(--go-ui-color-foreground);
+
+            .component-list {
+                display: flex;
+                flex-direction: column;
+                gap: var(--go-ui-spacing-xl);
+            }
+        }
+
+        .actions {
+            background-color: var(--go-ui-color-foreground);
+
+            .action-list {
+                display: flex;
+                flex-direction: column;
+                gap: var(--go-ui-spacing-xl);
+            }
+        }
+    }
+}

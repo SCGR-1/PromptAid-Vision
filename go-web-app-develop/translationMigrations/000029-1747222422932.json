@@ -1,0 +1,197 @@
+{
+    "parent": "000028-1747134326433.json",
+    "actions": [
+        {
+            "action": "add",
+            "key": "userMenuMontandonItem",
+            "namespace": "common",
+            "value": "Montandon - the Global Crisis Data Bank"
+        },
+        {
+            "action": "add",
+            "key": "userMenuMontandonItemDescription",
+            "namespace": "common",
+            "value": "Montandon - the world's largest disaster database, containing data on hazards, impacts, and what actions were taken to address them."
+        },
+        {
+            "action": "add",
+            "key": "accessAPILabel",
+            "namespace": "montandonLandingPage",
+            "value": "Access API"
+        },
+        {
+            "action": "add",
+            "key": "apiDescription",
+            "namespace": "montandonLandingPage",
+            "value": "OpenAPI service description"
+        },
+        {
+            "action": "add",
+            "key": "apiDocumentation",
+            "namespace": "montandonLandingPage",
+            "value": "OpenAPI service documentation"
+        },
+        {
+            "action": "add",
+            "key": "blogPosts",
+            "namespace": "montandonLandingPage",
+            "value": "Blog Posts"
+        },
+        {
+            "action": "add",
+            "key": "contact",
+            "namespace": "montandonLandingPage",
+            "value": "Contact"
+        },
+        {
+            "action": "add",
+            "key": "contactInfo",
+            "namespace": "montandonLandingPage",
+            "value": "Senior Officer, Information Management and Risk Analysis, IFRC"
+        },
+        {
+            "action": "add",
+            "key": "contactName",
+            "namespace": "montandonLandingPage",
+            "value": "Justin Ginetti"
+        },
+        {
+            "action": "add",
+            "key": "emailLabel",
+            "namespace": "montandonLandingPage",
+            "value": "Email"
+        },
+        {
+            "action": "add",
+            "key": "exploreRadiantEarthLabel",
+            "namespace": "montandonLandingPage",
+            "value": "Explore Radiant Earth API"
+        },
+        {
+            "action": "add",
+            "key": "goWiki",
+            "namespace": "montandonLandingPage",
+            "value": "GO Wiki"
+        },
+        {
+            "action": "add",
+            "key": "leveragingDataBlogPostTitle",
+            "namespace": "montandonLandingPage",
+            "value": "Leveraging data to learn from past disasters"
+        },
+        {
+            "action": "add",
+            "key": "montandonEoapi",
+            "namespace": "montandonLandingPage",
+            "value": "Montandon EoAPI"
+        },
+        {
+            "action": "add",
+            "key": "montandonHeading",
+            "namespace": "montandonLandingPage",
+            "value": "Montandon - The Global Crisis Data Bank"
+        },
+        {
+            "action": "add",
+            "key": "montandonHeadingDescription",
+            "namespace": "montandonLandingPage",
+            "value": "Montandon is the world’s largest disaster database—a global public good with applications far beyond IFRC. Montandon integrates three key types of data: 1) forecasted and recorded natural hazards; 2) impact data on these hazards; and 3) operational response data (where available). Montandon contains more than millions of records about hazards and their impacts for hundreds of thousands of events."
+        },
+        {
+            "action": "add",
+            "key": "montandonPageTitle",
+            "namespace": "montandonLandingPage",
+            "value": "Montandon - The Global Crisis Data Bank"
+        },
+        {
+            "action": "add",
+            "key": "resources",
+            "namespace": "montandonLandingPage",
+            "value": "Resources"
+        },
+        {
+            "action": "add",
+            "key": "scaledUpSystemsBlogPostTitle",
+            "namespace": "montandonLandingPage",
+            "value": "Scaled-up ambitions require scaled-up systems"
+        },
+        {
+            "action": "add",
+            "key": "sharePopupTitle",
+            "namespace": "montandonLandingPage",
+            "value": "Share"
+        },
+        {
+            "action": "add",
+            "key": "shareUrlLabel",
+            "namespace": "montandonLandingPage",
+            "value": "Share the URL of this page:"
+        },
+        {
+            "action": "add",
+            "key": "sourceButtonTitle",
+            "namespace": "montandonLandingPage",
+            "value": "Source"
+        },
+        {
+            "action": "add",
+            "key": "sourcePopupTitle",
+            "namespace": "montandonLandingPage",
+            "value": "Source Data"
+        },
+        {
+            "action": "add",
+            "key": "stacIdLabel",
+            "namespace": "montandonLandingPage",
+            "value": "ID"
+        },
+        {
+            "action": "add",
+            "key": "stacIdValue",
+            "namespace": "montandonLandingPage",
+            "value": "stac-fastapi"
+        },
+        {
+            "action": "add",
+            "key": "stacLocationText",
+            "namespace": "montandonLandingPage",
+            "value": "The STAC metadata file is located at"
+        },
+        {
+            "action": "add",
+            "key": "stacVersionLabel",
+            "namespace": "montandonLandingPage",
+            "value": "STAC Version"
+        },
+        {
+            "action": "add",
+            "key": "stacVersionValue",
+            "namespace": "montandonLandingPage",
+            "value": "1.0.0"
+        },
+        {
+            "action": "add",
+            "key": "validLabel",
+            "namespace": "montandonLandingPage",
+            "value": "Valid"
+        },
+        {
+            "action": "add",
+            "key": "validValue",
+            "namespace": "montandonLandingPage",
+            "value": "Yes"
+        },
+        {
+            "action": "add",
+            "key": "videoTitle",
+            "namespace": "montandonLandingPage",
+            "value": "IFRC GO Platform: Mapping global crises' historical data with Montandon"
+        },
+        {
+            "action": "add",
+            "key": "visitGithub",
+            "namespace": "montandonLandingPage",
+            "value": "GitHub"
+        }
+    ]
+}

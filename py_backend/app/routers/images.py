@@ -10,6 +10,7 @@ from ..images import CreateImageFromUrlIn, CreateImageFromUrlOut
 from .. import storage
 from ..storage import upload_bytes, get_object_url
 from ..config import settings
+from ..services.image_preprocessor import ImagePreprocessor
 
 router = APIRouter()
 
@@ -86,14 +87,33 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
         if len(data) > 25 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="Image too large")
 
-        ext = mimetypes.guess_extension(content_type) or ".jpg"
-        key = upload_bytes(data, filename=f"contributed{ext}", content_type=content_type)
+        # Preprocess image if needed
+        try:
+            processed_data, processed_filename, mime_type = ImagePreprocessor.preprocess_image(
+                data, 
+                f"contributed.jpg",  # Default filename
+                target_format='PNG',  # Default to PNG for better quality
+                quality=95
+            )
+            
+            # Log preprocessing info
+            print(f"DEBUG: Image preprocessed: {mime_type} -> {processed_filename}")
+            
+        except Exception as e:
+            print(f"DEBUG: Image preprocessing failed: {str(e)}")
+            # Fall back to original content if preprocessing fails
+            processed_data = data
+            processed_filename = f"contributed.jpg"
+            mime_type = 'image/jpeg'  # Default fallback
+
+        ext = mimetypes.guess_extension(mime_type) or ".png"
+        key = upload_bytes(processed_data, filename=processed_filename, content_type=mime_type)
         image_url = get_object_url(key, expires_in=86400)
         
         print(f"DEBUG: Uploaded to key: {key}")
         print(f"DEBUG: Generated URL: {image_url}")
 
-        sha = hashlib.sha256(data).hexdigest()
+        sha = hashlib.sha256(processed_data).hexdigest()
         print(f"DEBUG: Generated SHA256: {sha}")
 
         # Set prompt and schema based on image type

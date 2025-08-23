@@ -1,0 +1,17 @@
+.national-society-local-units {
+    .content {
+        position: relative;
+    }
+
+    .clear-button {
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .presentation-mode {
+        background-color: var(--go-ui-color-background);
+        padding: var(--go-ui-spacing-2xl);
+        width: 96vw;
+    }
+}
+

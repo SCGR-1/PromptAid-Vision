@@ -1,0 +1,5 @@
+.event-detail {
+    display: flex;
+    gap: var(--go-ui-spacing-2xl);
+    flex-direction: column;
+}

@@ -1,4 +1,4 @@
-import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput } from '@ifrc-go/ui';
+import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput, Checkbox } from '@ifrc-go/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';
@@ -55,6 +55,13 @@ export default function MapDetailPage() {
   
   // Add delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportMode, setExportMode] = useState<'standard' | 'fine-tuning'>('standard');
+  const [trainSplit, setTrainSplit] = useState(80);
+  const [testSplit, setTestSplit] = useState(10);
+  const [valSplit, setValSplit] = useState(10);
+  const [crisisMapsSelected, setCrisisMapsSelected] = useState(true);
+  const [droneImagesSelected, setDroneImagesSelected] = useState(true);
   
   // Add flag to prevent auto-navigation during delete operations
   const [isDeleting, setIsDeleting] = useState(false);
@@ -474,6 +481,301 @@ export default function MapDetailPage() {
     }
   };
  
+  // Helper function to create image data
+  const createImageData = (map: any, fileName: string) => ({
+    image: `images/${fileName}`,
+    caption: map.edited || map.generated || '',
+    metadata: {
+      image_id: map.image_id,
+      title: map.title,
+      source: map.source,
+      event_type: map.event_type,
+      image_type: map.image_type,
+      countries: map.countries,
+      starred: map.starred
+    }
+  });
+
+  const exportDataset = async (mode: 'standard' | 'fine-tuning') => {
+    if (!map) {
+      alert('No map to export');
+      return;
+    }
+
+    try {
+      // Create a JSZip instance
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      // Determine which dataset to create based on image type
+      if (map.image_type === 'crisis_map') {
+        const crisisFolder = zip.folder('crisis_maps_dataset');
+        const crisisImagesFolder = crisisFolder?.folder('images');
+        
+        if (crisisImagesFolder) {
+          // Download the current crisis map image and add to zip
+          try {
+            const response = await fetch(map.image_url);
+            if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
+            
+            const blob = await response.blob();
+            const fileExtension = map.file_key.split('.').pop() || 'jpg';
+            const fileName = `0001.${fileExtension}`;
+            
+            crisisImagesFolder.file(fileName, blob);
+            
+            if (mode === 'fine-tuning') {
+              // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
+              const trainData: any[] = [];
+              const testData: any[] = [];
+              const valData: any[] = [];
+
+              if (String(map?.image_type) === 'crisis_map') {
+                // For crisis maps, group by source
+                const source = map.source || 'unknown';
+                const totalImages = 1; // Only one image in MapDetailPage
+                
+                // Since we only have one image, distribute it based on the split
+                const random = Math.random();
+                if (random < trainSplit / 100) {
+                  trainData.push(createImageData(map, '0001'));
+                } else if (random < (trainSplit + testSplit) / 100) {
+                  testData.push(createImageData(map, '0001'));
+                } else {
+                  valData.push(createImageData(map, '0001'));
+                }
+              } else if (String(map?.image_type) === 'drone_image') {
+                // For drone images, group by event type
+                const eventType = map.event_type || 'unknown';
+                const totalImages = 1; // Only one image in MapDetailPage
+                
+                // Since we only have one image, distribute it based on the split
+                const random = Math.random();
+                if (random < trainSplit / 100) {
+                  trainData.push(createImageData(map, '0001'));
+                } else if (random < (trainSplit + testSplit) / 100) {
+                  testData.push(createImageData(map, '0001'));
+                } else {
+                  valData.push(createImageData(map, '0001'));
+                }
+              }
+
+              // Add JSONL files to dataset folder
+              if (crisisFolder) {
+                crisisFolder.file('train.jsonl', JSON.stringify(trainData, null, 2));
+                crisisFolder.file('test.jsonl', JSON.stringify(testData, null, 2));
+                crisisFolder.file('val.jsonl', JSON.stringify(valData, null, 2));
+              }
+            } else {
+              // Standard mode: create individual JSON file
+              const jsonData = {
+                image: `images/${fileName}`,
+                caption: map.edited || map.generated || '',
+                metadata: {
+                  image_id: map.image_id,
+                  title: map.title,
+                  source: map.source,
+                  event_type: map.event_type,
+                  image_type: map.image_type,
+                  countries: map.countries,
+                  starred: map.starred
+                }
+              };
+              
+              if (crisisFolder) {
+                crisisFolder.file('0001.json', JSON.stringify(jsonData, null, 2));
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to process image ${map.image_id}:`, error);
+            throw error;
+          }
+        }
+      } else if (map.image_type === 'drone_image') {
+        const droneFolder = zip.folder('drone_images_dataset');
+        const droneImagesFolder = droneFolder?.folder('images');
+        
+        if (droneImagesFolder) {
+          // Download the current drone image and add to zip
+          try {
+            const response = await fetch(map.image_url);
+            if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
+            
+            const blob = await response.blob();
+            const fileExtension = map.file_key.split('.').pop() || 'jpg';
+            const fileName = `0001.${fileExtension}`;
+            
+            droneImagesFolder.file(fileName, blob);
+            
+            if (mode === 'fine-tuning') {
+              // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
+              const trainData: any[] = [];
+              const testData: any[] = [];
+              const valData: any[] = [];
+
+              if (String(map?.image_type) === 'crisis_map') {
+                // For crisis maps, group by source
+                const source = map.source || 'unknown';
+                const totalImages = 1; // Only one image in MapDetailPage
+                
+                // Since we only have one image, distribute it based on the split
+                const random = Math.random();
+                if (random < trainSplit / 100) {
+                  trainData.push(createImageData(map, '0001'));
+                } else if (random < (trainSplit + testSplit) / 100) {
+                  testData.push(createImageData(map, '0001'));
+                } else {
+                  valData.push(createImageData(map, '0001'));
+                }
+              } else if (String(map?.image_type) === 'drone_image') {
+                // For drone images, group by event type
+                const eventType = map.event_type || 'unknown';
+                const totalImages = 1; // Only one image in MapDetailPage
+                
+                // Since we only have one image, distribute it based on the split
+                const random = Math.random();
+                if (random < trainSplit / 100) {
+                  trainData.push(createImageData(map, '0001'));
+                } else if (random < (trainSplit + testSplit) / 100) {
+                  testData.push(createImageData(map, '0001'));
+                } else {
+                  valData.push(createImageData(map, '0001'));
+                }
+              }
+
+              // Add JSONL files to dataset folder
+              if (droneFolder) {
+                droneFolder.file('train.jsonl', JSON.stringify(trainData, null, 2));
+                droneFolder.file('test.jsonl', JSON.stringify(testData, null, 2));
+                droneFolder.file('val.jsonl', JSON.stringify(valData, null, 2));
+              }
+            } else {
+              // Standard mode: create individual JSON file
+              const jsonData = {
+                image: `images/${fileName}`,
+                caption: map.edited || map.generated || '',
+                metadata: {
+                  image_id: map.image_id,
+                  title: map.title,
+                  source: map.source,
+                  event_type: map.event_type,
+                  image_type: map.image_type,
+                  countries: map.countries,
+                  starred: map.starred
+                }
+              };
+              
+              if (droneFolder) {
+                droneFolder.file('0001.json', JSON.stringify(jsonData, null, 2));
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to process image ${map.image_id}:`, error);
+            throw error;
+          }
+        }
+      } else {
+        // For other image types, create a generic dataset
+        const genericFolder = zip.folder('generic_dataset');
+        const genericImagesFolder = genericFolder?.folder('images');
+        
+        if (genericImagesFolder) {
+          try {
+            const response = await fetch(map.image_url);
+            if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
+            
+            const blob = await response.blob();
+            const fileExtension = map.file_key.split('.').pop() || 'jpg';
+            const fileName = `0001.${fileExtension}`;
+            
+            genericImagesFolder.file(fileName, blob);
+            
+            if (mode === 'fine-tuning') {
+              // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
+              const trainData: any[] = [];
+              const testData: any[] = [];
+              const valData: any[] = [];
+
+              if (String(map?.image_type) === 'crisis_map') {
+                // For crisis maps, group by source
+                const source = map.source || 'unknown';
+                const totalImages = 1; // Only one image in MapDetailPage
+                
+                // Since we only have one image, distribute it based on the split
+                const random = Math.random();
+                if (random < trainSplit / 100) {
+                  trainData.push(createImageData(map, '0001'));
+                } else if (random < (trainSplit + testSplit) / 100) {
+                  testData.push(createImageData(map, '0001'));
+                } else {
+                  valData.push(createImageData(map, '0001'));
+                }
+              } else if (String(map?.image_type) === 'drone_image') {
+                // For drone images, group by event type
+                const eventType = map.event_type || 'unknown';
+                const totalImages = 1; // Only one image in MapDetailPage
+                
+                // Since we only have one image, distribute it based on the split
+                const random = Math.random();
+                if (random < trainSplit / 100) {
+                  trainData.push(createImageData(map, '0001'));
+                } else if (random < (trainSplit + testSplit) / 100) {
+                  testData.push(createImageData(map, '0001'));
+                } else {
+                  valData.push(createImageData(map, '0001'));
+                }
+              }
+
+              // Add JSONL files to dataset folder
+              if (genericFolder) {
+                genericFolder.file('train.jsonl', JSON.stringify(trainData, null, 2));
+                genericFolder.file('test.jsonl', JSON.stringify(testData, null, 2));
+                genericFolder.file('val.jsonl', JSON.stringify(valData, null, 2));
+              }
+            } else {
+              // Standard mode: create individual JSON file
+              const jsonData = {
+                image: `images/${fileName}`,
+                caption: map.edited || map.generated || '',
+                metadata: {
+                  image_id: map.image_id,
+                  title: map.title,
+                  source: map.source,
+                  event_type: map.event_type,
+                  image_type: map.image_type,
+                  countries: map.countries,
+                  starred: map.starred
+                }
+              };
+              
+              if (genericFolder) {
+                genericFolder.file('0001.json', JSON.stringify(jsonData, null, 2));
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to process image ${map.image_id}:`, error);
+            throw error;
+          }
+        }
+      }
+
+      // Generate and download zip
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dataset_${map.image_type}_${map.image_id}_${mode}_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log(`Exported ${map.image_type} dataset with 1 image in ${mode} mode`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export dataset. Please try again.');
+    }
+  };
 
   if (loading) {
     return (
@@ -528,6 +830,15 @@ export default function MapDetailPage() {
             keySelector={(o) => o.key}
             labelSelector={(o) => o.label}
           />
+          
+          {/* Export Dataset Button */}
+          <Button
+            name="export-dataset"
+            variant="secondary"
+            onClick={() => setShowExportModal(true)}
+          >
+            Export Dataset
+          </Button>
         </div>
 
         {/* Search and Filters */}
@@ -543,26 +854,24 @@ export default function MapDetailPage() {
               />
             </Container>
 
-            {/* Reference Examples Filter - Admin Only */}
-            {isAuthenticated && (
-              <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                <Button
-                  name="reference-examples"
-                  variant={showReferenceExamples ? "primary" : "secondary"}
-                  onClick={() => setShowReferenceExamples(!showReferenceExamples)}
-                  className="whitespace-nowrap"
-                >
-                  <span className="mr-2">
-                    {showReferenceExamples ? (
-                      <span className="text-yellow-400">★</span>
-                    ) : (
-                      <span className="text-yellow-400">☆</span>
-                    )}
-                  </span>
-                  Reference Examples
-                </Button>
-              </Container>
-            )}
+            {/* Reference Examples Filter - Available to all users */}
+            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+              <Button
+                name="reference-examples"
+                variant={showReferenceExamples ? "primary" : "secondary"}
+                onClick={() => setShowReferenceExamples(!showReferenceExamples)}
+                className="whitespace-nowrap"
+              >
+                <span className="mr-2">
+                  {showReferenceExamples ? (
+                    <span className="text-yellow-400">★</span>
+                  ) : (
+                    <span className="text-yellow-400">☆</span>
+                  )}
+                </span>
+                Reference Examples
+              </Button>
+            </Container>
 
             <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
               <Button
@@ -653,7 +962,7 @@ export default function MapDetailPage() {
                     heading={
                       <div className="flex items-center gap-2">
                         <span>{filteredMap.title || "Map Image"}</span>
-                        {isAuthenticated && filteredMap.starred && (
+                        {filteredMap.starred && (
                           <span className="text-red-500 text-xl" title="Starred image">★</span>
                         )}
                       </div>
@@ -879,6 +1188,166 @@ export default function MapDetailPage() {
                   name="cancel-delete"
                   variant="tertiary"
                   onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Selection Modal */}
+      {showExportModal && (
+        <div className={styles.fullSizeModalOverlay} onClick={() => setShowExportModal(false)}>
+          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.ratingWarningContent}>
+              <h3 className={styles.ratingWarningTitle}>Export Dataset</h3>
+              
+              {/* Export Mode Switch */}
+              <div className={styles.exportModeSection}>
+                <SegmentInput
+                  name="export-mode"
+                  value={exportMode}
+                  onChange={(value) => {
+                    if (value === 'standard' || value === 'fine-tuning') {
+                      setExportMode(value);
+                    }
+                  }}
+                  options={[
+                    { key: 'standard' as const, label: 'Standard' },
+                    { key: 'fine-tuning' as const, label: 'Fine-tuning' }
+                  ]}
+                  keySelector={(o) => o.key}
+                  labelSelector={(o) => o.label}
+                />
+              </div>
+              
+              {/* Train/Test/Val Split Configuration - Only show for Fine-tuning mode */}
+              {exportMode === 'fine-tuning' && (
+                <div className={styles.splitConfigSection}>
+                  <div className={styles.splitConfigTitle}>Dataset Split Configuration</div>
+                  <div className={styles.splitInputsContainer}>
+                    <div className={styles.splitInputGroup}>
+                      <label htmlFor="train-split" className={styles.splitInputLabel}>Train (%)</label>
+                      <input
+                        id="train-split"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={trainSplit}
+                        onChange={(e) => {
+                          const newTrain = parseInt(e.target.value) || 0;
+                          const remaining = 100 - newTrain;
+                          if (remaining >= 0) {
+                            setTrainSplit(newTrain);
+                            // Distribute remaining between test and val
+                            if (testSplit + valSplit > remaining) {
+                              setTestSplit(Math.floor(remaining / 2));
+                              setValSplit(remaining - Math.floor(remaining / 2));
+                            }
+                          }
+                        }}
+                        className={styles.splitInput}
+                      />
+                    </div>
+                    
+                    <div className={styles.splitInputGroup}>
+                      <label htmlFor="test-split" className={styles.splitInputLabel}>Test (%)</label>
+                      <input
+                        id="test-split"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={testSplit}
+                        onChange={(e) => {
+                          const newTest = parseInt(e.target.value) || 0;
+                          const remaining = 100 - trainSplit - newTest;
+                          if (remaining >= 0) {
+                            setTestSplit(newTest);
+                            setValSplit(remaining);
+                          }
+                        }}
+                        className={styles.splitInput}
+                      />
+                    </div>
+                    
+                    <div className={styles.splitInputGroup}>
+                      <label htmlFor="val-split" className={styles.splitInputLabel}>Val (%)</label>
+                      <input
+                        id="val-split"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={valSplit}
+                        onChange={(e) => {
+                          const newVal = parseInt(e.target.value) || 0;
+                          const remaining = 100 - trainSplit - newVal;
+                          if (remaining >= 0) {
+                            setValSplit(newVal);
+                            setTestSplit(remaining);
+                          }
+                        }}
+                        className={styles.splitInput}
+                      />
+                    </div>
+                  </div>
+                  
+                  {trainSplit + testSplit + valSplit !== 100 && (
+                    <div className={styles.splitTotal}>
+                      <span className={styles.splitTotalError}>Must equal 100%</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div className={styles.checkboxesContainer}>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    name="crisis-maps"
+                    label="Crisis Maps"
+                    value={crisisMapsSelected}
+                    onChange={(value, name) => setCrisisMapsSelected(value)}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    name="drone-images"
+                    label="Drone Images"
+                    value={droneImagesSelected}
+                    onChange={(value, name) => setDroneImagesSelected(value)}
+                  />
+                </div>
+              </div>
+              
+              <div className={styles.ratingWarningButtons}>
+                <Button
+                  name="confirm-export"
+                  onClick={() => {
+                    if (!crisisMapsSelected && !droneImagesSelected) {
+                      alert('Please select at least one image type to export.');
+                      return;
+                    }
+                    
+                    // For MapDetailPage, we only export the current image if its type is selected
+                    if ((map?.image_type === 'crisis_map' && crisisMapsSelected) || 
+                        (map?.image_type === 'drone_image' && droneImagesSelected)) {
+                      exportDataset(exportMode);
+                    } else {
+                      alert('The current image type is not selected for export.');
+                      return;
+                    }
+                    
+                    setShowExportModal(false);
+                  }}
+                >
+                  Export Selected
+                </Button>
+                <Button
+                  name="cancel-export"
+                  variant="tertiary"
+                  onClick={() => setShowExportModal(false)}
                 >
                   Cancel
                 </Button>

@@ -1,0 +1,16 @@
+.option-container {
+    display: flex;
+    overflow: auto;
+
+    .option {
+        flex-grow: 1;
+    }
+
+    &.active {
+        color: var(--go-ui-color-primary-red);
+
+        .icon {
+            opacity: 1;
+        }
+    }
+}

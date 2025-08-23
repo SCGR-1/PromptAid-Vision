@@ -1,0 +1,13 @@
+{
+    "namespace": "emergencySurge",
+    "strings": {
+        "rapidResponseTitle": "Rapid Response Personnel",
+        "rapidResponse": "Rapid Response",
+        "personnelTableName": "Name",
+        "personnelTablePosition": "Position",
+        "personnelTableType": "Type",
+        "personnelTableDeployedTo": "Deploying To",
+        "personnelTableDeployedParty": "Deploying Party",
+        "deployedPersonnelViewAll": "View All Deployed Personnel"
+    }
+}
