@@ -423,11 +423,26 @@ def update_image_metadata(
         raise HTTPException(500, f"Failed to update image metadata: {str(e)}")
 
 @router.delete("/{image_id}")
-def delete_image(image_id: str, db: Session = Depends(get_db)):
-    """Delete an image and its associated caption data"""
+def delete_image(image_id: str, db: Session = Depends(get_db), content_management: bool = False):
+    """Delete an image and its associated caption data
+    
+    Args:
+        image_id: The ID of the image to delete
+        content_management: If True, this is a content management delete (from map details)
+                          If False, this is a user dissatisfaction delete (from upload flow)
+    """
     img = crud.get_image(db, image_id)
     if not img:
         raise HTTPException(404, "Image not found")
+    
+    # Only increment delete count if this is NOT a content management delete
+    # Content management deletes (from map details) should not count against model performance
+    if not content_management and img.model:
+        from .. import crud as crud_module
+        model = crud_module.get_model(db, img.model)
+        if model:
+            model.delete_count += 1
+            db.commit()
     
     db.delete(img)
     db.commit()

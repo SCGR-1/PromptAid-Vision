@@ -21,13 +21,14 @@ def get_available_models(db: Session = Depends(get_db)):
         
         models_info = []
         for model in db_models:
-            models_info.append({
-                "m_code": model.m_code,
-                "label": model.label,
-                "model_type": model.model_type,
-                "is_available": model.is_available,
-                "config": model.config
-            })
+                    models_info.append({
+            "m_code": model.m_code,
+            "label": model.label,
+            "model_type": model.model_type,
+            "is_available": model.is_available,
+            "config": model.config,
+            "delete_count": model.delete_count
+        })
         
         # Add debug info about registered services
         registered_services = list(vlm_manager.services.keys())
@@ -56,7 +57,8 @@ def get_model_info(model_code: str, db: Session = Depends(get_db)):
             "label": db_model.label,
             "model_type": db_model.model_type,
             "is_available": db_model.is_available,
-            "config": db_model.config
+            "config": db_model.config,
+            "delete_count": db_model.delete_count
         }
     except HTTPException:
         raise

@@ -307,7 +307,7 @@ export default function MapDetailPage() {
     setIsDeleting(true); // Set flag to true
     try {
       console.log('Deleting image with ID:', map.image_id);
-      const res = await fetch(`/api/images/${map.image_id}`, {
+      const res = await fetch(`/api/images/${map.image_id}?content_management=true`, {
         method: "DELETE",
       });
       

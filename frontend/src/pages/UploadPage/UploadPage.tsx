@@ -136,6 +136,7 @@ export default function UploadPage() {
 
     const handleCleanup = () => {
       if (uploadedImageIdRef.current) {
+        // This is a user dissatisfaction delete (abandoning upload), so don't pass content_management=true
         fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
       }
     };

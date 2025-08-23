@@ -93,6 +93,14 @@ interface PercentageModifiedData {
   maxPercentageModified: number;
 }
 
+interface DeleteRateData {
+  id: number;
+  name: string;
+  count: number;
+  deleteCount: number;
+  deleteRate: number;
+}
+
 interface MapData {
   source?: string;
   event_type?: string;
@@ -119,6 +127,13 @@ export default function AnalyticsPage() {
   const [showEditTimeModal, setShowEditTimeModal] = useState(false);
   const [showPercentageModal, setShowPercentageModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Function to handle opening a specific modal and closing others
+  const openModal = (modalType: 'editTime' | 'percentage' | 'delete' | 'none') => {
+    setShowEditTimeModal(modalType === 'editTime');
+    setShowPercentageModal(modalType === 'percentage');
+    setShowDeleteModal(modalType === 'delete');
+  };
 
   const viewOptions = [
     { key: 'crisis_maps' as const, label: 'Crisis Maps' },
@@ -275,21 +290,23 @@ export default function AnalyticsPage() {
 
       // Fetch model data including delete counts
       try {
-        const modelsRes = await fetch('/api/admin/models');
+        const modelsRes = await fetch('/api/models');
         if (modelsRes.ok) {
           const modelsData = await modelsRes.json();
           
           // Update delete counts for each model
-          modelsData.forEach((model: { m_code: string; delete_count: number }) => {
-            if (analytics.models[model.m_code]) {
-              analytics.models[model.m_code].deleteCount = model.delete_count || 0;
-            }
-          });
-          
-          // Calculate total delete count and delete rate
-          const totalDeleteCount = modelsData.reduce((sum: number, model: { delete_count: number }) => sum + (model.delete_count || 0), 0);
-          analytics.totalDeleteCount = totalDeleteCount;
-          analytics.deleteRate = totalDeleteCount > 0 ? Math.round((totalDeleteCount / (totalDeleteCount + maps.length)) * 100) : 0;
+          if (modelsData.models) {
+            modelsData.models.forEach((model: { m_code: string; delete_count: number }) => {
+              if (analytics.models[model.m_code]) {
+                analytics.models[model.m_code].deleteCount = model.delete_count || 0;
+              }
+            });
+            
+            // Calculate total delete count and delete rate
+            const totalDeleteCount = modelsData.models.reduce((sum: number, model: { delete_count: number }) => sum + (model.delete_count || 0), 0);
+            analytics.totalDeleteCount = totalDeleteCount;
+            analytics.deleteRate = totalDeleteCount > 0 ? Math.round((totalDeleteCount / (totalDeleteCount + maps.length)) * 100) : 0;
+          }
         }
       } catch (error) {
         console.log('Could not fetch model delete counts:', error);
@@ -634,7 +651,32 @@ export default function AnalyticsPage() {
     ),
   ], []);
 
-
+  const deleteRateColumns = useMemo(() => [
+    createStringColumn<DeleteRateData, number>(
+      'name',
+      'Model',
+      (item) => item.name,
+    ),
+    createNumberColumn<DeleteRateData, number>(
+      'count',
+      'Total Count',
+      (item) => item.count,
+    ),
+    createNumberColumn<DeleteRateData, number>(
+      'deleteCount',
+      'Delete Count',
+      (item) => item.deleteCount,
+    ),
+    createNumberColumn<DeleteRateData, number>(
+      'deleteRate',
+      'Delete Rate',
+      (item) => item.deleteRate,
+      {
+        suffix: '%',
+        maximumFractionDigits: 1,
+      },
+    ),
+  ], []);
 
   const qualityBySourceColumns = useMemo(() => [
     createStringColumn<{ source: string; avgQuality: number; count: number }, number>(
@@ -900,6 +942,44 @@ export default function AnalyticsPage() {
     return filteredData;
   }, [data, percentageModifiedTableData]);
 
+  const getImageTypeDeleteRateTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Calculate delete rates for this specific image type
+    const modelStats: { [key: string]: { count: number; deleteCount: number } } = {};
+    
+    images.forEach((map: MapData) => {
+      if (map.model) {
+        if (!modelStats[map.model]) {
+          modelStats[map.model] = { count: 0, deleteCount: 0 };
+        }
+        modelStats[map.model].count++;
+        // Note: We don't have individual delete data per image, so we'll use the model-level delete count
+        // In a real implementation, you'd track this at the image level
+      }
+    });
+    
+    // Convert to table data format and add delete counts from analytics.models
+    return Object.entries(modelStats)
+      .map(([modelName, stats], index) => {
+        const modelData = data.models?.[modelName];
+        const deleteCount = modelData?.deleteCount || 0;
+        const deleteRate = stats.count > 0 ? Math.round((deleteCount / stats.count) * 100 * 10) / 10 : 0;
+        
+        return {
+          id: index + 1,
+          name: modelName,
+          count: stats.count,
+          deleteCount: deleteCount,
+          deleteRate: deleteRate,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [data]);
+
      const getImageTypeModelsTableData = useCallback((imageType: string) => {
      if (!data) return [];
      
@@ -1133,8 +1213,8 @@ export default function AnalyticsPage() {
                   <div className={styles.userInteractionCardLabel}>Median Edit Time</div>
                   <Button
                     name="view-edit-time-details"
-                    variant="secondary"
-                    onClick={() => setShowEditTimeModal(!showEditTimeModal)}
+                    variant={showEditTimeModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showEditTimeModal ? 'none' : 'editTime')}
                     className={styles.userInteractionCardButton}
                   >
                     {showEditTimeModal ? 'Hide Details' : 'View Details'}
@@ -1149,8 +1229,8 @@ export default function AnalyticsPage() {
                   <div className={styles.userInteractionCardLabel}>Median % Modified</div>
                   <Button
                     name="view-percentage-details"
-                    variant="secondary"
-                    onClick={() => setShowPercentageModal(!showPercentageModal)}
+                    variant={showPercentageModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showPercentageModal ? 'none' : 'percentage')}
                     className={styles.userInteractionCardButton}
                   >
                     {showPercentageModal ? 'Hide Details' : 'View Details'}
@@ -1165,8 +1245,8 @@ export default function AnalyticsPage() {
                   <div className={styles.userInteractionCardLabel}>Delete Rate</div>
                   <Button
                     name="view-delete-details"
-                    variant="secondary"
-                    onClick={() => setShowDeleteModal(!showDeleteModal)}
+                    variant={showDeleteModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showDeleteModal ? 'none' : 'delete')}
                     className={styles.userInteractionCardButton}
                   >
                     {showDeleteModal ? 'Hide Details' : 'View Details'}
@@ -1193,6 +1273,19 @@ export default function AnalyticsPage() {
                     <Table
                       data={getImageTypePercentageTableData('crisis_map')}
                       columns={percentageModifiedColumns}
+                      keySelector={numericIdSelector}
+                      filtered={false}
+                      pending={false}
+                    />
+                  </div>
+                )}
+
+                {/* Delete Rate Details Table */}
+                {showDeleteModal && (
+                  <div className={styles.modelPerformance}>
+                    <Table
+                      data={getImageTypeDeleteRateTableData('crisis_map')}
+                      columns={deleteRateColumns}
                       keySelector={numericIdSelector}
                       filtered={false}
                       pending={false}
@@ -1326,8 +1419,8 @@ export default function AnalyticsPage() {
                     <div className={styles.userInteractionCardLabel}>Median Edit Time</div>
                     <Button
                       name="view-edit-time-details"
-                      variant="secondary"
-                      onClick={() => setShowEditTimeModal(!showEditTimeModal)}
+                      variant={showEditTimeModal ? "primary" : "secondary"}
+                      onClick={() => openModal(showEditTimeModal ? 'none' : 'editTime')}
                       className={styles.userInteractionCardButton}
                     >
                       {showEditTimeModal ? 'Hide Details' : 'View Details'}
@@ -1342,8 +1435,8 @@ export default function AnalyticsPage() {
                     <div className={styles.userInteractionCardLabel}>Median % Modified</div>
                     <Button
                       name="view-percentage-details"
-                      variant="secondary"
-                      onClick={() => setShowPercentageModal(!showPercentageModal)}
+                      variant={showPercentageModal ? "primary" : "secondary"}
+                      onClick={() => openModal(showPercentageModal ? 'none' : 'percentage')}
                       className={styles.userInteractionCardButton}
                     >
                       {showPercentageModal ? 'Hide Details' : 'View Details'}
@@ -1358,8 +1451,8 @@ export default function AnalyticsPage() {
                     <div className={styles.userInteractionCardLabel}>Delete Rate</div>
                     <Button
                       name="view-delete-details"
-                      variant="secondary"
-                      onClick={() => setShowDeleteModal(!showDeleteModal)}
+                      variant={showDeleteModal ? "primary" : "secondary"}
+                      onClick={() => openModal(showDeleteModal ? 'none' : 'delete')}
                       className={styles.userInteractionCardButton}
                     >
                       {showDeleteModal ? 'Hide Details' : 'View Details'}
@@ -1386,6 +1479,19 @@ export default function AnalyticsPage() {
                      <Table
                        data={getImageTypePercentageTableData('drone_image')}
                        columns={percentageModifiedColumns}
+                       keySelector={numericIdSelector}
+                       filtered={false}
+                       pending={false}
+                     />
+                   </div>
+                 )}
+
+                 {/* Delete Rate Details Table */}
+                 {showDeleteModal && (
+                   <div className={styles.modelPerformance}>
+                     <Table
+                       data={getImageTypeDeleteRateTableData('drone_image')}
+                       columns={deleteRateColumns}
                        keySelector={numericIdSelector}
                        filtered={false}
                        pending={false}
