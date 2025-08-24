@@ -8,6 +8,28 @@ import json
 import google.generativeai as genai
 
 
+def sanitize_sensitive_data(text: str) -> str:
+    """Remove sensitive information from text"""
+    if not text:
+        return text
+    
+    # API key patterns
+    text = text.replace("sk-", "***")
+    text = text.replace("AIza", "***")
+    text = text.replace("hf_", "***")
+    
+    # Remove any remaining API keys (look for long strings that might be keys)
+    # Remove strings that look like API keys (32+ characters, alphanumeric)
+    text = re.sub(r'\b[a-zA-Z0-9]{32,}\b', '***', text)
+    
+    # Remove any URLs that might contain tokens
+    text = re.sub(r'https?://[^\s]+', '***', text)
+    
+    # Remove any file paths that might contain sensitive info
+    text = re.sub(r'/[^\s]+', '***', text)
+    
+    return text
+
 class GeminiService(VLMService):
     """Google Gemini Vision service implementation"""
 
@@ -38,43 +60,41 @@ class GeminiService(VLMService):
             elapsed = time.time() - start
             
             print(f"🔍 Gemini: API call successful, response received")
-            content = getattr(response, "text", None) or ""
+            content = response.text
             print(f"🔍 Gemini: Raw content length: {len(content)}")
-            print(f"🔍 Gemini: Content preview: {content[:200]}...")
-
-            cleaned_content = content
-            if cleaned_content.startswith("```json"):
-                cleaned_content = re.sub(r"^```json\s*", "", cleaned_content)
-                cleaned_content = re.sub(r"\s*```$", "", cleaned_content)
-
+            
+            # Parse the response
             try:
-                parsed = json.loads(cleaned_content)
-                caption_text = parsed.get("analysis", content)
-                metadata = parsed.get("metadata", {})
-                print(f"🔍 Gemini: JSON parsed successfully, metadata keys: {list(metadata.keys())}")
-                
-                if metadata.get("epsg"):
-                    epsg_value = metadata["epsg"]
-                    allowed_epsg = ["4326", "3857", "32617", "32633", "32634", "OTHER"]
-                    if epsg_value not in allowed_epsg:
-                        metadata["epsg"] = "OTHER"
-                        print(f"🔍 Gemini: EPSG value {epsg_value} not in allowed list, set to OTHER")
+                result = json.loads(content)
+                print(f"🔍 Gemini: JSON response parsed successfully")
             except json.JSONDecodeError as e:
                 print(f"⚠️ Gemini: JSON parse error: {e}")
-                caption_text = content
-                metadata = {}
-
-            raw_response: Dict[str, Any] = {"model": self.model_id}
+                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (invalid response format). Switching to another model.")
             
-            print(f"🔍 Gemini: Final metadata: {metadata}")
-            print(f"🔍 Gemini: Caption generation completed successfully in {elapsed:.2f}s")
-
+            # Extract the generated text
+            if "candidates" in result and len(result["candidates"]) > 0:
+                candidate = result["candidates"][0]
+                if "content" in candidate and "parts" in candidate["content"]:
+                    parts = candidate["content"]["parts"]
+                    if len(parts) > 0 and "text" in parts[0]:
+                        generated_text = parts[0]["text"]
+                    else:
+                        generated_text = "No text generated"
+                else:
+                    generated_text = "No content in response"
+            else:
+                generated_text = "No candidates in response"
+            
+            print(f"🔍 Gemini: Caption generation completed successfully")
+            
             return {
-                "caption": caption_text,
-                "metadata": metadata,
-                "confidence": None,
-                "processing_time": elapsed,
-                "raw_response": raw_response,
+                "caption": generated_text,
+                "raw_response": {
+                    "model": self.model_id,
+                    "response": result,
+                    "generated_text": generated_text
+                },
+                "metadata": {}
             }
             
         except Exception as e:
@@ -84,7 +104,8 @@ class GeminiService(VLMService):
             print(f"❌ Gemini: Error type: {error_type}")
             print(f"❌ Gemini: Error message: {error_msg}")
             
-            # Check for specific error types
+            sanitized_error = sanitize_sensitive_data(error_msg)
+            
             if "quota" in error_msg.lower() or "limit" in error_msg.lower():
                 print(f"❌ Gemini: Quota or rate limit exceeded detected")
                 raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (quota/rate limit exceeded). Switching to another model.")
@@ -96,6 +117,6 @@ class GeminiService(VLMService):
                 raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (network error). Switching to another model.")
             else:
                 print(f"❌ Gemini: Generic error, converting to MODEL_UNAVAILABLE")
-                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable ({error_type}: {error_msg}). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable ({error_type}: {sanitized_error}). Switching to another model.")
 
 

@@ -4,6 +4,29 @@ import openai
 import base64
 import asyncio
 import json
+import re
+
+def sanitize_sensitive_data(text: str) -> str:
+    """Remove sensitive information from text"""
+    if not text:
+        return text
+    
+    # API key patterns
+    text = text.replace("sk-", "***")
+    text = text.replace("AIza", "***")
+    text = text.replace("hf_", "***")
+    
+    # Remove any remaining API keys (look for long strings that might be keys)
+    # Remove strings that look like API keys (32+ characters, alphanumeric)
+    text = re.sub(r'\b[a-zA-Z0-9]{32,}\b', '***', text)
+    
+    # Remove any URLs that might contain tokens
+    text = re.sub(r'https?://[^\s]+', '***', text)
+    
+    # Remove any file paths that might contain sensitive info
+    text = re.sub(r'/[^\s]+', '***', text)
+    
+    return text
 
 class GPT4VService(VLMService):
     """GPT-4 Vision service implementation"""
@@ -47,7 +70,6 @@ class GPT4VService(VLMService):
             print(f"🔍 GPT-4V: API call successful, response received")
             content = response.choices[0].message.content
             print(f"🔍 GPT-4V: Raw content length: {len(content)}")
-            print(f"🔍 GPT-4V: Content preview: {content[:200]}...")
             
             cleaned_content = content.strip()
             if cleaned_content.startswith("```json"):
@@ -73,7 +95,6 @@ class GPT4VService(VLMService):
                         except json.JSONDecodeError as e2:
                             print(f"⚠️ GPT-4V: Code block JSON parse also failed: {e2}")
                 else:
-                    import re
                     json_match = re.search(r'\{[^{}]*"metadata"[^{}]*\{[^{}]*\}', content)
                     if json_match:
                         try:
@@ -82,13 +103,12 @@ class GPT4VService(VLMService):
                         except json.JSONDecodeError as e3:
                             print(f"⚠️ GPT-4V: Regex JSON extraction failed: {e3}")
             
-            print(f"🔍 GPT-4V: Final metadata: {metadata}")
             print(f"🔍 GPT-4V: Caption generation completed successfully")
             
             return {
                 "caption": cleaned_content,
                 "raw_response": {
-                    "content": content, 
+                    "content": cleaned_content,  # Use cleaned content instead of raw
                     "metadata": metadata,
                     "extracted_metadata": metadata
                 },
@@ -102,6 +122,9 @@ class GPT4VService(VLMService):
             print(f"❌ GPT-4V: Error type: {error_type}")
             print(f"❌ GPT-4V: Error message: {error_msg}")
             
+            # Sanitize error message to remove sensitive information
+            sanitized_error = sanitize_sensitive_data(error_msg)
+            
             # Check for specific error types
             if "rate_limit" in error_msg.lower() or "quota" in error_msg.lower():
                 print(f"❌ GPT-4V: Rate limit or quota exceeded detected")
@@ -114,4 +137,4 @@ class GPT4VService(VLMService):
                 raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (network error). Switching to another model.")
             else:
                 print(f"❌ GPT-4V: Generic error, converting to MODEL_UNAVAILABLE")
-                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable ({error_type}: {error_msg}). Switching to another model.") 
+                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable ({error_type}: {sanitized_error}). Switching to another model.") 
