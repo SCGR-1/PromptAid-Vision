@@ -54,7 +54,7 @@ async def list_images_no_slash():
     
     db = SessionLocal()
     try:
-        return await list_images(db)
+        return list_images(db)
     finally:
         db.close()
 
