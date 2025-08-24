@@ -17,7 +17,15 @@ from app.routers.prompts import router as prompts_router
 from app.routers.admin import router as admin_router
 from app.routers.schemas import router as schemas_router
 
-app = FastAPI(title="PromptAid Vision", redirect_slashes=False)
+app = FastAPI(title="PromptAid Vision")
+
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request, call_next):
+    print(f"DEBUG: {request.method} {request.url.path}")
+    response = await call_next(request)
+    print(f"DEBUG: {request.method} {request.url.path} -> {response.status_code}")
+    return response
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +36,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API routes - must come BEFORE static file mounting
 app.include_router(caption.router,     prefix="/api",            tags=["captions"])
 app.include_router(metadata.router,    prefix="/api",            tags=["metadata"])
 app.include_router(models.router,      prefix="/api",            tags=["models"])
@@ -36,6 +45,9 @@ app.include_router(images_router,      prefix="/api/contribute", tags=["contribu
 app.include_router(prompts_router,     prefix="/api/prompts",    tags=["prompts"])
 app.include_router(admin_router,       prefix="/api/admin",      tags=["admin"])
 app.include_router(schemas_router,     prefix="/api",            tags=["schemas"])
+
+# Remove the explicit route since it conflicts with the router
+# The upload router already handles /api/images/ routes
 
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)
 async def health():
@@ -49,27 +61,64 @@ def root():
 <p>OK</p>
 <p><a href="/app/">Open UI</a> • <a href="/docs">API Docs</a></p>"""
 
+# Static file serving - must come AFTER API routes
 if os.path.exists("/app"):
     STATIC_DIR = "/app/static"
 else:
-    STATIC_DIR = "../frontend/dist"
+    STATIC_DIR = "static"  # Use relative path to py_backend/static
 
 print(f"Looking for static files in: {STATIC_DIR}")
 
 if os.path.isdir(STATIC_DIR):
     print(f"Static directory found: {STATIC_DIR}")
+    # Mount static files at /app to avoid conflicts with /api routes
     app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    print(f"Static files mounted at /app from {STATIC_DIR}")
 else:
     print(f"Static directory NOT found: {STATIC_DIR}")
     print(f"Current directory contents: {os.listdir(os.path.dirname(__file__))}")
     print(f"Parent directory contents: {os.listdir(os.path.dirname(os.path.dirname(__file__)))}")
+    print(f"Attempting to find static directory...")
+    
+    # Try to find static directory
+    possible_paths = [
+        "static",
+        "../static", 
+        "py_backend/static",
+        "../py_backend/static"
+    ]
+    
+    for path in possible_paths:
+        if os.path.isdir(path):
+            print(f"Found static directory at: {path}")
+            STATIC_DIR = path
+            app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+            print(f"Static files mounted at /app from {STATIC_DIR}")
+            break
+    else:
+        print("Could not find static directory - static file serving disabled")
 
+# SPA fallback - must come AFTER static file mounting
 @app.get("/app/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
     index = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(index):
         return FileResponse(index)
     raise HTTPException(status_code=404, detail="Not Found")
+
+# Debug route to show all registered routes
+@app.get("/debug-routes", include_in_schema=False)
+async def debug_routes():
+    """Show all registered routes for debugging"""
+    routes = []
+    for route in app.routes:
+        if hasattr(route, 'path'):
+            routes.append({
+                "path": route.path,
+                "name": getattr(route, 'name', 'N/A'),
+                "methods": list(route.methods) if hasattr(route, 'methods') else []
+            })
+    return {"routes": routes}
 
 @app.get("/debug")
 async def debug():

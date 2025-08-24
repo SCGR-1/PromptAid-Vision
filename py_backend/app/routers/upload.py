@@ -2,7 +2,6 @@ from fastapi import APIRouter, UploadFile, Form, Depends, HTTPException, Respons
 from pydantic import BaseModel
 import io
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from .. import crud, schemas, storage, database
 from ..config import settings
 from ..services.image_preprocessor import ImagePreprocessor
@@ -95,30 +94,13 @@ def convert_image_to_dict(img, image_url):
 @router.get("/", response_model=List[schemas.ImageOut])
 def list_images(db: Session = Depends(get_db)):
     """Get all images with their caption data"""
-    try:
-        print(f"DEBUG: Checking database connection")
-        # Test database connection
-        db.execute(text("SELECT 1"))
-        print(f"DEBUG: Database connection OK")
-        
-        print(f"DEBUG: Fetching images from database")
-        images = crud.get_images(db)
-        print(f"DEBUG: Found {len(images)} images")
-        
-        result = []
-        for img in images:
-            try:
-                img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
-                result.append(schemas.ImageOut(**img_dict))
-            except Exception as e:
-                print(f"ERROR: Failed to process image {img.image_id}: {e}")
-                continue
-        
-        print(f"DEBUG: Returning {len(result)} processed images")
-        return result
-    except Exception as e:
-        print(f"ERROR: Failed to fetch images: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch images: {str(e)}")
+    images = crud.get_images(db)
+    result = []
+    for img in images:
+        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+        result.append(schemas.ImageOut(**img_dict))
+    
+    return result
 
 @router.get("/{image_id}", response_model=schemas.ImageOut)
 def get_image(image_id: str, db: Session = Depends(get_db)):
