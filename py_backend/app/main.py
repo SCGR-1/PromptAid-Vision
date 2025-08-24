@@ -46,8 +46,17 @@ app.include_router(prompts_router,     prefix="/api/prompts",    tags=["prompts"
 app.include_router(admin_router,       prefix="/api/admin",      tags=["admin"])
 app.include_router(schemas_router,     prefix="/api",            tags=["schemas"])
 
-# Remove the explicit route since it conflicts with the router
-# The upload router already handles /api/images/ routes
+@app.get("/api/images", include_in_schema=False)
+async def list_images_no_slash():
+    """Handle /api/images without trailing slash to prevent 307 redirect"""
+    from app.routers.upload import list_images
+    from app.database import SessionLocal
+    
+    db = SessionLocal()
+    try:
+        return await list_images(db)
+    finally:
+        db.close()
 
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)
 async def health():
