@@ -64,15 +64,11 @@ class VLMServiceManager:
     
     async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "", model_name: str | None = None, db_session = None) -> dict:
         """Generate caption using available VLM services with fallback"""
-        print(f"🚀 VLM Manager: Starting caption generation")
-        print(f"🚀 VLM Manager: Requested model: {model_name}")
         
         # Select initial service
         service = None
         if model_name:
             service = self.services.get(model_name)
-            if not service:
-                print(f"⚠️ VLM Manager: Requested model {model_name} not found in services")
         
         if not service:
             if db_session:
@@ -90,7 +86,6 @@ class VLMServiceManager:
                     else:
                         service = next(iter(self.services.values()))
                 except Exception as e:
-                    print(f"❌ VLM Manager: Error checking database availability: {e}, using fallback")
                     service = next(iter(self.services.values()))
             else:
                 available_services = [s for s in self.services.values() if s.is_available]
@@ -109,8 +104,6 @@ class VLMServiceManager:
         
         while len(attempted_services) < max_attempts:
             try:
-                print(f"🚀 VLM Manager: Attempting with service: {service.model_name}")
-                
                 result = await service.generate_caption(image_bytes, prompt, metadata_instructions)
                 if isinstance(result, dict):
                     result["model"] = service.model_name
@@ -118,18 +111,13 @@ class VLMServiceManager:
                     if len(attempted_services) > 0:
                         result["original_model"] = model_name
                         result["fallback_reason"] = "model_unavailable"
-                        print(f"✅ VLM Manager: Fallback successful: {model_name} -> {service.model_name}")
-                    else:
-                        print(f"✅ VLM Manager: Primary service successful: {service.model_name}")
                 return result
             except Exception as e:
                 error_str = str(e)
-                print(f"❌ VLM Manager: Error with service {service.model_name}: {error_str}")
                 
                 # Check if it's a model unavailable error (any type of error)
                 if "MODEL_UNAVAILABLE" in error_str:
                     attempted_services.add(service.model_name)
-                    print(f"🔄 VLM Manager: Model {service.model_name} is unavailable, trying another service...")
                     
                     # Try to find another available service
                     if db_session:
@@ -143,7 +131,6 @@ class VLMServiceManager:
                                 if (next_service.model_name in available_model_codes and 
                                     next_service.model_name not in attempted_services):
                                     service = next_service
-                                    print(f"🔄 VLM Manager: Switching to fallback service: {service.model_name}")
                                     break
                             else:
                                 # No more available services, use any untried service
@@ -152,7 +139,6 @@ class VLMServiceManager:
                                         service = next_service
                                         break
                         except Exception as db_error:
-                            print(f"❌ VLM Manager: Error checking database availability: {db_error}")
                             # Fallback to any untried service
                             for next_service in self.services.values():
                                 if next_service.model_name not in attempted_services:
@@ -166,17 +152,14 @@ class VLMServiceManager:
                                 break
                     
                     if not service:
-                        print(f"❌ VLM Manager: No more VLM services available after model failures")
                         raise ValueError("No more VLM services available after model failures")
                     
                     continue  # Try again with new service
                 else:
                     # Non-model-unavailable error, don't retry
-                    print(f"❌ VLM Manager: Non-model-unavailable error, not retrying: {error_str}")
                     raise
         
         # If we get here, we've tried all services
-        print(f"❌ VLM Manager: All VLM services failed due to model unavailability")
         raise ValueError("All VLM services failed due to model unavailability")
 
 vlm_manager = VLMServiceManager() 

@@ -4,29 +4,6 @@ import openai
 import base64
 import asyncio
 import json
-import re
-
-def sanitize_sensitive_data(text: str) -> str:
-    """Remove sensitive information from text"""
-    if not text:
-        return text
-    
-    # API key patterns
-    text = text.replace("sk-", "***")
-    text = text.replace("AIza", "***")
-    text = text.replace("hf_", "***")
-    
-    # Remove any remaining API keys (look for long strings that might be keys)
-    # Remove strings that look like API keys (32+ characters, alphanumeric)
-    text = re.sub(r'\b[a-zA-Z0-9]{32,}\b', '***', text)
-    
-    # Remove any URLs that might contain tokens
-    text = re.sub(r'https?://[^\s]+', '***', text)
-    
-    # Remove any file paths that might contain sensitive info
-    text = re.sub(r'/[^\s]+', '***', text)
-    
-    return text
 
 class GPT4VService(VLMService):
     """GPT-4 Vision service implementation"""
@@ -70,6 +47,7 @@ class GPT4VService(VLMService):
             print(f"🔍 GPT-4V: API call successful, response received")
             content = response.choices[0].message.content
             print(f"🔍 GPT-4V: Raw content length: {len(content)}")
+            print(f"🔍 GPT-4V: Content preview: {content[:200]}...")
             
             cleaned_content = content.strip()
             if cleaned_content.startswith("```json"):
@@ -78,80 +56,41 @@ class GPT4VService(VLMService):
                 cleaned_content = cleaned_content[:-3]
             cleaned_content = cleaned_content.strip()
             
-            # Parse the response to extract analysis and metadata
-            analysis_text = ""
             metadata = {}
-            
             try:
-                parsed_data = json.loads(cleaned_content)
-                if "analysis" in parsed_data and "metadata" in parsed_data:
-                    analysis_text = parsed_data["analysis"]
-                    metadata = parsed_data["metadata"]
-                    print(f"🔍 GPT-4V: JSON parsed successfully, metadata keys: {list(metadata.keys())}")
-                else:
-                    # If the response doesn't have the expected structure, treat the whole content as analysis
-                    analysis_text = cleaned_content
-                    metadata = {}
-                    print(f"🔍 GPT-4V: Response doesn't have expected structure, using content as analysis")
+                metadata = json.loads(cleaned_content)
+                print(f"🔍 GPT-4V: JSON parsed successfully, metadata keys: {list(metadata.keys())}")
             except json.JSONDecodeError as e:
                 print(f"⚠️ GPT-4V: JSON parse error: {e}")
-                # Try to extract JSON from code blocks
                 if "```json" in content:
                     json_start = content.find("```json") + 7
                     json_end = content.find("```", json_start)
                     if json_end > json_start:
                         json_str = content[json_start:json_end].strip()
                         try:
-                            parsed_data = json.loads(json_str)
-                            if "analysis" in parsed_data and "metadata" in parsed_data:
-                                analysis_text = parsed_data["analysis"]
-                                metadata = parsed_data["metadata"]
-                                print(f"🔍 GPT-4V: Extracted JSON from code blocks successfully")
-                            else:
-                                analysis_text = cleaned_content
-                                metadata = {}
+                            metadata = json.loads(json_str)
+                            print(f"🔍 GPT-4V: Extracted JSON from code blocks successfully")
                         except json.JSONDecodeError as e2:
                             print(f"⚠️ GPT-4V: Code block JSON parse also failed: {e2}")
-                            analysis_text = cleaned_content
-                            metadata = {}
                 else:
-                    # Try regex extraction as last resort
+                    import re
                     json_match = re.search(r'\{[^{}]*"metadata"[^{}]*\{[^{}]*\}', content)
                     if json_match:
                         try:
-                            parsed_data = json.loads(json_match.group())
-                            if "analysis" in parsed_data and "metadata" in parsed_data:
-                                analysis_text = parsed_data["analysis"]
-                                metadata = parsed_data["metadata"]
-                                print(f"🔍 GPT-4V: Extracted JSON using regex successfully")
-                            else:
-                                analysis_text = cleaned_content
-                                metadata = {}
+                            metadata = json.loads(json_match.group())
+                            print(f"🔍 GPT-4V: Extracted JSON using regex successfully")
                         except json.JSONDecodeError as e3:
                             print(f"⚠️ GPT-4V: Regex JSON extraction failed: {e3}")
-                            analysis_text = cleaned_content
-                            metadata = {}
-                    else:
-                        analysis_text = cleaned_content
-                        metadata = {}
             
-            # Ensure metadata has required fields with defaults
-            if not metadata:
-                metadata = {
-                    "title": "Generated Title",
-                    "source": "OTHER",
-                    "type": "OTHER",
-                    "countries": [],
-                    "epsg": "OTHER"
-                }
-            
+            print(f"🔍 GPT-4V: Final metadata: {metadata}")
             print(f"🔍 GPT-4V: Caption generation completed successfully")
             
             return {
-                "caption": analysis_text,
+                "caption": cleaned_content,
                 "raw_response": {
-                    "analysis": analysis_text,
-                    "metadata": metadata
+                    "content": content, 
+                    "metadata": metadata,
+                    "extracted_metadata": metadata
                 },
                 "metadata": metadata
             }
@@ -162,9 +101,6 @@ class GPT4VService(VLMService):
             print(f"❌ GPT-4V: Error occurred during caption generation")
             print(f"❌ GPT-4V: Error type: {error_type}")
             print(f"❌ GPT-4V: Error message: {error_msg}")
-            
-            # Sanitize error message to remove sensitive information
-            sanitized_error = sanitize_sensitive_data(error_msg)
             
             # Check for specific error types
             if "rate_limit" in error_msg.lower() or "quota" in error_msg.lower():
@@ -178,4 +114,4 @@ class GPT4VService(VLMService):
                 raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (network error). Switching to another model.")
             else:
                 print(f"❌ GPT-4V: Generic error, converting to MODEL_UNAVAILABLE")
-                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable ({error_type}: {sanitized_error}). Switching to another model.") 
+                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable ({error_type}: {error_msg}). Switching to another model.") 
