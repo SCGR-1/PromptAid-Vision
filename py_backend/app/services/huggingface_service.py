@@ -81,43 +81,8 @@ class HuggingFaceService(VLMService):
                 ) as resp:
                     raw_text = await resp.text()
                     if resp.status != 200:
-                        # Capture the actual error response from HuggingFace
-                        try:
-                            error_response = await resp.json()
-                            print(f"❌ HuggingFace: API Error Response (HTTP {resp.status}): {error_response}")
-                            
-                            # Extract specific error details
-                            provider_error_details = {
-                                "provider": "huggingface",
-                                "status_code": resp.status,
-                                "error_response": error_response,
-                                "model_id": self.model_id,
-                                "model_name": self.model_name
-                            }
-                            
-                            # Check for specific error types
-                            if "error" in error_response:
-                                error_info = error_response["error"]
-                                provider_error_details.update({
-                                    "error_type": error_info.get("type"),
-                                    "error_message": error_info.get("message"),
-                                    "error_code": error_info.get("code")
-                                })
-                            
-                            print(f"❌ HuggingFace: Parsed Error Details: {provider_error_details}")
-                            
-                            # Any non-200 status - throw generic error for fallback handling
-                            raise Exception(f"MODEL_UNAVAILABLE: {self.model_name} is currently unavailable (HTTP {resp.status}). Switching to another model. Provider details: {provider_error_details}")
-                        except Exception as parse_error:
-                            print(f"⚠️ HuggingFace: Could not parse error response: {parse_error}")
-                            provider_error_details = {
-                                "provider": "huggingface",
-                                "status_code": resp.status,
-                                "raw_response": raw_text,
-                                "model_id": self.model_id,
-                                "model_name": self.model_name
-                            }
-                            raise Exception(f"MODEL_UNAVAILABLE: {self.model_name} is currently unavailable (HTTP {resp.status}). Switching to another model. Provider details: {provider_error_details}")
+                        # Any non-200 status - throw generic error for fallback handling
+                        raise Exception(f"MODEL_UNAVAILABLE: {self.model_name} is currently unavailable (HTTP {resp.status}). Switching to another model.")
                     result = await resp.json()
         except Exception as e:
             if "MODEL_UNAVAILABLE" in str(e):

@@ -44,7 +44,11 @@ if settings.HF_API_KEY:
         try:
             models = crud.get_models(db)
             for model in models:
-                if model.provider == "huggingface" and model.model_id and model.m_code != "STUB_MODEL":
+               
+                if (model.provider == "huggingface" and 
+                    model.model_id and 
+                    model.m_code != "STUB_MODEL" and
+                    model.m_code not in ["GPT-4O", "GEMINI15"]):  
                     try:
                         service = ProvidersGenericVLMService(
                             api_key=settings.HF_API_KEY,
@@ -89,8 +93,6 @@ async def create_caption(
     db: Session = Depends(get_db),
 ):
     print(f"📝 Caption Router: Starting caption generation for image {image_id}")
-    print(f"📝 Caption Router: Title: {title}")
-    print(f"📝 Caption Router: Prompt: {prompt}")
     print(f"📝 Caption Router: Requested model: {model_name}")
     
     # Get the image
@@ -99,15 +101,11 @@ async def create_caption(
         print(f"❌ Caption Router: Image {image_id} not found")
         raise HTTPException(404, f"Image {image_id} not found")
     
-    print(f"📝 Caption Router: Image found: {img.file_key}, type: {img.image_type}")
-    
     # Get the prompt object
     prompt_obj = crud.get_prompt(db, prompt)
     if not prompt_obj:
         print(f"❌ Caption Router: Prompt '{prompt}' not found")
         raise HTTPException(400, f"Prompt '{prompt}' not found")
-    
-    print(f"📝 Caption Router: Prompt found: {prompt_obj.p_code}")
     
     # Get image bytes
     try:
@@ -122,7 +120,6 @@ async def create_caption(
             file_path = os.path.join(settings.STORAGE_DIR, img.file_key)
             with open(file_path, 'rb') as f:
                 img_bytes = f.read()
-        print(f"📝 Caption Router: Image bytes retrieved: {len(img_bytes)} bytes")
     except Exception as e:
         print(f"❌ Caption Router: Failed to get image bytes: {e}")
         raise HTTPException(500, f"Failed to get image: {e}")
@@ -131,76 +128,63 @@ async def create_caption(
     metadata_instructions = ""
     if img.image_type == "drone_image":
         metadata_instructions = f"Image type: drone image. Center coordinates: {img.center_lon}, {img.center_lat}. Altitude: {img.amsl_m}m AMSL, {img.agl_m}m AGL. Heading: {img.heading_deg}°, Yaw: {img.yaw_deg}°, Pitch: {img.pitch_deg}°, Roll: {img.roll_deg}°. RTK fix: {img.rtk_fix}. Standard deviations: H={img.std_h_m}m, V={img.std_v_m}m."
-        print(f"📝 Caption Router: Drone metadata instructions prepared")
     else:
         metadata_instructions = f"Image type: crisis map. Source: {img.source}. Event type: {img.event_type}. EPSG: {img.epsg}. Countries: {img.countries}."
-        print(f"📝 Caption Router: Crisis map metadata instructions prepared")
     
     print(f"📝 Caption Router: Calling VLM manager...")
     
-    metadata = {}
+    # Call VLM manager
     try:
         result = await vlm_manager.generate_caption(
-            image_bytes=img_bytes,
+            image_bytes=img_bytes, 
             prompt=prompt_obj.label,
             metadata_instructions=metadata_instructions,
             model_name=model_name,
             db_session=db,
         )
-        
-        print(f"📝 Caption Router: VLM manager returned result")
-        print(f"📝 Caption Router: Result keys: {list(result.keys())}")
-        print(f"📝 Caption Router: Model used: {result.get('model')}")
-        print(f"📝 Caption Router: Fallback used: {result.get('fallback_used')}")
-        
-        # Get the raw response for validation
-        raw = result.get("raw_response", {})
-        
-        # Validate and clean the data using schema validation
-        image_type = img.image_type
-        print(f"📝 Caption Router: Validating data for image type: {image_type}")
-        print(f"📝 Caption Router: Raw data structure: {list(raw.keys()) if isinstance(raw, dict) else 'Not a dict'}")
-        
-        cleaned_data, is_valid, validation_error = schema_validator.clean_and_validate_data(raw, image_type)
-        
-        if is_valid:
-            print(f"✅ Caption Router: Schema validation passed for {image_type}")
-            text = cleaned_data.get("analysis", "")
-            metadata = cleaned_data.get("metadata", {})
-        else:
-            print(f"⚠️ Caption Router: Schema validation failed for {image_type}: {validation_error}")
-            # Use fallback but log the validation error
-            text = result.get("caption", "This is a fallback caption due to schema validation error.")
-            metadata = result.get("metadata", {})
-            raw["validation_error"] = validation_error
-            raw["validation_failed"] = True
-        
-        # Use the actual model that was used, not the requested model_name
-        used_model = result.get("model", model_name) or "STUB_MODEL"
-        
-        # Check if fallback was used
-        fallback_used = result.get("fallback_used", False)
-        original_model = result.get("original_model", None)
-        fallback_reason = result.get("fallback_reason", None)
-        
-        if fallback_used:
-            print(f"⚠️ Caption Router: Model fallback occurred: {original_model} -> {used_model} (reason: {fallback_reason})")
-            # Add fallback info to raw response for frontend
-            raw["fallback_info"] = {
-                "original_model": original_model,
-                "fallback_model": used_model,
-                "reason": fallback_reason
-            }
-        else:
-            print(f"✅ Caption Router: No fallback used, primary model {used_model} succeeded")
-        
     except Exception as e:
-        print(f"❌ Caption Router: VLM error, using fallback: {e}")
-        print(f"❌ Caption Router: Error type: {type(e).__name__}")
-        text = "This is a fallback caption due to VLM service error."
-        used_model = "STUB_MODEL"
-        raw = {"error": str(e), "fallback": True}
-        metadata = {}
+        print(f"❌ Caption Router: VLM manager failed: {e}")
+        raise HTTPException(500, f"Caption generation failed: {e}")
+    
+    print(f"📝 Caption Router: VLM manager returned result")
+    
+    # Get the raw response for validation
+    raw = result.get("raw_response", {})
+    
+    # Validate and clean the data using schema validation
+    image_type = img.image_type
+    print(f"📝 Caption Router: Validating data for image type: {image_type}")
+    
+    cleaned_data, is_valid, validation_error = schema_validator.clean_and_validate_data(raw, image_type)
+    
+    if is_valid:
+        print(f"✅ Caption Router: Schema validation passed for {image_type}")
+        text = cleaned_data.get("analysis", "")
+        metadata = cleaned_data.get("metadata", {})
+    else:
+        print(f"⚠️ Caption Router: Schema validation failed for {image_type}: {validation_error}")
+        # Use fallback but log the validation error
+        text = result.get("caption", "This is a fallback caption due to schema validation error.")
+        metadata = result.get("metadata", {})
+        raw["validation_error"] = validation_error
+        raw["validation_failed"] = True
+    
+    # Use the actual model that was used, not the requested model_name
+    used_model = result.get("model", model_name) or "STUB_MODEL"
+    
+    # Check if fallback was used
+    fallback_used = result.get("fallback_used", False)
+    original_model = result.get("original_model", None)
+    fallback_reason = result.get("fallback_reason", None)
+    
+    if fallback_used:
+        print(f"⚠️ Caption Router: Model fallback occurred: {original_model} -> {used_model} (reason: {fallback_reason})")
+        # Add fallback info to raw response for frontend
+        raw["fallback_info"] = {
+            "original_model": original_model,
+            "fallback_model": used_model,
+            "reason": fallback_reason
+        }
     
     print(f"📝 Caption Router: Creating caption in database...")
     
@@ -218,20 +202,14 @@ async def create_caption(
     db.refresh(c)
     
     print(f"📝 Caption Router: Caption created successfully")
-    print(f"📝 Caption Router: Caption ID: {c.image_id}")
-    print(f"📝 Caption Router: Model used: {c.model}")
     
     from .upload import convert_image_to_dict
     try:
         url = storage.get_object_url(c.file_key)
-        print(f"📝 Caption Router: Generated URL: {url}")
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
             url = f"http://localhost:8000{url}"
-            print(f"📝 Caption Router: Local URL adjusted to: {url}")
     except Exception as e:
-        print(f"⚠️ Caption Router: URL generation failed: {e}")
         url = f"/api/images/{c.image_id}/file"
-        print(f"📝 Caption Router: Using fallback URL: {url}")
     
     img_dict = convert_image_to_dict(c, url)
     print(f"📝 Caption Router: Caption generation completed successfully")
