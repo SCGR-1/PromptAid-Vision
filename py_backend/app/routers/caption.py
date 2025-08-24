@@ -88,82 +88,77 @@ async def create_caption(
     model_name: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
-    print(f"DEBUG: Received request - image_id: {image_id}, title: {title}, prompt: {prompt}, model_name: {model_name}")
+    print(f"📝 Caption Router: Starting caption generation for image {image_id}")
+    print(f"📝 Caption Router: Title: {title}")
+    print(f"📝 Caption Router: Prompt: {prompt}")
+    print(f"📝 Caption Router: Requested model: {model_name}")
     
+    # Get the image
     img = crud.get_image(db, image_id)
     if not img:
-        raise HTTPException(404, "image not found")
-
-
-    print(f"Looking for prompt: '{prompt}' (type: {type(prompt)})")
-
+        print(f"❌ Caption Router: Image {image_id} not found")
+        raise HTTPException(404, f"Image {image_id} not found")
+    
+    print(f"📝 Caption Router: Image found: {img.file_key}, type: {img.image_type}")
+    
+    # Get the prompt object
     prompt_obj = crud.get_prompt(db, prompt)
-    
     if not prompt_obj:
-        print(f"Prompt not found by code, trying to find by label...")
-        prompt_obj = crud.get_prompt_by_label(db, prompt)
-    
-    print(f"Prompt lookup result: {prompt_obj}")
-    if not prompt_obj:
+        print(f"❌ Caption Router: Prompt '{prompt}' not found")
         raise HTTPException(400, f"Prompt '{prompt}' not found")
     
-    prompt_text = prompt_obj.label
-    metadata_instructions = prompt_obj.metadata_instructions or ""
-    print(f"Using prompt text: '{prompt_text}'")
-    print(f"Using metadata instructions: '{metadata_instructions[:100]}...'")
-
+    print(f"📝 Caption Router: Prompt found: {prompt_obj.p_code}")
+    
+    # Get image bytes
     try:
-        if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
-            response = storage.s3.get_object(
-                Bucket=settings.S3_BUCKET,
-                Key=img.file_key,
-            )
-            img_bytes = response["Body"].read()
-        else:
-            import os
-            file_path = os.path.join(settings.STORAGE_DIR, img.file_key)
-            with open(file_path, 'rb') as f:
-                img_bytes = f.read()
+        img_bytes = storage.get_object_bytes(img.file_key)
+        print(f"📝 Caption Router: Image bytes retrieved: {len(img_bytes)} bytes")
     except Exception as e:
-        print(f"Error reading image file: {e}")
-        try:
-            url = storage.get_object_url(img.file_key)
-            if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
-                url = f"http://localhost:8000{url}"
-            import requests
-            resp = requests.get(url)
-            resp.raise_for_status()
-            img_bytes = resp.content
-        except Exception as fallback_error:
-            print(f"Fallback also failed: {fallback_error}")
-            raise HTTPException(500, f"Could not read image file: {e}")
-
+        print(f"❌ Caption Router: Failed to get image bytes: {e}")
+        raise HTTPException(500, f"Failed to get image: {e}")
+    
+    # Prepare metadata instructions
+    metadata_instructions = ""
+    if img.image_type == "drone_image":
+        metadata_instructions = f"Image type: drone image. Center coordinates: {img.center_lon}, {img.center_lat}. Altitude: {img.amsl_m}m AMSL, {img.agl_m}m AGL. Heading: {img.heading_deg}°, Yaw: {img.yaw_deg}°, Pitch: {img.pitch_deg}°, Roll: {img.roll_deg}°. RTK fix: {img.rtk_fix}. Standard deviations: H={img.std_h_m}m, V={img.std_v_m}m."
+        print(f"📝 Caption Router: Drone metadata instructions prepared")
+    else:
+        metadata_instructions = f"Image type: crisis map. Source: {img.source}. Event type: {img.event_type}. EPSG: {img.epsg}. Countries: {img.countries}."
+        print(f"📝 Caption Router: Crisis map metadata instructions prepared")
+    
+    print(f"📝 Caption Router: Calling VLM manager...")
+    
     metadata = {}
     try:
         result = await vlm_manager.generate_caption(
             image_bytes=img_bytes,
-            prompt=prompt_text,
+            prompt=prompt_obj.label,
             metadata_instructions=metadata_instructions,
             model_name=model_name,
             db_session=db,
         )
+        
+        print(f"📝 Caption Router: VLM manager returned result")
+        print(f"📝 Caption Router: Result keys: {list(result.keys())}")
+        print(f"📝 Caption Router: Model used: {result.get('model')}")
+        print(f"📝 Caption Router: Fallback used: {result.get('fallback_used')}")
         
         # Get the raw response for validation
         raw = result.get("raw_response", {})
         
         # Validate and clean the data using schema validation
         image_type = img.image_type
-        print(f"DEBUG: Validating data for image type: {image_type}")
-        print(f"DEBUG: Raw data structure: {list(raw.keys()) if isinstance(raw, dict) else 'Not a dict'}")
+        print(f"📝 Caption Router: Validating data for image type: {image_type}")
+        print(f"📝 Caption Router: Raw data structure: {list(raw.keys()) if isinstance(raw, dict) else 'Not a dict'}")
         
         cleaned_data, is_valid, validation_error = schema_validator.clean_and_validate_data(raw, image_type)
         
         if is_valid:
-            print(f"✓ Schema validation passed for {image_type}")
+            print(f"✅ Caption Router: Schema validation passed for {image_type}")
             text = cleaned_data.get("analysis", "")
             metadata = cleaned_data.get("metadata", {})
         else:
-            print(f"⚠ Schema validation failed for {image_type}: {validation_error}")
+            print(f"⚠️ Caption Router: Schema validation failed for {image_type}: {validation_error}")
             # Use fallback but log the validation error
             text = result.get("caption", "This is a fallback caption due to schema validation error.")
             metadata = result.get("metadata", {})
@@ -179,21 +174,26 @@ async def create_caption(
         fallback_reason = result.get("fallback_reason", None)
         
         if fallback_used:
-            print(f"⚠ Model fallback occurred: {original_model} -> {used_model} (reason: {fallback_reason})")
+            print(f"⚠️ Caption Router: Model fallback occurred: {original_model} -> {used_model} (reason: {fallback_reason})")
             # Add fallback info to raw response for frontend
             raw["fallback_info"] = {
                 "original_model": original_model,
                 "fallback_model": used_model,
                 "reason": fallback_reason
             }
+        else:
+            print(f"✅ Caption Router: No fallback used, primary model {used_model} succeeded")
         
     except Exception as e:
-        print(f"VLM error, using fallback: {e}")
+        print(f"❌ Caption Router: VLM error, using fallback: {e}")
+        print(f"❌ Caption Router: Error type: {type(e).__name__}")
         text = "This is a fallback caption due to VLM service error."
         used_model = "STUB_MODEL"
         raw = {"error": str(e), "fallback": True}
         metadata = {}
-
+    
+    print(f"📝 Caption Router: Creating caption in database...")
+    
     c = crud.create_caption(
         db,
         image_id=image_id,
@@ -207,23 +207,24 @@ async def create_caption(
     
     db.refresh(c)
     
-    print(f"DEBUG: Caption created, image object: {c}")
-    print(f"DEBUG: file_key: {c.file_key}")
-    print(f"DEBUG: image_id: {c.image_id}")
+    print(f"📝 Caption Router: Caption created successfully")
+    print(f"📝 Caption Router: Caption ID: {c.id}")
+    print(f"📝 Caption Router: Model used: {c.model_code}")
     
     from .upload import convert_image_to_dict
     try:
         url = storage.get_object_url(c.file_key)
-        print(f"DEBUG: Generated URL: {url}")
+        print(f"📝 Caption Router: Generated URL: {url}")
         if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
             url = f"http://localhost:8000{url}"
-            print(f"DEBUG: Local URL adjusted to: {url}")
+            print(f"📝 Caption Router: Local URL adjusted to: {url}")
     except Exception as e:
-        print(f"DEBUG: URL generation failed: {e}")
+        print(f"⚠️ Caption Router: URL generation failed: {e}")
         url = f"/api/images/{c.image_id}/file"
-        print(f"DEBUG: Using fallback URL: {url}")
+        print(f"📝 Caption Router: Using fallback URL: {url}")
     
     img_dict = convert_image_to_dict(c, url)
+    print(f"📝 Caption Router: Caption generation completed successfully")
     return schemas.ImageOut(**img_dict)
 
 @router.get(
