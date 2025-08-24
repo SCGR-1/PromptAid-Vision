@@ -106,6 +106,11 @@ export default function UploadPage() {
   }, [searchParams]);
 
   const handleNavigation = useCallback((to: string) => {
+    // Prevent navigation to upload/home when already on upload page
+    if (to === '/upload' || to === '/') {
+      return;
+    }
+    
     if (uploadedImageIdRef.current) {
       setPendingNavigation(to);
       setShowNavigationConfirm(true);

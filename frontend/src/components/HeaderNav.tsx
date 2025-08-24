@@ -36,6 +36,11 @@ export default function HeaderNav() {
         <div 
           className="flex items-center gap-4 min-w-0 cursor-pointer group transition-all duration-200 hover:scale-105" 
           onClick={() => {
+            // Prevent navigation to home when already on upload page
+            if (location.pathname === "/upload" || location.pathname === "/") {
+              return;
+            }
+            
             if (location.pathname === "/upload") {
               if (window.confirmNavigationIfNeeded) {
                 window.confirmNavigationIfNeeded('/');
@@ -61,6 +66,11 @@ export default function HeaderNav() {
             const isActive = location.pathname === to || 
               (to === '/upload' && location.pathname === '/') ||
               (to === '/explore' && location.pathname.startsWith('/map/'));
+            
+            // Don't allow navigation to upload or home when already on upload page
+            const isUploadPage = location.pathname === "/upload" || location.pathname === "/";
+            const isUploadOrHomeNav = to === "/upload" || to === "/";
+            
             return (
               <div key={to} className="relative">
                 <Container withInternalPadding className="p-2">
@@ -74,6 +84,11 @@ export default function HeaderNav() {
                         : 'hover:bg-white hover:shadow-md hover:scale-105'
                     }`}
                     onClick={() => {
+                      // Prevent navigation to upload/home when already on upload page
+                      if (isUploadPage && isUploadOrHomeNav) {
+                        return;
+                      }
+                      
                       if (location.pathname === "/upload") {
                         if (window.confirmNavigationIfNeeded) {
                           window.confirmNavigationIfNeeded(to);
