@@ -139,28 +139,38 @@ class SchemaValidator:
             Tuple of (cleaned_data, is_valid, error_message)
         """
         try:
-            # Extract the main content (handle different VLM response formats)
-            if "content" in raw_data:
-                # Some VLM models wrap content in a "content" field
+            if "raw_response" in raw_data:
+                ai_data = raw_data["raw_response"]
+                
+                if "response" in ai_data:
+                    content = ai_data["response"]
+                    if isinstance(content, str):
+                        try:
+                            data = json.loads(content)
+                        except json.JSONDecodeError:
+                            data = {"analysis": content, "metadata": {}}
+                    else:
+                        data = content
+                elif "analysis" in ai_data and "metadata" in ai_data:
+                    data = ai_data
+                else:
+                    data = ai_data
+            elif "content" in raw_data:
                 content = raw_data["content"]
                 if isinstance(content, str):
-                    # Try to parse JSON from string content
                     try:
                         parsed_content = json.loads(content)
                         data = parsed_content
                     except json.JSONDecodeError:
-                        # If it's not JSON, treat as analysis
                         data = {"analysis": content, "metadata": {}}
                 else:
                     data = content
             else:
                 data = raw_data
             
-            # Validate the data
             is_valid, error_msg = self.validate_data_by_type(data, image_type)
             
             if is_valid:
-                # Clean the data (remove any extra fields, normalize)
                 cleaned_data = self._clean_data(data, image_type)
                 return cleaned_data, True, None
             else:

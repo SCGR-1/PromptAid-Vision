@@ -251,7 +251,6 @@ class ProvidersGenericVLMService(HuggingFaceService):
         # Use a human-friendly stable name that your UI/DB will reference
         self.model_name = public_name or model_id.replace("/", "_").upper()
         self.model_type = ModelType.CUSTOM
-
 class ProvidersGenericVLMService(HuggingFaceService):
     """
     Generic wrapper so you can register ANY Providers VLM by model_id from config.
@@ -263,3 +262,4 @@ class ProvidersGenericVLMService(HuggingFaceService):
         # Use a human-friendly stable name that your UI/DB will reference
         self.model_name = public_name or model_id.replace("/", "_").upper()
         self.model_type = ModelType.CUSTOM
+
