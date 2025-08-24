@@ -44,7 +44,10 @@ if settings.HF_API_KEY:
         try:
             models = crud.get_models(db)
             for model in models:
-                if model.provider == "huggingface" and model.model_id and model.m_code != "STUB_MODEL":
+                if (model.provider == "huggingface" and 
+                    model.model_id and 
+                    model.m_code != "STUB_MODEL" and
+                    model.m_code not in ["GPT-4O", "GEMINI15"]):
                     try:
                         service = ProvidersGenericVLMService(
                             api_key=settings.HF_API_KEY,
