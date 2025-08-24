@@ -299,6 +299,10 @@ export default function UploadPage() {
     setPreprocessingFile(null);
     setIsPreprocessing(false);
     setPreprocessingProgress('');
+    setShowUnsupportedFormatModal(false);
+    setUnsupportedFile(null);
+    setShowFileSizeWarningModal(false);
+    setOversizedFile(null);
   }; 
   const [scores, setScores] = useState({  
     accuracy: 50,
@@ -334,6 +338,14 @@ export default function UploadPage() {
   const [isPreprocessing, setIsPreprocessing] = useState(false);
   const [preprocessingProgress, setPreprocessingProgress] = useState<string>('');
 
+  // unsupported format popup
+  const [showUnsupportedFormatModal, setShowUnsupportedFormatModal] = useState(false);
+  const [unsupportedFile, setUnsupportedFile] = useState<File | null>(null);
+
+  // New state for file size warning popup
+  const [showFileSizeWarningModal, setShowFileSizeWarningModal] = useState(false);
+  const [oversizedFile, setOversizedFile] = useState<File | null>(null);
+
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -346,6 +358,23 @@ export default function UploadPage() {
   const onFileChange = (file: File | undefined) => {
     if (file) {
       console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
+      
+      // Check if file is too large (5MB limit) - show warning but don't block
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 5) {
+        console.log('File too large, showing size warning modal');
+        setOversizedFile(file);
+        setShowFileSizeWarningModal(true);
+        // Don't return - continue with normal processing
+      }
+      
+      // Check if file is completely unsupported
+      if (isCompletelyUnsupported(file)) {
+        console.log('File format not supported at all, showing unsupported format modal');
+        setUnsupportedFile(file);
+        setShowUnsupportedFormatModal(true);
+        return;
+      }
       
       // Check if file needs preprocessing
       if (needsPreprocessing(file)) {
@@ -371,6 +400,55 @@ export default function UploadPage() {
     }
     
     return needsPreprocess;
+  };
+
+  const isCompletelyUnsupported = (file: File): boolean => {
+    // List of formats that are completely unsupported (cannot be converted)
+    const completelyUnsupportedTypes = [
+      'text/html',
+      'text/css',
+      'application/javascript',
+      'application/json',
+      'text/plain',
+      'application/xml',
+      'text/xml',
+      'application/zip',
+      'application/x-zip-compressed',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
+      'audio/',
+      'video/',
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    // Check if the MIME type starts with any of the unsupported types
+    for (const unsupportedType of completelyUnsupportedTypes) {
+      if (file.type.startsWith(unsupportedType)) {
+        return true;
+      }
+    }
+    
+    // Check file extension for additional unsupported formats
+    if (file.name) {
+      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      const unsupportedExtensions = [
+        '.html', '.htm', '.css', '.js', '.json', '.txt', '.xml',
+        '.zip', '.rar', '.7z', '.csv', '.xlsx', '.xls', '.pptx',
+        '.ppt', '.docx', '.doc', '.mp3', '.mp4', '.avi', '.mov'
+      ];
+      
+      if (unsupportedExtensions.includes(fileExtension)) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   const handlePreprocessingConfirm = async () => {
@@ -884,6 +962,7 @@ export default function UploadPage() {
                 <input
                   type="file"
                   className="sr-only"
+                  accept=".jpg,.jpeg,.png,.tiff,.tif,.heic,.heif,.webp,.gif,.pdf"
                   onChange={e => onFileChange(e.target.files?.[0])}
                 />
                 <Button 
@@ -1483,6 +1562,62 @@ export default function UploadPage() {
                     <Spinner className="text-ifrcRed" />
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Unsupported Format Modal */}
+        {showUnsupportedFormatModal && unsupportedFile && (
+          <div className={styles.fullSizeModalOverlay} onClick={() => setShowUnsupportedFormatModal(false)}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>Unsupported File Format</h3>
+                <p className={styles.ratingWarningText}>
+                  The file <strong>{unsupportedFile.name}</strong> is not supported for upload.
+                  <br /><br />
+                  <strong>Supported formats:</strong>
+                  <br />• Images: JPEG, PNG, TIFF, HEIC, WebP, GIF
+                  <br />• Documents: PDF (will be converted to image)
+                  <br /><br />
+                  <strong>Recommendation:</strong> Convert your file to JPEG or PNG format for best compatibility.
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="close-unsupported"
+                    variant="secondary"
+                    onClick={() => setShowUnsupportedFormatModal(false)}
+                  >
+                    Got it
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* File Size Warning Modal */}
+        {showFileSizeWarningModal && oversizedFile && (
+          <div className={styles.lightModalOverlay} onClick={() => setShowFileSizeWarningModal(false)}>
+            <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.ratingWarningContent}>
+                <h3 className={styles.ratingWarningTitle}>File Size Warning</h3>
+                <p className={styles.ratingWarningText}>
+                  The file <strong>{oversizedFile.name}</strong> is large ({(oversizedFile.size / (1024 * 1024)).toFixed(1)}MB).
+                  <br /><br />
+                  <strong>Warning:</strong> This file size might exceed the limits of the AI models we use.
+                  <br /><br />
+                  You can still proceed, but consider using a smaller file if you encounter issues.
+                </p>
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="close-size-warning"
+                    variant="secondary"
+                    onClick={() => setShowFileSizeWarningModal(false)}
+                  >
+                    Continue Anyway
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

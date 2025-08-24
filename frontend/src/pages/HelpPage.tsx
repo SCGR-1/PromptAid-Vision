@@ -34,10 +34,10 @@ export default function HelpPage() {
               cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in 
               culpa qui officia deserunt mollit anim id est laborum.
             </p>
-            <div className="mt-6">
+            <div className="mt-6 flex justify-center">
               <Button
                 name="upload-now"
-                variant="primary"
+                variant="secondary"
                 onClick={handleUploadNow}
               >
                 Upload now →
@@ -53,10 +53,10 @@ export default function HelpPage() {
               dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, 
               sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
             </p>
-            <div className="mt-6">
+            <div className="mt-6 flex justify-center">
               <Button
                 name="see-examples"
-                variant="primary"
+                variant="secondary"
                 onClick={handleSeeExamples}
               >
                 See examples →
@@ -72,13 +72,42 @@ export default function HelpPage() {
               provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum 
               fuga. Et harum quidem rerum facilis est et expedita distinctio.
             </p>
-            <div className="mt-6">
+            <div className="mt-6 flex justify-center">
               <Button
                 name="view-vlm-details"
-                variant="primary"
+                variant="secondary"
                 onClick={handleViewVlmDetails}
               >
                 View VLM details →
+              </Button>
+            </div>
+          </Container>
+
+          <Container withInternalPadding className="p-8">
+            <Heading level={3} className="mb-4 text-ifrcRed font-semibold">Dataset</Heading>
+            <p className="text-gray-700 leading-relaxed text-base">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore 
+              et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut 
+              aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse 
+              cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in 
+              culpa qui officia deserunt mollit anim id est laborum.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <Button
+                name="export-dataset"
+                variant="secondary"
+                onClick={() => {
+                  setShowReferenceExamples(false);
+                  navigate('/explore');
+                  setTimeout(() => {
+                    const exportButton = document.querySelector('[name="export-dataset"]') as HTMLButtonElement;
+                    if (exportButton) {
+                      exportButton.click();
+                    }
+                  }, 100);
+                }}
+              >
+                Export dataset →
               </Button>
             </div>
           </Container>

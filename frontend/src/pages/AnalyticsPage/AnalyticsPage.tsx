@@ -124,6 +124,7 @@ export default function AnalyticsPage() {
   const [sourcesLookup, setSourcesLookup] = useState<LookupData[]>([]);
   const [typesLookup, setTypesLookup] = useState<LookupData[]>([]);
   const [regionsLookup, setRegionsLookup] = useState<LookupData[]>([]);
+  const [modelsLookup, setModelsLookup] = useState<{ m_code: string; label: string }[]>([]);
   const [showEditTimeModal, setShowEditTimeModal] = useState(false);
   const [showPercentageModal, setShowPercentageModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -323,17 +324,20 @@ export default function AnalyticsPage() {
 
   const fetchLookupData = useCallback(async () => {
     try {
-      const [sourcesRes, typesRes, regionsRes] = await Promise.all([
+      const [sourcesRes, typesRes, regionsRes, modelsRes] = await Promise.all([
         fetch('/api/sources'),
         fetch('/api/types'),
-        fetch('/api/regions')
+        fetch('/api/regions'),
+        fetch('/api/models')
       ]);
       const sources = await sourcesRes.json();
       const types = await typesRes.json();
       const regions = await regionsRes.json();
+      const models = await modelsRes.json();
       setSourcesLookup(sources);
       setTypesLookup(types);
       setRegionsLookup(regions);
+      setModelsLookup(models.models || []);
     } catch (error) {
       console.log('Could not fetch lookup data:', error);
     }
@@ -352,10 +356,10 @@ export default function AnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    if (sourcesLookup.length > 0 && typesLookup.length > 0 && regionsLookup.length > 0) {
+    if (sourcesLookup.length > 0 && typesLookup.length > 0 && regionsLookup.length > 0 && modelsLookup.length > 0) {
       fetchAnalytics();
     }
-  }, [sourcesLookup, typesLookup, regionsLookup, fetchAnalytics]);
+  }, [sourcesLookup, typesLookup, regionsLookup, modelsLookup, fetchAnalytics]);
 
   const getSourceLabel = useCallback((code: string) => {
     const source = sourcesLookup.find(s => s.s_code === code);
@@ -390,21 +394,26 @@ export default function AnalyticsPage() {
     return type ? type.label : code;
   }, [typesLookup]);
 
+  const getModelLabel = useCallback((code: string) => {
+    const model = modelsLookup.find(m => m.m_code === code);
+    return model ? model.label : code;
+  }, [modelsLookup]);
+
   const editTimeTableData = useMemo(() => {
     if (!data) return [];
     
     return Object.entries(data.modelEditTimes || {})
       .filter(([, editTimes]) => editTimes.length > 0)
       .sort(([, a], [, b]) => getMedianEditTime(b) - getMedianEditTime(a))
-      .map(([model, editTimes], index) => ({
+      .map(([modelCode, editTimes], index) => ({
         id: index + 1,
-        name: model,
+        name: getModelLabel(modelCode),
         count: editTimes.length,
         avgEditTime: getMedianEditTime(editTimes),
         minEditTime: Math.min(...editTimes),
         maxEditTime: Math.max(...editTimes)
       }));
-  }, [data, getMedianEditTime]);
+  }, [data, getMedianEditTime, getModelLabel]);
 
   const percentageModifiedTableData = useMemo(() => {
     if (!data) return [];
@@ -424,7 +433,7 @@ export default function AnalyticsPage() {
           : sortedB[midB];
         return medianB - medianA;
       })
-      .map(([model, percentages], index) => {
+      .map(([modelCode, percentages], index) => {
         const sortedPercentages = [...percentages].sort((a, b) => a - b);
         const mid = Math.floor(sortedPercentages.length / 2);
         const medianPercentage = sortedPercentages.length % 2 === 0 
@@ -433,14 +442,14 @@ export default function AnalyticsPage() {
         
         return {
           id: index + 1,
-          name: model,
+          name: getModelLabel(modelCode),
           count: percentages.length,
           avgPercentageModified: medianPercentage,
           minPercentageModified: Math.min(...percentages),
           maxPercentageModified: Math.max(...percentages)
         };
       });
-  }, [data]);
+  }, [data, getModelLabel]);
 
 
 
@@ -449,7 +458,7 @@ export default function AnalyticsPage() {
     
     return Object.entries(data.models)
       .filter(([, model]) => model.count > 0)
-      .map(([name, model], index) => {
+      .map(([modelCode, model], index) => {
         // Calculate consistency based on how close accuracy, context, and usability are
         const scores = [model.avgAccuracy, model.avgContext, model.avgUsability];
         const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
@@ -458,14 +467,14 @@ export default function AnalyticsPage() {
         
         return {
           id: index + 1,
-          name,
+          name: getModelLabel(modelCode),
           consistency: Math.max(0, consistency),
           avgScore: Math.round(mean),
           count: model.count
         };
       })
       .sort((a, b) => b.consistency - a.consistency);
-  }, [data]);
+  }, [data, getModelLabel]);
 
   const regionsColumns = useMemo(() => [
     createStringColumn<RegionData, number>(
@@ -700,6 +709,28 @@ export default function AnalyticsPage() {
     ),
   ], []);
 
+  const qualityByEventTypeColumns = useMemo(() => [
+    createStringColumn<{ eventType: string; avgQuality: number; count: number }, number>(
+      'eventType',
+      'Event Type',
+      (item) => item.eventType,
+    ),
+    createNumberColumn<{ eventType: string; avgQuality: number; count: number }, number>(
+      'avgQuality',
+      'Average Quality',
+      (item) => item.avgQuality,
+      {
+        suffix: '%',
+        maximumFractionDigits: 0,
+      },
+    ),
+    createNumberColumn<{ eventType: string; avgQuality: number; count: number }, number>(
+      'count',
+      'Count',
+      (item) => item.count,
+    ),
+  ], []);
+
   const modelConsistencyColumns = useMemo(() => [
     createStringColumn<{ name: string; consistency: number; avgScore: number; count: number }, number>(
       'name',
@@ -762,8 +793,11 @@ export default function AnalyticsPage() {
     
     return Object.entries(regions)
       .filter(([, value]) => value > 0)
-      .map(([name, value]) => ({ name, value }));
-  }, [data]);
+      .map(([code, value]) => ({ 
+        name: regionsLookup.find(r => r.r_code === code)?.label || code, 
+        value 
+      }));
+  }, [data, regionsLookup]);
 
   const getImageTypeRegionsTableData = useCallback((imageType: string) => {
     if (!data) return [];
@@ -816,8 +850,11 @@ export default function AnalyticsPage() {
     
     return Object.entries(sources)
       .filter(([, value]) => value > 0)
-      .map(([name, value]) => ({ name, value }));
-  }, [data]);
+      .map(([code, value]) => ({ 
+        name: sourcesLookup.find(s => s.s_code === code)?.label || code, 
+        value 
+      }));
+  }, [data, sourcesLookup]);
 
   const getImageTypeSourcesTableData = useCallback((imageType: string) => {
     if (!data) return [];
@@ -856,8 +893,11 @@ export default function AnalyticsPage() {
     
     return Object.entries(types)
       .filter(([, value]) => value > 0)
-      .map(([name, value]) => ({ name, value }));
-  }, [data]);
+      .map(([code, value]) => ({ 
+        name: typesLookup.find(t => t.t_code === code)?.label || code, 
+        value 
+      }));
+  }, [data, typesLookup]);
 
   const getImageTypeTypesTableData = useCallback((imageType: string) => {
     if (!data) return [];
@@ -884,14 +924,29 @@ export default function AnalyticsPage() {
 
   const getImageTypeMedianEditTime = useCallback((imageType: string) => {
     if (!data) return 'No data available';
-    // Filter edit times by image type
-    const filteredEditTimes = Object.entries(data.modelEditTimes).filter(([modelName]) => {
-      if (imageType === 'crisis_map') {
-        return modelName.includes('GPT') || modelName.includes('Claude') || modelName.includes('Gemini') || modelName.includes('STUB');
-      } else if (imageType === 'drone_image') {
-        return modelName.includes('Llama') || modelName.includes('Other');
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Get the models actually used by images of this type
+    const usedModels = new Set<string>();
+    images.forEach((map: MapData) => {
+      if (map.model) {
+        usedModels.add(map.model);
       }
-      return true;
+    });
+    
+    // Debug logging
+    console.log(`Debug ${imageType}:`, {
+      totalImages: images.length,
+      usedModels: Array.from(usedModels),
+      availableEditTimes: Object.keys(data.modelEditTimes),
+      modelEditTimesData: data.modelEditTimes
+    });
+    
+    // Filter edit times by models actually used by this image type
+    const filteredEditTimes = Object.entries(data.modelEditTimes).filter(([modelName]) => {
+      return usedModels.has(modelName);
     });
     
     const editTimes = filteredEditTimes.flatMap(([, times]) => times);
@@ -916,31 +971,51 @@ export default function AnalyticsPage() {
 
   const getImageTypeEditTimeTableData = useCallback((imageType: string) => {
     if (!data) return [];
-    // Filter edit time data by image type
-    const filteredData = editTimeTableData.filter(d => {
-      if (imageType === 'crisis_map') {
-        return d.name.includes('GPT') || d.name.includes('Claude') || d.name.includes('Gemini') || d.name.includes('STUB');
-      } else if (imageType === 'drone_image') {
-        return d.name.includes('Llama') || d.name.includes('Other');
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Get the models actually used by images of this type
+    const usedModels = new Set<string>();
+    images.forEach((map: MapData) => {
+      if (map.model) {
+        usedModels.add(map.model);
       }
-      return true;
     });
+    
+    // Filter edit time data by models actually used by this image type
+    const filteredData = editTimeTableData.filter(d => {
+      // Find the model code that matches this display name
+      const modelCode = modelsLookup.find(m => m.label === d.name)?.m_code;
+      return modelCode && usedModels.has(modelCode);
+    });
+    
     return filteredData;
-  }, [data, editTimeTableData]);
+  }, [data, editTimeTableData, modelsLookup]);
 
   const getImageTypePercentageTableData = useCallback((imageType: string) => {
     if (!data) return [];
-    // Filter percentage data by image type
-    const filteredData = percentageModifiedTableData.filter(d => {
-      if (imageType === 'crisis_map') {
-        return d.name.includes('GPT') || d.name.includes('Claude') || d.name.includes('Gemini') || d.name.includes('STUB');
-      } else if (imageType === 'drone_image') {
-        return d.name.includes('Llama') || d.name.includes('Other');
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Get the models actually used by images of this type
+    const usedModels = new Set<string>();
+    images.forEach((map: MapData) => {
+      if (map.model) {
+        usedModels.add(map.model);
       }
-      return true;
     });
+    
+    // Filter percentage data by models actually used by this image type
+    const filteredData = percentageModifiedTableData.filter(d => {
+      // Find the model code that matches this display name
+      const modelCode = modelsLookup.find(m => m.label === d.name)?.m_code;
+      return modelCode && usedModels.has(modelCode);
+    });
+    
     return filteredData;
-  }, [data, percentageModifiedTableData]);
+  }, [data, percentageModifiedTableData, modelsLookup]);
 
   const getImageTypeDeleteRateTableData = useCallback((imageType: string) => {
     if (!data) return [];
@@ -964,14 +1039,14 @@ export default function AnalyticsPage() {
     
     // Convert to table data format and add delete counts from analytics.models
     return Object.entries(modelStats)
-      .map(([modelName, stats], index) => {
-        const modelData = data.models?.[modelName];
+      .map(([modelCode, stats], index) => {
+        const modelData = data.models?.[modelCode];
         const deleteCount = modelData?.deleteCount || 0;
         const deleteRate = stats.count > 0 ? Math.round((deleteCount / stats.count) * 100 * 10) / 10 : 0;
         
         return {
           id: index + 1,
-          name: modelName,
+          name: getModelLabel(modelCode),
           count: stats.count,
           deleteCount: deleteCount,
           deleteRate: deleteRate,
@@ -1003,9 +1078,9 @@ export default function AnalyticsPage() {
      
      // Convert to table data format
      return Object.entries(modelStats)
-       .map(([modelName, stats], index) => ({
+       .map(([modelCode, stats], index) => ({
          id: index + 1,
-         name: modelName,
+         name: getModelLabel(modelCode),
          count: stats.count,
          accuracy: stats.count > 0 ? Math.round(stats.totalAccuracy / stats.count) : 0,
          context: stats.count > 0 ? Math.round(stats.totalContext / stats.count) : 0,
@@ -1013,7 +1088,7 @@ export default function AnalyticsPage() {
          totalScore: stats.count > 0 ? Math.round((stats.totalAccuracy + stats.totalContext + stats.totalUsability) / (3 * stats.count)) : 0
        }))
        .sort((a, b) => b.totalScore - a.totalScore);
-   }, [data]);
+   }, [data, getModelLabel]);
 
      const getImageTypeQualityBySourceTableData = useCallback((imageType: string) => {
      if (!data) return [];
@@ -1046,19 +1121,60 @@ export default function AnalyticsPage() {
      }));
    }, [data, getSourceLabel]);
 
+  const getImageTypeQualityByEventTypeTableData = useCallback((imageType: string) => {
+    if (!data) return [];
+
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+
+    // Calculate quality by event type for this specific image type
+    const eventTypeQuality: { [key: string]: { total: number; count: number; totalImages: number } } = {};
+
+    images.forEach((map: MapData) => {
+      if (map.event_type) {
+        if (!eventTypeQuality[map.event_type]) {
+          eventTypeQuality[map.event_type] = { total: 0, count: 0, totalImages: 0 };
+        }
+        eventTypeQuality[map.event_type].totalImages += 1;
+        if (map.accuracy != null) {
+          eventTypeQuality[map.event_type].total += map.accuracy;
+          eventTypeQuality[map.event_type].count += 1;
+        }
+      }
+    });
+
+    // Convert to table data format
+    return Object.entries(eventTypeQuality).map(([eventTypeCode, stats], index) => ({
+      id: index + 1,
+      eventType: getTypeLabel(eventTypeCode),
+      avgQuality: stats.count > 0 ? Math.round(stats.total / stats.count) : 0,
+      count: stats.totalImages
+    }));
+  }, [data, getTypeLabel]);
+
   const getImageTypeModelConsistencyTableData = useCallback((imageType: string) => {
     if (!data) return [];
-    // Filter model consistency table data by image type
-    const filteredData = modelConsistencyData.filter(d => {
-      if (imageType === 'crisis_map') {
-        return d.name.includes('GPT') || d.name.includes('Claude') || d.name.includes('Gemini') || d.name.includes('STUB');
-      } else if (imageType === 'drone_image') {
-        return d.name.includes('Llama') || d.name.includes('Other');
+    
+    // Get the appropriate image set based on type
+    const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
+    
+    // Get the models actually used by images of this type
+    const usedModels = new Set<string>();
+    images.forEach((map: MapData) => {
+      if (map.model) {
+        usedModels.add(map.model);
       }
-      return true;
     });
+    
+    // Filter model consistency table data by models actually used by this image type
+    const filteredData = modelConsistencyData.filter(d => {
+      // Find the model code that matches this display name
+      const modelCode = modelsLookup.find(m => m.label === d.name)?.m_code;
+      return modelCode && usedModels.has(modelCode);
+    });
+    
     return filteredData;
-  }, [data, modelConsistencyData]);
+  }, [data, modelConsistencyData, modelsLookup]);
 
   if (loading) {
     return (
@@ -1320,6 +1436,18 @@ export default function AnalyticsPage() {
               </div>
             </Container>
 
+            <Container heading="Quality-Event Type Correlation" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.tableContainer}>
+                <Table
+                  data={getImageTypeQualityByEventTypeTableData('crisis_map')}
+                  columns={qualityByEventTypeColumns}
+                  keySelector={numericIdSelector}
+                  filtered={false}
+                  pending={false}
+                />
+              </div>
+            </Container>
+
             <Container heading="Model Consistency Analysis" headingLevel={3} withHeaderBorder withInternalPadding>
               <div className={styles.tableContainer}>
                 <Table
@@ -1512,21 +1640,17 @@ export default function AnalyticsPage() {
               </div>
             </Container>
 
-            
-
-            <Container heading="Quality-Source Correlation" headingLevel={3} withHeaderBorder withInternalPadding>
+            <Container heading="Quality-Event Type Correlation" headingLevel={3} withHeaderBorder withInternalPadding>
               <div className={styles.tableContainer}>
                 <Table
-                  data={getImageTypeQualityBySourceTableData('drone_image')}
-                  columns={qualityBySourceColumns}
+                  data={getImageTypeQualityByEventTypeTableData('drone_image')}
+                  columns={qualityByEventTypeColumns}
                   keySelector={numericIdSelector}
                   filtered={false}
                   pending={false}
                 />
               </div>
             </Container>
-
-            
 
             <Container heading="Model Consistency Analysis" headingLevel={3} withHeaderBorder withInternalPadding>
               <div className={styles.tableContainer}>
