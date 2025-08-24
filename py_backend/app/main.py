@@ -17,7 +17,7 @@ from app.routers.prompts import router as prompts_router
 from app.routers.admin import router as admin_router
 from app.routers.schemas import router as schemas_router
 
-app = FastAPI(title="PromptAid Vision")
+app = FastAPI(title="PromptAid Vision", redirect_slashes=False)
 
 app.add_middleware(
     CORSMiddleware,
