@@ -27,7 +27,29 @@ def upgrade():
         AND config->>'provider' IS NOT NULL
     """)
     
-    # Set default values for models without config
+    # Set specific values for known models that don't have config or have empty config
+    op.execute("""
+        UPDATE models 
+        SET provider = 'openai',
+            model_id = 'gpt-4o'
+        WHERE m_code = 'GPT-4O' AND (provider IS NULL OR provider = 'huggingface')
+    """)
+    
+    op.execute("""
+        UPDATE models 
+        SET provider = 'google',
+            model_id = 'gemini-1.5-flash'
+        WHERE m_code = 'GEMINI15' AND (provider IS NULL OR provider = 'huggingface')
+    """)
+    
+    op.execute("""
+        UPDATE models 
+        SET provider = 'anthropic',
+            model_id = 'claude-3-5-sonnet'
+        WHERE m_code = 'CLAUDE3' AND (provider IS NULL OR provider = 'huggingface')
+    """)
+    
+    # Set default values for remaining models without provider (should only be HuggingFace models)
     op.execute("""
         UPDATE models 
         SET provider = 'huggingface', 
