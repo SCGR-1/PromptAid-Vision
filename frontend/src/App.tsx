@@ -8,7 +8,6 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ExplorePage from './pages/ExplorePage';
 import HelpPage from './pages/HelpPage';
 import MapDetailPage from './pages/MapDetailsPage';
-import DemoPage from './pages/DemoPage';
 
 import AdminPage from './pages/AdminPage/AdminPage';
 import { FilterProvider } from './contexts/FilterContext';
@@ -23,7 +22,6 @@ const router = createHashRouter([
       { path: '/analytics', element: <AnalyticsPage /> },
       { path: '/explore',   element: <ExplorePage /> },
       { path: '/help',      element: <HelpPage /> },
-      { path: '/demo',      element: <DemoPage /> },
       
       { path: '/admin',     element: <AdminPage /> },
       { path: '/map/:mapId', element: <MapDetailPage /> },

@@ -1,8 +1,0 @@
-{
-    "namespace": "countryProfileRiskWatch",
-    "strings": {
-        "foodInsecurityChartAverage": "Average for",
-        "foodInsecurityAnalysisDate": "Analysis date",
-        "foodInsecurityPeopleExposed": "People Exposed"
-    }
-}

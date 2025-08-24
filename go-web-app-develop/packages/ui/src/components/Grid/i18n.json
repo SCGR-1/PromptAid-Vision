@@ -1,9 +1,0 @@
-{
-    "namespace": "common",
-    "strings": {
-        "gridFailedToFetch": "Failed to fetch data!",
-        "gridEmptyMessage": "Data is not available!",
-        "gridPendingMessage": "Fetching data...",
-        "gridFilteredMessage": "Data is not available for the selected filter!"
-    }
-}

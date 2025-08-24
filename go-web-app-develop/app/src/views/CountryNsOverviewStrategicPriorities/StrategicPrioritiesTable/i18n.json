@@ -1,8 +1,0 @@
-{
-    "namespace": "countryNsOverviewStrategicPriorities",
-    "strings": {
-        "countryPlanStrategicPriority": "Strategic Priority",
-        "countryPlanKeyFigurePeopleTargeted": "People Targeted",
-        "countryPlanStrategicPrioritiesTableHeading": "Strategic Priorities"
-    }
-}

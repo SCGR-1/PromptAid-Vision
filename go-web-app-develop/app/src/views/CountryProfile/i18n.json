@@ -1,8 +1,0 @@
-{
-    "namespace": "countryProfile",
-    "strings": {
-        "overviewTabTitle": "Overview",
-        "previousEventsTabTitle": "Previous Events",
-        "riskWatchTabTitle": "Risk Watch"
-    }
-}

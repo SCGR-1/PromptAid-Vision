@@ -1,8 +1,0 @@
-{
-    "namespace": "drefFinalReportForm",
-    "strings": {
-        "drefFormRiskSecurityRiskLabel": "Risk",
-        "drefFormRiskSecurityMitigationLabel": "Mitigation action",
-        "drefFinalReportDeleteRisk": "Delete Risk"
-    }
-}

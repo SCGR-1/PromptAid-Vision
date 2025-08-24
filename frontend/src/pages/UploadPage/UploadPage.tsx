@@ -32,7 +32,7 @@ export default function UploadPage() {
   const [countries, setCountries] = useState<string[]>([]);
   const [title, setTitle] = useState('');
 
-  // Drone-specific metadata fields
+  // Drone metadata fields
   const [centerLon, setCenterLon] = useState<string>('');
   const [centerLat, setCenterLat] = useState<string>('');
   const [amslM, setAmslM] = useState<string>('');
@@ -98,7 +98,6 @@ export default function UploadPage() {
             if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
       setEventType('OTHER');
       setEpsg('OTHER');
-      // Only set default imageType if we don't have one from URL parameter and don't already have a default
       if (imageTypesData.length > 0 && !searchParams.get('imageType') && !imageType) {
         setImageType(imageTypesData[0].image_type);
       }
@@ -106,7 +105,6 @@ export default function UploadPage() {
   }, [searchParams]);
 
   const handleNavigation = useCallback((to: string) => {
-    // Prevent navigation to upload/home when already on upload page
     if (to === '/upload' || to === '/') {
       return;
     }
@@ -141,7 +139,6 @@ export default function UploadPage() {
 
     const handleCleanup = () => {
       if (uploadedImageIdRef.current) {
-        // This is a user dissatisfaction delete (abandoning upload), so don't pass content_management=true
         fetch(`/api/images/${uploadedImageIdRef.current}`, { method: "DELETE" }).catch(console.error);
       }
     };
@@ -186,7 +183,6 @@ export default function UploadPage() {
           setIsLoadingContribution(true);
           setUploadedImageId(imageIdParam);
           
-          // Set imageType from URL parameter if available
           if (imageTypeParam) {
             console.log('Setting imageType from URL parameter:', imageTypeParam);
             setImageType(imageTypeParam);
@@ -196,14 +192,12 @@ export default function UploadPage() {
             .then(res => res.json())
             .then(data => {
               console.log('API response data.image_type:', data.image_type);
-              // Only set imageType from API if we don't have it from URL parameter
               if (data.image_type && !imageTypeParam) {
                 console.log('Setting imageType from API response:', data.image_type);
                 setImageType(data.image_type);
               }
               
               if (data.generated) {
-                // Handle both plain text and JSON responses
                 try {
                   const parsedGenerated = JSON.parse(data.generated);
                   if (parsedGenerated.analysis) {
@@ -212,7 +206,6 @@ export default function UploadPage() {
                     setDraft(data.generated);
                   }
                 } catch (e) {
-                  // Not JSON, treat as plain text
                   setDraft(data.generated);
                 }
               }
@@ -269,7 +262,6 @@ export default function UploadPage() {
       }
   }, [searchParams]);
 
-  // Debug useEffect to track imageType changes
   useEffect(() => {
     console.log('imageType changed to:', imageType);
   }, [imageType]);
@@ -337,7 +329,6 @@ export default function UploadPage() {
     error?: string;
   } | null>(null);
 
-  // Enhanced preprocessing flow state
   const [showPreprocessingModal, setShowPreprocessingModal] = useState(false);
   const [preprocessingFile, setPreprocessingFile] = useState<File | null>(null);
   const [isPreprocessing, setIsPreprocessing] = useState(false);
@@ -348,7 +339,6 @@ export default function UploadPage() {
     e.preventDefault();
     const dropped = e.dataTransfer.files?.[0];
     if (dropped) {
-      // Use onFileChange to trigger preprocessing detection
       onFileChange(dropped);
     }
   };
@@ -369,33 +359,20 @@ export default function UploadPage() {
     }
   };
 
-  // Check if file needs preprocessing (non-JPEG/PNG)
   const needsPreprocessing = (file: File): boolean => {
     const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     const supportedExtensions = ['.jpg', '.jpeg', '.png'];
     
-    // Check MIME type first
     let needsPreprocess = !supportedTypes.includes(file.type);
     
-    // If MIME type check is inconclusive, check file extension
     if (!needsPreprocess && file.name) {
       const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
       needsPreprocess = !supportedExtensions.includes(fileExtension);
     }
     
-    console.log('Preprocessing check:', {
-      fileName: file.name,
-      fileType: file.type,
-      fileExtension: file.name ? file.name.toLowerCase().substring(file.name.lastIndexOf('.')) : 'none',
-      supportedTypes,
-      supportedExtensions,
-      needsPreprocess
-    });
-    
     return needsPreprocess;
   };
 
-  // Handle preprocessing confirmation
   const handlePreprocessingConfirm = async () => {
     if (!preprocessingFile) return;
     
@@ -403,14 +380,12 @@ export default function UploadPage() {
     setPreprocessingProgress('Starting file conversion...');
     
     try {
-      // Create FormData for preprocessing
       const formData = new FormData();
       formData.append('file', preprocessingFile);
-      formData.append('preprocess_only', 'true'); // Flag to indicate preprocessing only
+      formData.append('preprocess_only', 'true');
       
       setPreprocessingProgress('Converting file format...');
       
-      // Call preprocessing endpoint
       const response = await fetch('/api/images/preprocess', {
         method: 'POST',
         body: formData
@@ -424,30 +399,25 @@ export default function UploadPage() {
       
       setPreprocessingProgress('Finalizing conversion...');
       
-      // Decode base64 content
       const processedContent = atob(result.processed_content);
       const processedBytes = new Uint8Array(processedContent.length);
       for (let i = 0; i < processedContent.length; i++) {
         processedBytes[i] = processedContent.charCodeAt(i);
       }
       
-      // Create a new File object from the processed data
       const processedFile = new File(
         [processedBytes], 
         result.processed_filename, 
         { type: result.processed_mime_type }
       );
       
-      // Create preview URL
       const previewUrl = URL.createObjectURL(processedFile);
       
-      // Update the main file state
       setFile(processedFile);
       setPreview(previewUrl);
       
       setPreprocessingProgress('Conversion complete!');
       
-      // Close modal after a brief delay
       setTimeout(() => {
         setShowPreprocessingModal(false);
         setPreprocessingFile(null);
@@ -467,7 +437,6 @@ export default function UploadPage() {
     }
   };
 
-  // Handle preprocessing cancellation
   const handlePreprocessingCancel = () => {
     setShowPreprocessingModal(false);
     setPreprocessingFile(null);
@@ -511,7 +480,6 @@ export default function UploadPage() {
     if (imageType === 'drone_image') {
       fd.append('event_type', eventType || 'OTHER');
       fd.append('epsg', epsg || 'OTHER');
-      // Add drone-specific metadata
       if (centerLon) fd.append('center_lon', centerLon);
       if (centerLat) fd.append('center_lat', centerLat);
       if (amslM) fd.append('amsl_m', amslM);
@@ -543,7 +511,6 @@ export default function UploadPage() {
       if (!mapRes.ok) throw new Error((mapJson.error as string) || 'Upload failed');
       setImageUrl(mapJson.image_url as string);
 
-      // Check for preprocessing info and show notification if needed
       if (mapJson.preprocessing_info && 
           typeof mapJson.preprocessing_info === 'object' && 
           'was_preprocessed' in mapJson.preprocessing_info && 
@@ -574,7 +541,6 @@ export default function UploadPage() {
       if (!capRes.ok) throw new Error((capJson.error as string) || 'Caption failed');
       setUploadedImageId(mapIdVal);                     
 
-      // Check for model fallback information
       const fallbackInfo = (capJson.raw_json as Record<string, unknown>)?.fallback_info;
       if (fallbackInfo) {
         setFallbackInfo({
@@ -611,7 +577,6 @@ export default function UploadPage() {
         }
       }
 
-      // Handle both plain text and JSON responses
       if (capJson.generated) {
         try {
           const parsedGenerated = JSON.parse(capJson.generated as string);
@@ -621,7 +586,6 @@ export default function UploadPage() {
             setDraft(capJson.generated as string);
           }
         } catch (e) {
-          // Not JSON, treat as plain text
           setDraft(capJson.generated as string);
         }
       }
@@ -665,7 +629,6 @@ export default function UploadPage() {
       const json = await readJsonSafely(res);
       if (!res.ok) throw new Error((json.error as string) || 'Upload failed');
   
-      // Check for preprocessing info and show notification if needed
       if (json.preprocessing_info && 
           typeof json.preprocessing_info === 'object' && 
           'was_preprocessed' in json.preprocessing_info && 
@@ -691,7 +654,6 @@ export default function UploadPage() {
       const capJson = await readJsonSafely(capRes);
       if (!capRes.ok) throw new Error((capJson.error as string) || 'Caption failed');
   
-      // Check for model fallback information
       const fallbackInfo = (capJson.raw_json as Record<string, unknown>)?.fallback_info;
       if (fallbackInfo) {
         setFallbackInfo({
@@ -712,7 +674,6 @@ export default function UploadPage() {
         if ((metadata as Record<string, unknown>).countries && Array.isArray((metadata as Record<string, unknown>).countries)) {
           setCountries((metadata as Record<string, unknown>).countries as string[]);
         }
-        // Extract drone metadata if available
         if (imageType === 'drone_image') {
           if ((metadata as Record<string, unknown>).center_lon) setCenterLon((metadata as Record<string, unknown>).center_lon as string);
           if ((metadata as Record<string, unknown>).center_lat) setCenterLat((metadata as Record<string, unknown>).center_lat as string);
@@ -728,7 +689,6 @@ export default function UploadPage() {
         }
       }
 
-      // Handle both plain text and JSON responses
       if (capJson.generated) {
         try {
           const parsedGenerated = JSON.parse(capJson.generated as string);
@@ -738,7 +698,6 @@ export default function UploadPage() {
             setDraft(capJson.generated as string);
           }
         } catch (e) {
-          // Not JSON, treat as plain text
           setDraft(capJson.generated as string);
         }
       }
@@ -921,7 +880,6 @@ export default function UploadPage() {
                   </>
                 )}
               
-              {/* File-picker button - always visible */}
               <label className="inline-block cursor-pointer">
                 <input
                   type="file"
@@ -941,7 +899,6 @@ export default function UploadPage() {
             </div>
           )}
 
-        {/* Loading state */}
         {isLoading && (
           <div className={styles.loadingContainer}>
             <Spinner className="text-ifrcRed" />
@@ -949,7 +906,6 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Loading contribution data */}
         {isLoadingContribution && (
           <div className={styles.loadingContainer}>
             <Spinner className="text-ifrcRed" />
@@ -957,7 +913,6 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Generate button */}
         {step === 1 && !isLoading && (
           <div className={styles.generateButtonContainer}>
             {imageUrl ? (
@@ -981,7 +936,6 @@ export default function UploadPage() {
 
         {step === '2a' && (
           <div className={styles.step2Layout}>
-            {/* Left Column - Map */}
             <div className={styles.mapColumn}>
               <Container heading="Uploaded Image" headingLevel={3} withHeaderBorder withInternalPadding>
                 <div className={styles.uploadedMapContainer}>
@@ -1005,7 +959,6 @@ export default function UploadPage() {
               </Container>
             </div>
 
-            {/* Right Column - Metadata Form */}
             <div className={styles.contentColumn}>
               <div className={styles.metadataSectionCard}>
                 <Container
@@ -1079,7 +1032,6 @@ export default function UploadPage() {
                       placeholder="Select one or more"
                     />
                     
-                    {/* Drone-specific metadata fields */}
                     {imageType === 'drone_image' && (
                       <>
                         <div className={styles.droneMetadataSection}>
@@ -1214,7 +1166,6 @@ export default function UploadPage() {
 
         {step === '2b' && (
           <div className={styles.step2Layout}>
-            {/* Left Column - Map */}
             <div className={styles.mapColumn}>
               <Container heading="Uploaded Image" headingLevel={3} withHeaderBorder withInternalPadding>
                 <div className={styles.uploadedMapContainer}>
@@ -1294,7 +1245,6 @@ export default function UploadPage() {
                 </Container>
               </div>
 
-              {/* ────── AI‑GENERATED CAPTION ────── */}
               <div className={styles.metadataSectionCard}>
                 <Container
                   heading="Generated Text"
@@ -1542,7 +1492,7 @@ export default function UploadPage() {
         </div>
       )}
 
-      {/* Success page - outside the upload container */}
+      {/* Success page */}
       {step === 3 && (
         <div className={styles.successContainer}>
           <Heading level={2} className={styles.successHeading}>Saved!</Heading>

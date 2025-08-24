@@ -1,7 +1,0 @@
-{
-    "namespace": "riskImminentEvents",
-    "strings": {
-        "eventListViewDetails": "View / Hide Details",
-        "eventListStartedOn": "Started on"
-    }
-}

@@ -33,7 +33,6 @@ export default function ExplorePage() {
   const [view, setView] = useState<'explore' | 'mapDetails'>('explore');
   const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
   
-  // Use shared filter context instead of local state
   const {
     search, setSearch,
     srcFilter, setSrcFilter,
@@ -176,7 +175,6 @@ export default function ExplorePage() {
     }
 
     try {
-      // Create a JSZip instance
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       
@@ -184,13 +182,11 @@ export default function ExplorePage() {
       const crisisMaps = images.filter(img => img.image_type === 'crisis_map');
       const droneImages = images.filter(img => img.image_type === 'drone_image');
       
-      // Create crisis_maps dataset
       if (crisisMaps.length > 0) {
         const crisisFolder = zip.folder('crisis_maps_dataset');
         const crisisImagesFolder = crisisFolder?.folder('images');
         
         if (crisisImagesFolder) {
-          // Download crisis map images and add to zip
           const crisisImagePromises = crisisMaps.map(async (image, index) => {
             try {
               const response = await fetch(image.image_url);
@@ -212,12 +208,10 @@ export default function ExplorePage() {
           const successfulCrisisImages = crisisImageResults.filter(result => result.success);
 
           if (mode === 'fine-tuning') {
-            // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
             const crisisTrainData: any[] = [];
             const crisisTestData: any[] = [];
             const crisisValData: any[] = [];
 
-            // Group crisis images by source for stratified sampling
             const crisisImagesBySource = new Map<string, any[]>();
             successfulCrisisImages.forEach(result => {
               const source = result.image.source || 'unknown';
@@ -227,17 +221,13 @@ export default function ExplorePage() {
               crisisImagesBySource.get(source)!.push(result);
             });
 
-            // Distribute images from each source proportionally across splits
-            crisisImagesBySource.forEach((images, source) => {
+            crisisImagesBySource.forEach((images, _source) => {
               const totalImages = images.length;
               const trainCount = Math.floor(totalImages * (trainSplit / 100));
               const testCount = Math.floor(totalImages * (testSplit / 100));
-              const valCount = totalImages - trainCount - testCount;
 
-              // Shuffle images within each source group for randomness
               const shuffledImages = [...images].sort(() => Math.random() - 0.5);
 
-              // Add to train set
               crisisTrainData.push(...shuffledImages.slice(0, trainCount).map(result => ({
                 image: `images/${result.fileName}`,
                 caption: result.image.edited || result.image.generated || '',
@@ -252,7 +242,6 @@ export default function ExplorePage() {
                 }
               })));
 
-              // Add to test set
               crisisTestData.push(...shuffledImages.slice(trainCount, trainCount + testCount).map(result => ({
                 image: `images/${result.fileName}`,
                 caption: result.image.edited || result.image.generated || '',
@@ -267,7 +256,6 @@ export default function ExplorePage() {
                 }
               })));
 
-              // Add to validation set
               crisisValData.push(...shuffledImages.slice(trainCount + testCount).map(result => ({
                 image: `images/${result.fileName}`,
                 caption: result.image.edited || result.image.generated || '',
@@ -290,7 +278,6 @@ export default function ExplorePage() {
               crisisFolder.file('val.jsonl', JSON.stringify(crisisValData, null, 2));
             }
           } else {
-            // Standard mode: create individual JSON files for each image
             successfulCrisisImages.forEach((result, index) => {
               const jsonData = {
                 image: `images/${result.fileName}`,
@@ -320,7 +307,6 @@ export default function ExplorePage() {
         const droneImagesFolder = droneFolder?.folder('images');
         
         if (droneImagesFolder) {
-          // Download drone images and add to zip
           const droneImagePromises = droneImages.map(async (image, index) => {
             try {
               const response = await fetch(image.image_url);
@@ -342,12 +328,10 @@ export default function ExplorePage() {
           const successfulDroneImages = droneImageResults.filter(result => result.success);
 
           if (mode === 'fine-tuning') {
-            // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
             const droneTrainData: any[] = [];
             const droneTestData: any[] = [];
             const droneValData: any[] = [];
 
-            // Group drone images by event type for stratified sampling
             const droneImagesByEventType = new Map<string, any[]>();
             successfulDroneImages.forEach(result => {
               const eventType = result.image.event_type || 'unknown';
@@ -357,17 +341,13 @@ export default function ExplorePage() {
               droneImagesByEventType.get(eventType)!.push(result);
             });
 
-            // Distribute images from each event type proportionally across splits
-            droneImagesByEventType.forEach((images, eventType) => {
+            droneImagesByEventType.forEach((images, _eventType) => {
               const totalImages = images.length;
               const trainCount = Math.floor(totalImages * (trainSplit / 100));
               const testCount = Math.floor(totalImages * (testSplit / 100));
-              const valCount = totalImages - trainCount - testCount;
 
-              // Shuffle images within each event type group for randomness
               const shuffledImages = [...images].sort(() => Math.random() - 0.5);
 
-              // Add to train set
               droneTrainData.push(...shuffledImages.slice(0, trainCount).map(result => ({
                 image: `images/${result.fileName}`,
                 caption: result.image.edited || result.image.generated || '',
@@ -382,7 +362,6 @@ export default function ExplorePage() {
                 }
               })));
 
-              // Add to test set
               droneTestData.push(...shuffledImages.slice(trainCount, trainCount + testCount).map(result => ({
                 image: `images/${result.fileName}`,
                 caption: result.image.edited || result.image.generated || '',
@@ -397,7 +376,6 @@ export default function ExplorePage() {
                 }
               })));
 
-              // Add to validation set
               droneValData.push(...shuffledImages.slice(trainCount + testCount).map(result => ({
                 image: `images/${result.fileName}`,
                 caption: result.image.edited || result.image.generated || '',
@@ -413,14 +391,12 @@ export default function ExplorePage() {
               })));
             });
 
-            // Add JSONL files to drone folder
             if (droneFolder) {
               droneFolder.file('train.jsonl', JSON.stringify(droneTrainData, null, 2));
               droneFolder.file('test.jsonl', JSON.stringify(droneTestData, null, 2));
               droneFolder.file('val.jsonl', JSON.stringify(droneValData, null, 2));
             }
           } else {
-            // Standard mode: create individual JSON files for each image
             successfulDroneImages.forEach((result, index) => {
               const jsonData = {
                 image: `images/${result.fileName}`,
@@ -444,7 +420,6 @@ export default function ExplorePage() {
         }
       }
 
-      // Generate and download zip
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
       const link = document.createElement('a');
@@ -489,15 +464,14 @@ export default function ExplorePage() {
           <Button
             name="export-dataset"
             variant="secondary"
-                            onClick={() => {
-                  setShowExportModal(true);
-                  // Skip to export stage if no filters are applied
-                  if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
-                    setExportModalStage('filters');
-                  } else {
-                    setExportModalStage('export');
-                  }
-                }}
+            onClick={() => {
+              setShowExportModal(true);
+              if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
+                setExportModalStage('filters');
+              } else {
+                setExportModalStage('export');
+              }
+            }}
           >
             Export Dataset
           </Button>
@@ -834,7 +808,6 @@ export default function ExplorePage() {
                           const remaining = 100 - newTrain;
                           if (remaining >= 0) {
                             setTrainSplit(newTrain);
-                            // Distribute remaining between test and val
                             if (testSplit + valSplit > remaining) {
                               setTestSplit(Math.floor(remaining / 2));
                               setValSplit(remaining - Math.floor(remaining / 2));
@@ -900,7 +873,7 @@ export default function ExplorePage() {
                     name="crisis-maps"
                     label={`Crisis Maps (${filtered.filter(img => img.image_type === 'crisis_map').length} images)`}
                     value={crisisMapsSelected}
-                    onChange={(value, name) => setCrisisMapsSelected(value)}
+                    onChange={(value, _name) => setCrisisMapsSelected(value)}
                     disabled={isLoadingFilters}
                   />
                 </div>
@@ -910,7 +883,7 @@ export default function ExplorePage() {
                     name="drone-images"
                     label={`Drone Images (${filtered.filter(img => img.image_type === 'drone_image').length} images)`}
                     value={droneImagesSelected}
-                    onChange={(value, name) => setDroneImagesSelected(value)}
+                    onChange={(value, _name) => setDroneImagesSelected(value)}
                     disabled={isLoadingFilters}
                   />
                 </div>

@@ -67,7 +67,6 @@ export default function HeaderNav() {
               (to === '/upload' && location.pathname === '/') ||
               (to === '/explore' && location.pathname.startsWith('/map/'));
             
-            // Don't allow navigation to upload or home when already on upload page
             const isUploadPage = location.pathname === "/upload" || location.pathname === "/";
             const isUploadOrHomeNav = to === "/upload" || to === "/";
             
@@ -84,7 +83,6 @@ export default function HeaderNav() {
                         : 'hover:bg-white hover:shadow-md hover:scale-105'
                     }`}
                     onClick={() => {
-                      // Prevent navigation to upload/home when already on upload page
                       if (isUploadPage && isUploadOrHomeNav) {
                         return;
                       }

@@ -1,8 +1,0 @@
-{
-    "namespace": "threeWActivityForm",
-    "strings": {
-        "actionSupplyLabel": "Supply",
-        "actionSupplyValueLabel": "Count",
-        "actionRemoveLabel": "Remove"
-    }
-}

@@ -1,7 +1,0 @@
-{
-    "namespace": "riskImminentEvents",
-    "strings": {
-        "wfpEventListViewDetails": "View / Hide Details",
-        "wfpEventListPublishedOn": "Published on"
-    }
-}

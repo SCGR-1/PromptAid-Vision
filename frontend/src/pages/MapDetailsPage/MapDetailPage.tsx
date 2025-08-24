@@ -53,7 +53,6 @@ export default function MapDetailPage() {
   const [hasNext, setHasNext] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   
-  // Add delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportMode, setExportMode] = useState<'standard' | 'fine-tuning'>('standard');
@@ -63,10 +62,8 @@ export default function MapDetailPage() {
   const [crisisMapsSelected, setCrisisMapsSelected] = useState(true);
   const [droneImagesSelected, setDroneImagesSelected] = useState(true);
   
-  // Add flag to prevent auto-navigation during delete operations
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Use shared filter context instead of local state
   const {
     search, setSearch,
     srcFilter, setSrcFilter,
@@ -116,9 +113,8 @@ export default function MapDetailPage() {
 
   // Auto-navigate to first matching item when filters change
   useEffect(() => {
-    if (!map || loading || isDeleting) return; // Skip if deleting
+    if (!map || loading || isDeleting) return;
     
-    // Check if current map matches current filters
     const currentMapMatches = () => {
       const matchesSearch = !search || 
         map.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -176,7 +172,6 @@ export default function MapDetailPage() {
       if (response.ok) {
         const images = await response.json();
         
-        // Filter images based on current filter criteria
         const filteredImages = images.filter((img: any) => {
           const matchesSearch = !search || 
             img.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -209,45 +204,54 @@ export default function MapDetailPage() {
   const navigateToItem = async (direction: 'previous' | 'next') => {
     if (isNavigating) return;
     
+    setIsNavigating(true);
     try {
       const response = await fetch('/api/images');
-      if (!response.ok) return;
-      
-      const images = await response.json();
-      
-      // Filter images based on current filter criteria
-      const filteredImages = images.filter((img: any) => {
-        const matchesSearch = !search || 
-          img.title?.toLowerCase().includes(search.toLowerCase()) ||
-          img.generated?.toLowerCase().includes(search.toLowerCase()) ||
-          img.source?.toLowerCase().includes(search.toLowerCase()) ||
-          img.event_type?.toLowerCase().includes(search.toLowerCase());
+      if (response.ok) {
+        const images = await response.json();
         
-        const matchesSource = !srcFilter || img.source === srcFilter;
-        const matchesCategory = !catFilter || img.event_type === catFilter;
-        const matchesRegion = !regionFilter || 
-          img.countries?.some((country: any) => country.r_code === regionFilter);
-        const matchesCountry = !countryFilter || 
-          img.countries?.some((country: any) => country.c_code === countryFilter);
-        const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
-        const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+        const filteredImages = images.filter((img: any) => {
+          const matchesSearch = !search || 
+            img.title?.toLowerCase().includes(search.toLowerCase()) ||
+            img.generated?.toLowerCase().includes(search.toLowerCase()) ||
+            img.source?.toLowerCase().includes(search.toLowerCase()) ||
+            img.event_type?.toLowerCase().includes(search.toLowerCase());
+          
+          const matchesSource = !srcFilter || img.source === srcFilter;
+          const matchesCategory = !catFilter || img.event_type === catFilter;
+          const matchesRegion = !regionFilter || 
+            img.countries?.some((country: any) => country.r_code === regionFilter);
+          const matchesCountry = !countryFilter || 
+            img.countries?.some((country: any) => country.c_code === countryFilter);
+          const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+          const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+          
+          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+        });
         
-        return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
-      });
-      
-      const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
-      
-      let targetIndex: number;
-      if (direction === 'previous') {
-        targetIndex = currentIndex === 0 ? filteredImages.length - 1 : currentIndex - 1;
-      } else {
-        targetIndex = currentIndex === filteredImages.length - 1 ? 0 : currentIndex + 1;
+        const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
+        
+        if (currentIndex === -1) {
+          console.error('Current image not found in filtered list');
+          return;
+        }
+        
+        let targetIndex: number;
+        if (direction === 'previous') {
+          targetIndex = currentIndex > 0 ? currentIndex - 1 : filteredImages.length - 1;
+        } else {
+          targetIndex = currentIndex < filteredImages.length - 1 ? currentIndex + 1 : 0;
+        }
+        
+        const targetImage = filteredImages[targetIndex];
+        if (targetImage) {
+          navigate(`/map/${targetImage.image_id}`);
+        }
       }
-      
-      const targetId = filteredImages[targetIndex].image_id;
-      navigate(`/map/${targetId}`);
     } catch (error) {
-      console.error('Navigation failed:', error);
+      console.error('Failed to navigate to item:', error);
+    } finally {
+      setIsNavigating(false);
     }
   };
 
@@ -269,7 +273,7 @@ export default function MapDetailPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Add delete function
+  // delete function
   const handleDelete = async () => {
     if (!map) return;
     
@@ -291,7 +295,6 @@ export default function MapDetailPage() {
       });
       
       if (response.ok) {
-        // Update local state
         setMap(prev => prev ? { ...prev, starred: !prev.starred } : null);
       } else {
         console.error('Failed to toggle starred status');
@@ -304,101 +307,82 @@ export default function MapDetailPage() {
   const confirmDelete = async () => {
     if (!map) return;
     
-    setIsDeleting(true); // Set flag to true
+    setIsDeleting(true);
     try {
       console.log('Deleting image with ID:', map.image_id);
-      const res = await fetch(`/api/images/${map.image_id}?content_management=true`, {
-        method: "DELETE",
+      const response = await fetch(`/api/images/${map.image_id}`, {
+        method: 'DELETE',
       });
       
-      if (!res.ok) {
-        const json = await res.json();
-        throw new Error((json.error as string) || `Delete failed with status ${res.status}`);
-      }
-      
-      setShowDeleteConfirm(false);
-      
-      // Navigate to next item in filtered list instead of explore page
-      try {
-        const response = await fetch('/api/images');
-        if (response.ok) {
-          const images = await response.json();
-          
-          // Filter images based on current filter criteria (same logic as navigateToItem)
-          const filteredImages = images.filter((img: any) => {
-            const matchesSearch = !search || 
-              img.title?.toLowerCase().includes(search.toLowerCase()) ||
-              img.generated?.toLowerCase().includes(search.toLowerCase()) ||
-              img.source?.toLowerCase().includes(search.toLowerCase()) ||
-              img.event_type?.toLowerCase().includes(search.toLowerCase());
+      if (response.ok) {
+        setMap(prev => prev ? { ...prev, starred: !prev.starred } : null);
+        setShowDeleteConfirm(false);
+        
+        try {
+          const response = await fetch('/api/images');
+          if (response.ok) {
+            const images = await response.json();
             
-            const matchesSource = !srcFilter || img.source === srcFilter;
-            const matchesCategory = !catFilter || img.event_type === catFilter;
-            const matchesRegion = !regionFilter || 
-              img.countries?.some((country: any) => country.r_code === regionFilter);
-            const matchesCountry = !countryFilter || 
-              img.countries?.some((country: any) => country.c_code === countryFilter);
-            const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
-            const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+            const filteredImages = images.filter((img: any) => {
+              const matchesSearch = !search || 
+                img.title?.toLowerCase().includes(search.toLowerCase()) ||
+                img.generated?.toLowerCase().includes(search.toLowerCase()) ||
+                img.source?.toLowerCase().includes(search.toLowerCase()) ||
+                img.event_type?.toLowerCase().includes(search.toLowerCase());
+              
+              const matchesSource = !srcFilter || img.source === srcFilter;
+              const matchesCategory = !catFilter || img.event_type === catFilter;
+              const matchesRegion = !regionFilter || 
+                img.countries?.some((country: any) => country.r_code === regionFilter);
+              const matchesCountry = !countryFilter || 
+                img.countries?.some((country: any) => country.c_code === countryFilter);
+              const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+              const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+              
+              return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+            });
             
-            return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
-          });
-          
-          // Remove the current item from the filtered list since it was deleted
-          const remainingImages = filteredImages.filter((img: any) => img.image_id !== map.image_id);
-          
-          console.log('Delete navigation debug:', {
-            originalFilteredCount: filteredImages.length,
-            remainingCount: remainingImages.length,
-            currentIndex: filteredImages.findIndex((img: any) => img.image_id === map.image_id),
-            remainingImages: remainingImages.map((img: any) => ({ id: img.image_id, title: img.title }))
-          });
-          
-          if (remainingImages.length > 0) {
-            // Find the current item's position in the original filtered list
-            const currentIndex = filteredImages.findIndex((img: any) => img.image_id === map.image_id);
+            const remainingImages = filteredImages.filter((img: any) => img.image_id !== map.image_id);
             
-            // Navigate to the next item, or the previous if we're at the end
-            let targetIndex: number;
-            if (currentIndex === filteredImages.length - 1) {
-              // We were at the last item, go to the previous one
-              targetIndex = currentIndex - 1;
+            if (remainingImages.length > 0) {
+              const currentIndex = filteredImages.findIndex((img: any) => img.image_id === map.image_id);
+              
+              let targetIndex: number;
+              if (currentIndex === filteredImages.length - 1) {
+                targetIndex = currentIndex - 1;
+              } else {
+                targetIndex = currentIndex;
+              }
+              
+              console.log('Navigation target:', { currentIndex, targetIndex, targetId: remainingImages[targetIndex]?.image_id });
+              
+              if (targetIndex >= 0 && targetIndex < remainingImages.length) {
+                console.log('Navigating to:', remainingImages[targetIndex].image_id);
+                navigate(`/map/${remainingImages[targetIndex].image_id}`);
+              } else {
+                console.log('Fallback navigation to first item:', remainingImages[0].image_id);
+                navigate(`/map/${remainingImages[0].image_id}`);
+              }
             } else {
-              // Go to the next item
-              targetIndex = currentIndex;
-            }
-            
-            console.log('Navigation target:', { currentIndex, targetIndex, targetId: remainingImages[targetIndex]?.image_id });
-            
-            // Make sure the target index is valid
-            if (targetIndex >= 0 && targetIndex < remainingImages.length) {
-              console.log('Navigating to:', remainingImages[targetIndex].image_id);
-              navigate(`/map/${remainingImages[targetIndex].image_id}`);
-            } else {
-              // Fallback to first remaining item
-              console.log('Fallback navigation to first item:', remainingImages[0].image_id);
-              navigate(`/map/${remainingImages[0].image_id}`);
+              console.log('No remaining items, going to explore page');
+              navigate('/explore');
             }
           } else {
-            // No more items in filtered list, go to explore page
-            console.log('No remaining items, going to explore page');
             navigate('/explore');
           }
-        } else {
-          // Fallback to explore page if API call fails
+        } catch (error) {
+          console.error('Failed to navigate to next item:', error);
           navigate('/explore');
+        } finally {
+          setIsDeleting(false);
         }
-      } catch (error) {
-        console.error('Failed to navigate to next item:', error);
-        // Fallback to explore page
-        navigate('/explore');
-      } finally {
-        setIsDeleting(false); // Reset flag
+      } else {
+        console.error('Delete failed');
+        setIsDeleting(false);
       }
     } catch (error) {
       console.error('Delete failed:', error);
-      alert(`Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setShowDeleteConfirm(false);
+      setIsDeleting(false);
     }
   };
   
@@ -481,7 +465,6 @@ export default function MapDetailPage() {
     }
   };
  
-  // Helper function to create image data
   const createImageData = (map: any, fileName: string) => ({
     image: `images/${fileName}`,
     caption: map.edited || map.generated || '',
@@ -497,23 +480,17 @@ export default function MapDetailPage() {
   });
 
   const exportDataset = async (mode: 'standard' | 'fine-tuning') => {
-    if (!map) {
-      alert('No map to export');
-      return;
-    }
-
+    if (!map) return;
+    
     try {
-      // Create a JSZip instance
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       
-      // Determine which dataset to create based on image type
       if (map.image_type === 'crisis_map') {
         const crisisFolder = zip.folder('crisis_maps_dataset');
         const crisisImagesFolder = crisisFolder?.folder('images');
         
         if (crisisImagesFolder) {
-          // Download the current crisis map image and add to zip
           try {
             const response = await fetch(map.image_url);
             if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
@@ -525,17 +502,11 @@ export default function MapDetailPage() {
             crisisImagesFolder.file(fileName, blob);
             
             if (mode === 'fine-tuning') {
-              // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
               const trainData: any[] = [];
               const testData: any[] = [];
               const valData: any[] = [];
 
               if (String(map?.image_type) === 'crisis_map') {
-                // For crisis maps, group by source
-                const source = map.source || 'unknown';
-                const totalImages = 1; // Only one image in MapDetailPage
-                
-                // Since we only have one image, distribute it based on the split
                 const random = Math.random();
                 if (random < trainSplit / 100) {
                   trainData.push(createImageData(map, '0001'));
@@ -545,11 +516,6 @@ export default function MapDetailPage() {
                   valData.push(createImageData(map, '0001'));
                 }
               } else if (String(map?.image_type) === 'drone_image') {
-                // For drone images, group by event type
-                const eventType = map.event_type || 'unknown';
-                const totalImages = 1; // Only one image in MapDetailPage
-                
-                // Since we only have one image, distribute it based on the split
                 const random = Math.random();
                 if (random < trainSplit / 100) {
                   trainData.push(createImageData(map, '0001'));
@@ -560,14 +526,12 @@ export default function MapDetailPage() {
                 }
               }
 
-              // Add JSONL files to dataset folder
               if (crisisFolder) {
                 crisisFolder.file('train.jsonl', JSON.stringify(trainData, null, 2));
                 crisisFolder.file('test.jsonl', JSON.stringify(testData, null, 2));
                 crisisFolder.file('val.jsonl', JSON.stringify(valData, null, 2));
               }
             } else {
-              // Standard mode: create individual JSON file
               const jsonData = {
                 image: `images/${fileName}`,
                 caption: map.edited || map.generated || '',
@@ -596,7 +560,6 @@ export default function MapDetailPage() {
         const droneImagesFolder = droneFolder?.folder('images');
         
         if (droneImagesFolder) {
-          // Download the current drone image and add to zip
           try {
             const response = await fetch(map.image_url);
             if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
@@ -608,17 +571,11 @@ export default function MapDetailPage() {
             droneImagesFolder.file(fileName, blob);
             
             if (mode === 'fine-tuning') {
-              // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
               const trainData: any[] = [];
               const testData: any[] = [];
               const valData: any[] = [];
 
               if (String(map?.image_type) === 'crisis_map') {
-                // For crisis maps, group by source
-                const source = map.source || 'unknown';
-                const totalImages = 1; // Only one image in MapDetailPage
-                
-                // Since we only have one image, distribute it based on the split
                 const random = Math.random();
                 if (random < trainSplit / 100) {
                   trainData.push(createImageData(map, '0001'));
@@ -628,11 +585,6 @@ export default function MapDetailPage() {
                   valData.push(createImageData(map, '0001'));
                 }
               } else if (String(map?.image_type) === 'drone_image') {
-                // For drone images, group by event type
-                const eventType = map.event_type || 'unknown';
-                const totalImages = 1; // Only one image in MapDetailPage
-                
-                // Since we only have one image, distribute it based on the split
                 const random = Math.random();
                 if (random < trainSplit / 100) {
                   trainData.push(createImageData(map, '0001'));
@@ -643,14 +595,12 @@ export default function MapDetailPage() {
                 }
               }
 
-              // Add JSONL files to dataset folder
               if (droneFolder) {
                 droneFolder.file('train.jsonl', JSON.stringify(trainData, null, 2));
                 droneFolder.file('test.jsonl', JSON.stringify(testData, null, 2));
                 droneFolder.file('val.jsonl', JSON.stringify(valData, null, 2));
               }
             } else {
-              // Standard mode: create individual JSON file
               const jsonData = {
                 image: `images/${fileName}`,
                 caption: map.edited || map.generated || '',
@@ -675,7 +625,6 @@ export default function MapDetailPage() {
           }
         }
       } else {
-        // For other image types, create a generic dataset
         const genericFolder = zip.folder('generic_dataset');
         const genericImagesFolder = genericFolder?.folder('images');
         
@@ -691,17 +640,11 @@ export default function MapDetailPage() {
             genericImagesFolder.file(fileName, blob);
             
             if (mode === 'fine-tuning') {
-              // Create train.jsonl, test.jsonl, and val.jsonl with stratified sampling
               const trainData: any[] = [];
               const testData: any[] = [];
               const valData: any[] = [];
 
               if (String(map?.image_type) === 'crisis_map') {
-                // For crisis maps, group by source
-                const source = map.source || 'unknown';
-                const totalImages = 1; // Only one image in MapDetailPage
-                
-                // Since we only have one image, distribute it based on the split
                 const random = Math.random();
                 if (random < trainSplit / 100) {
                   trainData.push(createImageData(map, '0001'));
@@ -711,11 +654,6 @@ export default function MapDetailPage() {
                   valData.push(createImageData(map, '0001'));
                 }
               } else if (String(map?.image_type) === 'drone_image') {
-                // For drone images, group by event type
-                const eventType = map.event_type || 'unknown';
-                const totalImages = 1; // Only one image in MapDetailPage
-                
-                // Since we only have one image, distribute it based on the split
                 const random = Math.random();
                 if (random < trainSplit / 100) {
                   trainData.push(createImageData(map, '0001'));
@@ -726,14 +664,12 @@ export default function MapDetailPage() {
                 }
               }
 
-              // Add JSONL files to dataset folder
               if (genericFolder) {
                 genericFolder.file('train.jsonl', JSON.stringify(trainData, null, 2));
                 genericFolder.file('test.jsonl', JSON.stringify(testData, null, 2));
                 genericFolder.file('val.jsonl', JSON.stringify(valData, null, 2));
               }
             } else {
-              // Standard mode: create individual JSON file
               const jsonData = {
                 image: `images/${fileName}`,
                 caption: map.edited || map.generated || '',
@@ -1241,7 +1177,6 @@ export default function MapDetailPage() {
                           const remaining = 100 - newTrain;
                           if (remaining >= 0) {
                             setTrainSplit(newTrain);
-                            // Distribute remaining between test and val
                             if (testSplit + valSplit > remaining) {
                               setTestSplit(Math.floor(remaining / 2));
                               setValSplit(remaining - Math.floor(remaining / 2));
@@ -1307,7 +1242,7 @@ export default function MapDetailPage() {
                     name="crisis-maps"
                     label="Crisis Maps"
                     value={crisisMapsSelected}
-                    onChange={(value, name) => setCrisisMapsSelected(value)}
+                    onChange={(value, _name) => setCrisisMapsSelected(value)}
                   />
                 </div>
                 
@@ -1316,7 +1251,7 @@ export default function MapDetailPage() {
                     name="drone-images"
                     label="Drone Images"
                     value={droneImagesSelected}
-                    onChange={(value, name) => setDroneImagesSelected(value)}
+                    onChange={(value, _name) => setDroneImagesSelected(value)}
                   />
                 </div>
               </div>
@@ -1330,7 +1265,6 @@ export default function MapDetailPage() {
                       return;
                     }
                     
-                    // For MapDetailPage, we only export the current image if its type is selected
                     if ((map?.image_type === 'crisis_map' && crisisMapsSelected) || 
                         (map?.image_type === 'drone_image' && droneImagesSelected)) {
                       exportDataset(exportMode);

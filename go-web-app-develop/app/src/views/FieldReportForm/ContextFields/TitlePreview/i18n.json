@@ -1,8 +1,0 @@
-{
-    "namespace": "fieldReportForm",
-    "strings": {
-        "titlePreview": "Title Preview",
-        "failedToGenerateTitle": "Failed To Generate the Field Report Title"
-    }
-}
-
