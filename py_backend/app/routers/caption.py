@@ -218,8 +218,8 @@ async def create_caption(
     db.refresh(c)
     
     print(f"📝 Caption Router: Caption created successfully")
-    print(f"📝 Caption Router: Caption ID: {c.id}")
-    print(f"📝 Caption Router: Model used: {c.model_code}")
+    print(f"📝 Caption Router: Caption ID: {c.image_id}")
+    print(f"📝 Caption Router: Model used: {c.model}")
     
     from .upload import convert_image_to_dict
     try:
