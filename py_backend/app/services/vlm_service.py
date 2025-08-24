@@ -63,37 +63,64 @@ class VLMServiceManager:
         return list(self.services.keys())
     
     async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "", model_name: str | None = None, db_session = None) -> dict:
-        """Generate caption using available VLM services with fallback"""
+        """Generate caption using the specified model or fallback to available service."""
         
-        # Select initial service
         service = None
-        if model_name:
+        if model_name and model_name != "random":
             service = self.services.get(model_name)
+            if not service:
+                print(f"Model '{model_name}' not found, using fallback")
         
-        if not service:
+        if not service and self.services:
+            # If random is selected or no specific model, choose a random available service
             if db_session:
+                # Check database availability for random selection
                 try:
                     from .. import crud
                     available_models = crud.get_models(db_session)
                     available_model_codes = [m.m_code for m in available_models if m.is_available]
                     
+                    print(f"DEBUG: Available models in database: {available_model_codes}")
+                    print(f"DEBUG: Registered services: {list(self.services.keys())}")
+                    
+                    # Filter services to only those marked as available in database
                     available_services = [s for s in self.services.values() if s.model_name in available_model_codes]
+                    
+                    print(f"DEBUG: Available services after filtering: {[s.model_name for s in available_services]}")
+                    
                     if available_services:
                         import random
+                        import time
+                        # Use current time as seed for better randomness
+                        random.seed(int(time.time() * 1000000) % 1000000)
+                        
+                        # Shuffle the list first for better randomization
                         shuffled_services = available_services.copy()
                         random.shuffle(shuffled_services)
+                        
                         service = shuffled_services[0]
+                        print(f"Randomly selected service: {service.model_name} (from {len(available_services)} available)")
+                        print(f"DEBUG: All available services were: {[s.model_name for s in available_services]}")
+                        print(f"DEBUG: Shuffled order: {[s.model_name for s in shuffled_services]}")
                     else:
+                        # Fallback to any service
                         service = next(iter(self.services.values()))
+                        print(f"Using fallback service: {service.model_name}")
                 except Exception as e:
+                    print(f"Error checking database availability: {e}, using fallback")
                     service = next(iter(self.services.values()))
+                    print(f"Using fallback service: {service.model_name}")
             else:
+                # No database session, use service property
                 available_services = [s for s in self.services.values() if s.is_available]
                 if available_services:
                     import random
                     service = random.choice(available_services)
+                    print(f"Randomly selected service: {service.model_name}")
                 else:
+                    # Fallback to any service
                     service = next(iter(self.services.values()))
+                    print(f"Using fallback service: {service.model_name}")
         
         if not service:
             raise ValueError("No VLM services available")
@@ -114,10 +141,12 @@ class VLMServiceManager:
                 return result
             except Exception as e:
                 error_str = str(e)
+                print(f"Error with service {service.model_name}: {error_str}")
                 
                 # Check if it's a model unavailable error (any type of error)
                 if "MODEL_UNAVAILABLE" in error_str:
                     attempted_services.add(service.model_name)
+                    print(f"Model {service.model_name} is unavailable, trying another service...")
                     
                     # Try to find another available service
                     if db_session:
@@ -131,24 +160,29 @@ class VLMServiceManager:
                                 if (next_service.model_name in available_model_codes and 
                                     next_service.model_name not in attempted_services):
                                     service = next_service
+                                    print(f"Switching to fallback service: {service.model_name}")
                                     break
                             else:
                                 # No more available services, use any untried service
                                 for next_service in self.services.values():
                                     if next_service.model_name not in attempted_services:
                                         service = next_service
+                                        print(f"Using untried service as fallback: {service.model_name}")
                                         break
                         except Exception as db_error:
+                            print(f"Error checking database availability: {db_error}")
                             # Fallback to any untried service
                             for next_service in self.services.values():
                                 if next_service.model_name not in attempted_services:
                                     service = next_service
+                                    print(f"Using untried service as fallback: {service.model_name}")
                                     break
                     else:
                         # No database session, use any untried service
                         for next_service in self.services.values():
                             if next_service.model_name not in attempted_services:
                                 service = next_service
+                                print(f"Using untried service as fallback: {service.model_name}")
                                 break
                     
                     if not service:
@@ -157,6 +191,7 @@ class VLMServiceManager:
                     continue  # Try again with new service
                 else:
                     # Non-model-unavailable error, don't retry
+                    print(f"Non-model-unavailable error, not retrying: {error_str}")
                     raise
         
         # If we get here, we've tried all services
