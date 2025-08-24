@@ -111,7 +111,17 @@ async def create_caption(
     
     # Get image bytes
     try:
-        img_bytes = storage.get_object_bytes(img.file_key)
+        if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
+            response = storage.s3.get_object(
+                Bucket=settings.S3_BUCKET,
+                Key=img.file_key,
+            )
+            img_bytes = response["Body"].read()
+        else:
+            import os
+            file_path = os.path.join(settings.STORAGE_DIR, img.file_key)
+            with open(file_path, 'rb') as f:
+                img_bytes = f.read()
         print(f"📝 Caption Router: Image bytes retrieved: {len(img_bytes)} bytes")
     except Exception as e:
         print(f"❌ Caption Router: Failed to get image bytes: {e}")
