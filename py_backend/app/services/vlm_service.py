@@ -152,6 +152,44 @@ class VLMServiceManager:
                     print(f"🔄 VLM Manager: Model {service.model_name} is unavailable, trying another service...")
                     print(f"🔄 VLM Manager: Attempted services so far: {attempted_services}")
                     
+                    # Extract provider error details if available
+                    provider_error_details = {}
+                    if "Provider details:" in error_str:
+                        try:
+                            # Extract the provider details section
+                            details_start = error_str.find("Provider details:") + len("Provider details:")
+                            details_str = error_str[details_start:].strip()
+                            if details_str.startswith("{") and details_str.endswith("}"):
+                                import json
+                                provider_error_details = json.loads(details_str)
+                                print(f"🔍 VLM Manager: Provider Error Details: {provider_error_details}")
+                        except Exception as parse_error:
+                            print(f"⚠️ VLM Manager: Could not parse provider error details: {parse_error}")
+                    
+                    # Log specific error information
+                    if provider_error_details:
+                        provider = provider_error_details.get("provider", "unknown")
+                        status_code = provider_error_details.get("status_code")
+                        error_type = provider_error_details.get("error_type")
+                        error_message = provider_error_details.get("error_message")
+                        
+                        print(f"🔍 VLM Manager: {service.model_name} failed with {provider} error:")
+                        print(f"   Status Code: {status_code}")
+                        print(f"   Error Type: {error_type}")
+                        print(f"   Error Message: {error_message}")
+                        
+                        # Log specific error patterns
+                        if status_code == 400:
+                            print(f"🔍 VLM Manager: HTTP 400 detected - likely request format issue")
+                        elif status_code == 401:
+                            print(f"🔍 VLM Manager: HTTP 401 detected - authentication issue")
+                        elif status_code == 403:
+                            print(f"🔍 VLM Manager: HTTP 403 detected - access forbidden")
+                        elif status_code == 429:
+                            print(f"🔍 VLM Manager: HTTP 429 detected - rate limit exceeded")
+                        elif status_code == 500:
+                            print(f"🔍 VLM Manager: HTTP 500 detected - server error")
+                    
                     # Try to find another available service
                     if db_session:
                         try:

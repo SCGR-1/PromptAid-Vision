@@ -84,18 +84,53 @@ class GeminiService(VLMService):
             print(f"❌ Gemini: Error type: {error_type}")
             print(f"❌ Gemini: Error message: {error_msg}")
             
+            # Capture Google Gemini API specific error details
+            provider_error_details = {}
+            
+            # Check for Google API specific errors
+            if hasattr(e, 'status_code'):
+                provider_error_details = {
+                    "provider": "google",
+                    "status_code": e.status_code,
+                    "error_type": error_type,
+                    "error_message": error_msg
+                }
+                print(f"❌ Gemini: Google API Error Details: {provider_error_details}")
+            elif hasattr(e, 'details'):
+                try:
+                    provider_error_details = {
+                        "provider": "google",
+                        "error_details": str(e.details),
+                        "error_type": error_type,
+                        "error_message": error_msg
+                    }
+                    print(f"❌ Gemini: Google API Error Details: {provider_error_details}")
+                except Exception as parse_error:
+                    print(f"⚠️ Gemini: Could not parse error details: {parse_error}")
+                    provider_error_details = {
+                        "provider": "google",
+                        "raw_error": error_msg,
+                        "error_type": error_type
+                    }
+            else:
+                provider_error_details = {
+                    "provider": "google",
+                    "raw_error": error_msg,
+                    "error_type": error_type
+                }
+            
             # Check for specific error types
             if "quota" in error_msg.lower() or "limit" in error_msg.lower():
                 print(f"❌ Gemini: Quota or rate limit exceeded detected")
-                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (quota/rate limit exceeded). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (quota/rate limit exceeded). Switching to another model. Provider details: {provider_error_details}")
             elif "authentication" in error_msg.lower() or "invalid" in error_msg.lower() or "api_key" in error_msg.lower():
                 print(f"❌ Gemini: Authentication or API key error detected")
-                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (authentication error). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (authentication error). Switching to another model. Provider details: {provider_error_details}")
             elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
                 print(f"❌ Gemini: Network timeout or connection error detected")
-                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (network error). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable (network error). Switching to another model. Provider details: {provider_error_details}")
             else:
                 print(f"❌ Gemini: Generic error, converting to MODEL_UNAVAILABLE")
-                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable ({error_type}: {error_msg}). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GEMINI15 is currently unavailable ({error_type}: {error_msg}). Switching to another model. Provider details: {provider_error_details}")
 
 

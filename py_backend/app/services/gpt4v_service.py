@@ -102,16 +102,41 @@ class GPT4VService(VLMService):
             print(f"❌ GPT-4V: Error type: {error_type}")
             print(f"❌ GPT-4V: Error message: {error_msg}")
             
+            # Capture OpenAI API specific error details
+            provider_error_details = {}
+            
+            # Check for OpenAI API specific errors
+            if hasattr(e, 'response') and e.response:
+                try:
+                    error_response = e.response.json()
+                    print(f"❌ GPT-4V: OpenAI API Error Response: {error_response}")
+                    provider_error_details = {
+                        "provider": "openai",
+                        "error_code": error_response.get("error", {}).get("code"),
+                        "error_type": error_response.get("error", {}).get("type"),
+                        "error_message": error_response.get("error", {}).get("message"),
+                        "error_param": error_response.get("error", {}).get("param"),
+                        "status_code": e.response.status_code
+                    }
+                    print(f"❌ GPT-4V: Parsed Error Details: {provider_error_details}")
+                except Exception as parse_error:
+                    print(f"⚠️ GPT-4V: Could not parse error response: {parse_error}")
+                    provider_error_details = {
+                        "provider": "openai",
+                        "raw_error": error_msg,
+                        "status_code": getattr(e.response, 'status_code', None) if hasattr(e, 'response') else None
+                    }
+            
             # Check for specific error types
             if "rate_limit" in error_msg.lower() or "quota" in error_msg.lower():
                 print(f"❌ GPT-4V: Rate limit or quota exceeded detected")
-                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (rate limit/quota exceeded). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (rate limit/quota exceeded). Switching to another model. Provider details: {provider_error_details}")
             elif "authentication" in error_msg.lower() or "invalid" in error_msg.lower() or "api_key" in error_msg.lower():
                 print(f"❌ GPT-4V: Authentication or API key error detected")
-                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (authentication error). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (authentication error). Switching to another model. Provider details: {provider_error_details}")
             elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
                 print(f"❌ GPT-4V: Network timeout or connection error detected")
-                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (network error). Switching to another model.")
+                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable (network error). Switching to another model. Provider details: {provider_error_details}")
             else:
                 print(f"❌ GPT-4V: Generic error, converting to MODEL_UNAVAILABLE")
-                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable ({error_type}: {error_msg}). Switching to another model.") 
+                raise Exception(f"MODEL_UNAVAILABLE: GPT-4O is currently unavailable ({error_type}: {error_msg}). Switching to another model. Provider details: {provider_error_details}") 
