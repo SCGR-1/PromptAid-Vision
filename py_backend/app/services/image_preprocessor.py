@@ -9,11 +9,15 @@ try:
     FITZ_AVAILABLE = True
 except ImportError:
     try:
-        import PyMuPDF as fitz  # Alternative import
+        from PyMuPDF import fitz  # Alternative import method
         FITZ_AVAILABLE = True
     except ImportError:
-        fitz = None  # PDF processing will be disabled
-        FITZ_AVAILABLE = False
+        try:
+            import PyMuPDF as fitz  # Another alternative import
+            FITZ_AVAILABLE = True
+        except ImportError:
+            fitz = None  # PDF processing will be disabled
+            FITZ_AVAILABLE = False
 
 import tempfile
 import os

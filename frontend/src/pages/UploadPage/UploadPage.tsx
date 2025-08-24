@@ -856,8 +856,9 @@ export default function UploadPage() {
             <div className="space-y-6">
               <p className="text-gray-700 leading-relaxed max-w-2xl mx-auto">
                 This app evaluates how well multimodal AI models analyze and describe
-                crisis maps and drone imagery. Upload your image, let the AI generate a
-                description, then review and rate the result based on your expertise.
+                crisis maps and drone imagery. Upload any file format (PDF, TIFF, HEIC, etc.) 
+                and we'll automatically convert it for you. Let the AI generate a description, 
+                then review and rate the result based on your expertise.
               </p>
               
               {/* "More »" link  */}
@@ -910,7 +911,7 @@ export default function UploadPage() {
                 ) : (
                   <>
                     <UploadCloudLineIcon className={styles.dropZoneIcon} />
-                    <p className={styles.dropZoneText}>Drag &amp; Drop a file here</p>
+                    <p className={styles.dropZoneText}>Drag &amp; Drop any file here</p>
                     <p className={styles.dropZoneSubtext}>or</p>
                   </>
                 )}
@@ -919,9 +920,8 @@ export default function UploadPage() {
               <label className="inline-block cursor-pointer">
                 <input
                   type="file"
-                  accept="image/*"
                   className="sr-only"
-                                     onChange={e => onFileChange(e.target.files?.[0])}
+                  onChange={e => onFileChange(e.target.files?.[0])}
                 />
                 <Button 
                   name="upload" 
@@ -929,7 +929,7 @@ export default function UploadPage() {
                   size={1}
                   onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
                 >
-                  {file ? 'Change File' : 'Browse Device'}
+                  {file ? 'Change File' : 'Browse Files'}
                 </Button>
               </label>
               </div>
@@ -1478,9 +1478,9 @@ export default function UploadPage() {
                 <p className={styles.ratingWarningText}>
                   Your file <strong>{preprocessingInfo.original_filename}</strong> has been converted from 
                   <strong> {preprocessingInfo.original_mime_type}</strong> to 
-                  <strong> {preprocessingInfo.processed_mime_type}</strong> for better compatibility.
+                  <strong> {preprocessingInfo.processed_mime_type}</strong> for optimal processing.
                   <br /><br />
-                  This process may take a bit longer, but ensures your file works properly in the system.
+                  This conversion ensures your file is in the best format for our AI models to analyze.
                 </p>
                 <div className={styles.ratingWarningButtons}>
                   <Button
@@ -1503,8 +1503,8 @@ export default function UploadPage() {
               <div className={styles.ratingWarningContent}>
                 <h3 className={styles.ratingWarningTitle}>File Conversion Required</h3>
                 <p className={styles.ratingWarningText}>
-                  The file you selected is not in a supported format (JPEG or PNG).
-                  We will convert it to a compatible format for better compatibility.
+                  The file you selected will be converted to a web-compatible format (PNG or JPEG).
+                  This ensures optimal compatibility and processing by our AI models.
                 </p>
                 <div className={styles.ratingWarningButtons}>
                   <Button
