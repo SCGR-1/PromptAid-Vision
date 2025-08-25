@@ -69,14 +69,25 @@ class GPT4VService(VLMService):
                         except json.JSONDecodeError:
                             pass
             
+            # Extract the three parts from the parsed JSON
+            description = metadata.get("description", "")
+            analysis = metadata.get("analysis", "")
+            recommended_actions = metadata.get("recommended_actions", "")
+            
+            # Combine all three parts for backward compatibility
+            combined_content = f"Description: {description}\n\nAnalysis: {analysis}\n\nRecommended Actions: {recommended_actions}"
+            
             return {
-                "caption": cleaned_content,
+                "caption": combined_content,
                 "raw_response": {
                     "content": content, 
                     "metadata": metadata,
                     "extracted_metadata": metadata
                 },
-                "metadata": metadata
+                "metadata": metadata,
+                "description": description,
+                "analysis": analysis,
+                "recommended_actions": recommended_actions
             }
             
         except Exception as e:

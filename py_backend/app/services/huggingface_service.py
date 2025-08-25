@@ -118,19 +118,27 @@ class HuggingFaceService(VLMService):
 
         # Best-effort JSON protocol
         metadata = {}
-        caption_text = cleaned
+        description = ""
+        analysis = cleaned
+        recommended_actions = ""
+        
         try:
             parsed = json.loads(cleaned)
-            caption_text = parsed.get("analysis", cleaned)
+            description = parsed.get("description", "")
+            analysis = parsed.get("analysis", cleaned)
+            recommended_actions = parsed.get("recommended_actions", "")
             metadata = parsed.get("metadata", {}) or {}
         except json.JSONDecodeError:
             # If not JSON, try to extract metadata from GLM thinking format
             if "<think>" in cleaned:
-                caption_text, metadata = self._extract_glm_metadata(cleaned)
+                analysis, metadata = self._extract_glm_metadata(cleaned)
             else:
                 # Fallback: try to extract any structured information
-                caption_text = cleaned
+                analysis = cleaned
                 metadata = {}
+        
+        # Combine all three parts for backward compatibility
+        caption_text = f"Description: {description}\n\nAnalysis: {analysis}\n\nRecommended Actions: {recommended_actions}"
         
         # Validate and clean metadata fields with sensible defaults
         if isinstance(metadata, dict):
@@ -178,6 +186,9 @@ class HuggingFaceService(VLMService):
                 "response": result,
                 "parsed_successfully": bool(metadata),
             },
+            "description": description,
+            "analysis": analysis,
+            "recommended_actions": recommended_actions
         }
 
     def _extract_glm_metadata(self, content: str) -> tuple[str, dict]:

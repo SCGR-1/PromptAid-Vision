@@ -40,14 +40,23 @@ class GeminiService(VLMService):
 
         try:
             parsed = json.loads(cleaned_content)
-            caption_text = parsed.get("analysis", content)
+            description = parsed.get("description", "")
+            analysis = parsed.get("analysis", "")
+            recommended_actions = parsed.get("recommended_actions", "")
             metadata = parsed.get("metadata", {})
+            
+            # Combine all three parts for backward compatibility
+            caption_text = f"Description: {description}\n\nAnalysis: {analysis}\n\nRecommended Actions: {recommended_actions}"
+            
             if metadata.get("epsg"):
                 epsg_value = metadata["epsg"]
                 allowed_epsg = ["4326", "3857", "32617", "32633", "32634", "OTHER"]
                 if epsg_value not in allowed_epsg:
                     metadata["epsg"] = "OTHER"
         except json.JSONDecodeError:
+            description = ""
+            analysis = content
+            recommended_actions = ""
             caption_text = content
             metadata = {}
 
@@ -59,6 +68,9 @@ class GeminiService(VLMService):
             "confidence": None,
             "processing_time": elapsed,
             "raw_response": raw_response,
+            "description": description,
+            "analysis": analysis,
+            "recommended_actions": recommended_actions
         }
 
 

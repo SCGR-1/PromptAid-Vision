@@ -55,7 +55,9 @@ class SchemaValidator:
         crisis_schema = {
             "type": "object",
             "properties": {
+                "description": {"type": "string"},
                 "analysis": {"type": "string"},
+                "recommended_actions": {"type": "string"},
                 "metadata": {
                     "type": "object",
                     "properties": {
@@ -68,7 +70,7 @@ class SchemaValidator:
                     "required": ["title", "source", "type", "countries", "epsg"]
                 }
             },
-            "required": ["analysis", "metadata"]
+            "required": ["description", "analysis", "recommended_actions", "metadata"]
         }
         
         return self.validate_against_schema(data, crisis_schema, "crisis_map")
@@ -81,7 +83,9 @@ class SchemaValidator:
         drone_schema = {
             "type": "object",
             "properties": {
+                "description": {"type": "string"},
                 "analysis": {"type": "string"},
+                "recommended_actions": {"type": "string"},
                 "metadata": {
                     "type": "object",
                     "properties": {
@@ -104,7 +108,7 @@ class SchemaValidator:
                     }
                 }
             },
-            "required": ["analysis", "metadata"]
+            "required": ["description", "analysis", "recommended_actions", "metadata"]
         }
         
         return self.validate_against_schema(data, drone_schema, "drone")
@@ -148,11 +152,19 @@ class SchemaValidator:
                         try:
                             data = json.loads(content)
                         except json.JSONDecodeError:
-                            data = {"analysis": content, "metadata": {}}
+                            data = {"description": "", "analysis": content, "recommended_actions": "", "metadata": {}}
                     else:
                         data = content
-                elif "analysis" in ai_data and "metadata" in ai_data:
+                elif "description" in ai_data and "analysis" in ai_data and "recommended_actions" in ai_data and "metadata" in ai_data:
                     data = ai_data
+                elif "analysis" in ai_data and "metadata" in ai_data:
+                    # Backward compatibility for old format
+                    data = {
+                        "description": "",
+                        "analysis": ai_data["analysis"],
+                        "recommended_actions": "",
+                        "metadata": ai_data["metadata"]
+                    }
                 else:
                     data = ai_data
             elif "content" in raw_data:
@@ -162,7 +174,7 @@ class SchemaValidator:
                         parsed_content = json.loads(content)
                         data = parsed_content
                     except json.JSONDecodeError:
-                        data = {"analysis": content, "metadata": {}}
+                        data = {"description": "", "analysis": content, "recommended_actions": "", "metadata": {}}
                 else:
                     data = content
             else:
@@ -186,7 +198,9 @@ class SchemaValidator:
         Clean and normalize the data structure
         """
         cleaned = {
+            "description": data.get("description", ""),
             "analysis": data.get("analysis", ""),
+            "recommended_actions": data.get("recommended_actions", ""),
             "metadata": {}
         }
         

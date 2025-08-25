@@ -25,3 +25,12 @@ def get_prompt(p_code: str, db: Session = Depends(get_db)):
         from fastapi import HTTPException
         raise HTTPException(404, "Prompt not found")
     return prompt
+
+@router.put("/{p_code}", response_model=schemas.PromptOut)
+def update_prompt(p_code: str, prompt_update: schemas.PromptUpdate, db: Session = Depends(get_db)):
+    """Update a specific prompt by code"""
+    prompt = crud.update_prompt(db, p_code, prompt_update)
+    if not prompt:
+        from fastapi import HTTPException
+        raise HTTPException(404, "Prompt not found")
+    return prompt

@@ -142,6 +142,19 @@ def get_prompt_by_label(db: Session, label: str):
     """Get a specific prompt by label text"""
     return db.query(models.Prompts).filter(models.Prompts.label == label).first()
 
+def update_prompt(db: Session, p_code: str, prompt_update: schemas.PromptUpdate):
+    """Update a specific prompt by code"""
+    prompt = db.query(models.Prompts).filter(models.Prompts.p_code == p_code).first()
+    if not prompt:
+        return None
+    
+    for field, value in prompt_update.dict(exclude_unset=True).items():
+        setattr(prompt, field, value)
+    
+    db.commit()
+    db.refresh(prompt)
+    return prompt
+
 def update_caption(db: Session, image_id: str, update: schemas.CaptionUpdate):
     """Update caption data for an image"""
     img = db.get(models.Images, image_id)

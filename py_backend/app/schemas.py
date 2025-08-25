@@ -102,6 +102,10 @@ class PromptOut(BaseModel):
     class Config:
         from_attributes = True
 
+class PromptUpdate(BaseModel):
+    label: str
+    metadata_instructions: str | None = None
+
 class SourceOut(BaseModel):
     s_code: str
     label: str
