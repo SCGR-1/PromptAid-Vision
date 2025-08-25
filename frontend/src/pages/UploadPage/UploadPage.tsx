@@ -898,9 +898,8 @@ export default function UploadPage() {
             <div className="space-y-6">
               <p className="text-gray-700 leading-relaxed max-w-2xl mx-auto">
                 This app evaluates how well multimodal AI models analyze and describe
-                crisis maps and drone imagery. Upload any file format (PDF, TIFF, HEIC, etc.) 
-                and we'll automatically convert it for you. Let the AI generate a description, 
-                then review and rate the result based on your expertise.
+                crisis maps and drone imagery. Upload an image and the AI will generate a description.
+                Then you can review and rate the result based on your expertise.
               </p>
               
               {/* "More »" link  */}

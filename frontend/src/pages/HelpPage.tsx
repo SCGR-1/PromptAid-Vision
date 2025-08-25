@@ -1,6 +1,7 @@
 import { PageContainer, Heading, Container, Button } from '@ifrc-go/ui';
 import { useNavigate } from 'react-router-dom';
 import { useFilterContext } from '../contexts/FilterContext';
+import styles from './HelpPage.module.css';
 
 export default function HelpPage() {
   const navigate = useNavigate();
@@ -21,20 +22,18 @@ export default function HelpPage() {
 
   return (
     <PageContainer className="py-10">
-      <Container withInternalPadding className="max-w-4xl mx-auto">
-
-        
+      <div className={styles.helpContainer}>
         <div className="space-y-8">
-          <Container withInternalPadding className="p-8">
-            <Heading level={3} className="mb-4 text-ifrcRed font-semibold">Introduction</Heading>
-            <p className="text-gray-700 leading-relaxed text-base">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore 
-              et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut 
-              aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse 
-              cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in 
-              culpa qui officia deserunt mollit anim id est laborum.
-            </p>
-            <div className="mt-6 flex justify-center">
+          <div className={styles.helpSection}>
+            <div className={styles.sectionHeader}>
+              <Heading level={3} className={styles.sectionTitle}>Introduction</Heading>
+            </div>
+            <div className={styles.sectionContent}>
+              In collaboration with the IFRC, PromptAid Vision is a tool that generates textual descriptions of crisis maps/crisis drone images utiliing Visual language models.
+              This prototype is for collecting data for the fine-tuning of our own models. We aim to utilize AI tools to support national societies with rapid decision making during 
+              emergencies. 
+            </div>
+            <div className={styles.buttonContainer}>
               <Button
                 name="upload-now"
                 variant="secondary"
@@ -43,17 +42,22 @@ export default function HelpPage() {
                 Upload now →
               </Button>
             </div>
-          </Container>
+          </div>
 
-          <Container withInternalPadding className="p-8">
-            <Heading level={3} className="mb-4 text-ifrcRed font-semibold">Guidelines</Heading>
-            <p className="text-gray-700 leading-relaxed text-base">
-              Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, 
-              totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae 
-              dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, 
-              sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
-            </p>
-            <div className="mt-6 flex justify-center">
+          <div className={styles.helpSection}>
+            <div className={styles.sectionHeader}>
+              <Heading level={3} className={styles.sectionTitle}>Guidelines</Heading>
+            </div>
+            <div className={styles.sectionContent}>
+              To make the process smoother, please follow the guidelines below:
+              <ul className={styles.guidelinesList}>
+                <li>Avoid uploading images that are not crisis maps/crisis drone images.</li>
+                <li>Confirm the image details prior to modifying the description.</li>
+                <li>Before the modification, please read the description generated and provide a rating via the rating sliders.</li>
+                <li>Click the "Submit" button to save the description.</li>
+              </ul>
+            </div>
+            <div className={styles.buttonContainer}>
               <Button
                 name="see-examples"
                 variant="secondary"
@@ -62,17 +66,17 @@ export default function HelpPage() {
                 See examples →
               </Button>
             </div>
-          </Container>
+          </div>
 
-          <Container withInternalPadding className="p-8">
-            <Heading level={3} className="mb-4 text-ifrcRed font-semibold">VLMs</Heading>
-            <p className="text-gray-700 leading-relaxed text-base">
-              At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum 
-              deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non 
-              provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum 
-              fuga. Et harum quidem rerum facilis est et expedita distinctio.
-            </p>
-            <div className="mt-6 flex justify-center">
+          <div className={styles.helpSection}>
+            <div className={styles.sectionHeader}>
+              <Heading level={3} className={styles.sectionTitle}>VLMs</Heading>
+            </div>
+            <div className={styles.sectionContent}>
+              PromptAid Vision uses a variety of Visual Language Models (VLMs). A random VLM is selected for each upload. Therefore feel free to delete
+              and reupload. You can view performance details here:
+            </div>
+            <div className={styles.buttonContainer}>
               <Button
                 name="view-vlm-details"
                 variant="secondary"
@@ -81,18 +85,16 @@ export default function HelpPage() {
                 View VLM details →
               </Button>
             </div>
-          </Container>
+          </div>
 
-          <Container withInternalPadding className="p-8">
-            <Heading level={3} className="mb-4 text-ifrcRed font-semibold">Dataset</Heading>
-            <p className="text-gray-700 leading-relaxed text-base">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore 
-              et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut 
-              aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse 
-              cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in 
-              culpa qui officia deserunt mollit anim id est laborum.
-            </p>
-            <div className="mt-6 flex justify-center">
+          <div className={styles.helpSection}>
+            <div className={styles.sectionHeader}>
+              <Heading level={3} className={styles.sectionTitle}>Dataset</Heading>
+            </div>
+            <div className={styles.sectionContent}>
+              All users are able to export the dataset. You could apply filters when exporting, and it have the option to organize based on model fine-tuning formats.
+            </div>
+            <div className={styles.buttonContainer}>
               <Button
                 name="export-dataset"
                 variant="secondary"
@@ -110,9 +112,27 @@ export default function HelpPage() {
                 Export dataset →
               </Button>
             </div>
-          </Container>
+          </div>
+
+          <div className={styles.helpSection}>
+            <div className={styles.sectionHeader}>
+              <Heading level={3} className={styles.sectionTitle}>Contact us</Heading>
+            </div>
+            <div className={styles.sectionContent}>
+              Need help or have questions about PromptAid Vision? Our team is here to support you.
+            </div>
+            <div className={styles.buttonContainer}>
+              <Button
+                name="contact-support"
+                variant="secondary"
+                disabled={true}
+              >
+                Get in touch →
+              </Button>
+            </div>
+          </div>
         </div>
-      </Container>
+      </div>
     </PageContainer>
   );
 }
