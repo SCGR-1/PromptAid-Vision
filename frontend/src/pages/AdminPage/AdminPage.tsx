@@ -27,6 +27,22 @@ export default function AdminPage() {
   }>>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   
+  // Prompts state
+  const [availablePrompts, setAvailablePrompts] = useState<Array<{
+    p_code: string;
+    label: string;
+    metadata_instructions?: string;
+  }>>([]);
+  
+  // Prompt management state
+  const [showEditPromptForm, setShowEditPromptForm] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState<any>(null);
+  const [newPromptData, setNewPromptData] = useState({
+    p_code: '',
+    label: '',
+    metadata_instructions: ''
+  });
+  
      // Model management state
    const [showAddModelForm, setShowAddModelForm] = useState(false);
    const [showEditModelForm, setShowEditModelForm] = useState(false);
@@ -54,6 +70,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchModels();
+      fetchPrompts();
     }
   }, [isAuthenticated]);
 
@@ -81,6 +98,56 @@ export default function AdminPage() {
       .catch(() => {
         // Handle error silently
       });
+  };
+
+  const fetchPrompts = () => {
+    fetch('/api/prompts')
+      .then(r => r.json())
+      .then(promptsData => {
+        console.log('Prompts data received:', promptsData);
+        setAvailablePrompts(promptsData || []);
+      })
+      .catch(() => {
+        // Handle error silently
+      });
+  };
+
+  const handleEditPrompt = (prompt: any) => {
+    setEditingPrompt(prompt);
+    setNewPromptData({
+      p_code: prompt.p_code,
+      label: prompt.label || '',
+      metadata_instructions: prompt.metadata_instructions || ''
+    });
+    setShowEditPromptForm(true);
+  };
+
+  const handleSavePrompt = async () => {
+    try {
+      const response = await fetch(`/api/prompts/${editingPrompt.p_code}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          label: newPromptData.label,
+          metadata_instructions: newPromptData.metadata_instructions
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh prompts and close form
+        fetchPrompts();
+        setShowEditPromptForm(false);
+        setEditingPrompt(null);
+        setNewPromptData({ p_code: '', label: '', metadata_instructions: '' });
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update prompt: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert(`Error updating prompt: ${error}`);
+    }
   };
 
   const toggleModelAvailability = async (modelCode: string, currentStatus: boolean) => {
@@ -663,7 +730,74 @@ Model "${newModelData.label}" added successfully!
                    </div>
                  </Container>
 
+                 {/* Prompts Section */}
+                 <Container
+                   heading="Prompts Management"
+                   headingLevel={2}
+                   withHeaderBorder
+                   withInternalPadding
+                 >
+                   <div className={styles.modelManagementArea}>
+                     {/* Prompts Table */}
+                     <div className={styles.modelsTable}>
+                       <table>
+                         <thead>
+                           <tr>
+                             <th>Code</th>
+                             <th>Label</th>
+                             <th>Actions</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {availablePrompts.map(prompt => (
+                             <tr key={prompt.p_code}>
+                               <td className={styles.modelCode}>{prompt.p_code}</td>
+                               <td className={styles.promptLabel}>{prompt.label || 'No label'}</td>
+                               <td>
+                                 <div className={styles.modelActions}>
+                                   <Button
+                                     name={`view-${prompt.p_code}`}
+                                     variant="secondary"
+                                     size={1}
+                                     onClick={() => {
+                                       setTestResults(`=== Prompt Details ===\nCode: ${prompt.p_code}\nLabel: ${prompt.label}\n\nMetadata Instructions:\n${prompt.metadata_instructions || 'No instructions available'}`);
+                                       setTestResultsTitle(`Prompt: ${prompt.p_code}`);
+                                       setShowTestResultsModal(true);
+                                     }}
+                                   >
+                                     View
+                                   </Button>
+                                   <Button
+                                     name={`edit-${prompt.p_code}`}
+                                     variant="secondary"
+                                     size={1}
+                                     onClick={() => handleEditPrompt(prompt)}
+                                   >
+                                     Edit
+                                   </Button>
+                                 </div>
+                               </td>
+                             </tr>
+                           ))}
+                         </tbody>
+                       </table>
+                     </div>
 
+                     {/* Add Prompt Button */}
+                     <div className={styles.addModelButtonContainer}>
+                       <Button
+                         name="add-prompt"
+                         variant="primary"
+                         onClick={() => {
+                           // TODO: Implement add prompt functionality
+                           alert('Add prompt functionality coming soon!');
+                         }}
+                       >
+                         Add New Prompt
+                       </Button>
+                     </div>
+                   </div>
+                 </Container>
 
                      {/* Utilities Section */}
                  <Container
@@ -726,9 +860,9 @@ Model "${newModelData.label}" added successfully!
                            results += '\n\n';
                          });
                        } else if (data && typeof data === 'object') {
-                         results = `Schemas Response:\n\nResponse type: ${typeof data}\nKeys: ${Object.keys(data).join(', ')}\n\nRaw data:\n${JSON.stringify(data, null, 2)}`;
+                         results = `Prompts Response:\n\nResponse type: ${typeof data}\nKeys: ${Object.keys(data).join(', ')}\n\nRaw data:\n${JSON.stringify(data, null, 2)}`;
                        } else {
-                         results = `Schemas Response:\n\nUnexpected data type: ${typeof data}\nValue: ${data}`;
+                         results = `Prompts Response:\n\nUnexpected data type: ${typeof data}\nValue: ${data}`;
                        }
                        
                        setTestResults(results);
@@ -737,7 +871,7 @@ Model "${newModelData.label}" added successfully!
                      })
                      .catch((error) => {
                        console.error('Schemas Error:', error);
-                       const results = `Failed to fetch schemas: ${error.message || 'Unknown error'}`;
+                       const results = `Failed to fetch prompts: ${error.message || 'Unknown error'}`;
                        setTestResults(results);
                        setTestResultsTitle('Schemas Error');
                        setShowTestResultsModal(true);
@@ -829,6 +963,68 @@ Model "${newModelData.label}" added successfully!
            </div>
          </div>
        )}
+
+      {/* Edit Prompt Form Modal */}
+      {showEditPromptForm && (
+        <div className={styles.modalOverlay} onClick={() => setShowEditPromptForm(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalBody}>
+              <h3 className={styles.modalTitle}>Edit Prompt: {editingPrompt?.p_code}</h3>
+              <div className={styles.modalForm}>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Code:</label>
+                  <TextInput
+                    name="prompt-code"
+                    value={editingPrompt?.p_code}
+                    onChange={() => {}} // Required prop for disabled field
+                    disabled={true}
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Label:</label>
+                  <TextInput
+                    name="prompt-label"
+                    value={newPromptData.label}
+                    onChange={(value) => setNewPromptData(prev => ({ ...prev, label: value || '' }))}
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Metadata Instructions:</label>
+                  <textarea
+                    name="prompt-instructions"
+                    value={newPromptData.metadata_instructions}
+                    onChange={(e) => setNewPromptData(prev => ({ ...prev, metadata_instructions: e.target.value }))}
+                    className={`${styles.formInput} ${styles.textarea}`}
+                    rows={8}
+                  />
+                </div>
+              </div>
+              <div className={styles.modalButtons}>
+                <Button
+                  name="cancel-edit-prompt"
+                  variant="tertiary"
+                  onClick={() => {
+                    setShowEditPromptForm(false);
+                    setEditingPrompt(null);
+                    setNewPromptData({ p_code: '', label: '', metadata_instructions: '' });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  name="save-prompt"
+                  variant="primary"
+                  onClick={handleSavePrompt}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

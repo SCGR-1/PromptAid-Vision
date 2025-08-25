@@ -169,6 +169,9 @@ export default function UploadPage() {
 
   const [imageUrl, setImageUrl] = useState<string|null>(null);
   const [draft, setDraft] = useState('');
+  const [description, setDescription] = useState('');
+  const [analysis, setAnalysis] = useState('');
+  const [recommendedActions, setRecommendedActions] = useState('');
   
   useEffect(() => {
     const imageUrlParam = searchParams.get('imageUrl');
@@ -291,6 +294,9 @@ export default function UploadPage() {
     setStdVM('');
     setScores({ accuracy: 50, context: 50, usability: 50 });
     setDraft('');
+    setDescription('');
+    setAnalysis('');
+    setRecommendedActions('');
     setShowFallbackNotification(false);
     setFallbackInfo(null);
     setShowPreprocessingNotification(false);
@@ -655,17 +661,23 @@ export default function UploadPage() {
         }
       }
 
-      if (capJson.generated) {
-        try {
-          const parsedGenerated = JSON.parse(capJson.generated as string);
-          if (parsedGenerated.analysis) {
-            setDraft(parsedGenerated.analysis);
-          } else {
-            setDraft(capJson.generated as string);
-          }
-        } catch (e) {
-          setDraft(capJson.generated as string);
+      // Extract the three parts from raw_json.extracted_metadata
+      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
+      if (extractedMetadataForParts) {
+        if ((extractedMetadataForParts as Record<string, unknown>).description) {
+          setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);
         }
+        if ((extractedMetadataForParts as Record<string, unknown>).analysis) {
+          setAnalysis((extractedMetadataForParts as Record<string, unknown>).analysis as string);
+        }
+        if ((extractedMetadataForParts as Record<string, unknown>).recommended_actions) {
+          setRecommendedActions((extractedMetadataForParts as Record<string, unknown>).recommended_actions as string);
+        }
+      }
+      
+      // Set draft with the generated content for backward compatibility
+      if (capJson.generated) {
+        setDraft(capJson.generated as string);
       }
       handleStepChange('2a');
     } catch (err) {
@@ -767,17 +779,23 @@ export default function UploadPage() {
         }
       }
 
-      if (capJson.generated) {
-        try {
-          const parsedGenerated = JSON.parse(capJson.generated as string);
-          if (parsedGenerated.analysis) {
-            setDraft(parsedGenerated.analysis);
-          } else {
-            setDraft(capJson.generated as string);
-          }
-        } catch (e) {
-          setDraft(capJson.generated as string);
+      // Extract the three parts from raw_json.extracted_metadata
+      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
+      if (extractedMetadataForParts) {
+        if ((extractedMetadataForParts as Record<string, unknown>).description) {
+          setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);
         }
+        if ((extractedMetadataForParts as Record<string, unknown>).analysis) {
+          setAnalysis((extractedMetadataForParts as Record<string, unknown>).analysis as string);
+        }
+        if ((extractedMetadataForParts as Record<string, unknown>).recommended_actions) {
+          setRecommendedActions((extractedMetadataForParts as Record<string, unknown>).recommended_actions as string);
+        }
+      }
+      
+      // Set draft with the generated content for backward compatibility
+      if (capJson.generated) {
+        setDraft(capJson.generated as string);
       }
       handleStepChange('2a');
     } catch (err) {
@@ -814,9 +832,12 @@ export default function UploadPage() {
       const metadataJson = await readJsonSafely(metadataRes);
       if (!metadataRes.ok) throw new Error((metadataJson.error as string) || "Metadata update failed");
       
+      // Combine the three parts for submission
+      const combinedContent = `Description: ${description}\n\nAnalysis: ${analysis}\n\nRecommended Actions: ${recommendedActions}`;
+      
       const captionBody = {
         title: title,
-        edited: draft || '',
+        edited: combinedContent,
         accuracy: scores.accuracy,
         context: scores.context,
         usability: scores.usability,
@@ -1330,14 +1351,45 @@ export default function UploadPage() {
                   withHeaderBorder
                   withInternalPadding
                 >
-                  <div className="text-left">
-                    <TextArea
-                      name="caption"
-                      value={draft}
-                      onChange={(value) => setDraft(value || '')}
-                      rows={10}
-                      placeholder="AI-generated caption will appear here..."
-                    />
+                  <div className="text-left space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <TextArea
+                        name="description"
+                        value={description}
+                        onChange={(value) => setDescription(value || '')}
+                        rows={4}
+                        placeholder="AI-generated description will appear here..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Analysis
+                      </label>
+                      <TextArea
+                        name="analysis"
+                        value={analysis}
+                        onChange={(value) => setAnalysis(value || '')}
+                        rows={4}
+                        placeholder="AI-generated analysis will appear here..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Recommended Actions
+                      </label>
+                      <TextArea
+                        name="recommendedActions"
+                        value={recommendedActions}
+                        onChange={(value) => setRecommendedActions(value || '')}
+                        rows={4}
+                        placeholder="AI-generated recommended actions will appear here..."
+                      />
+                    </div>
                   </div>
                   
                   {/* ────── SUBMIT BUTTONS ────── */}

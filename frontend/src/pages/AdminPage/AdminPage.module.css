@@ -336,6 +336,58 @@
   flex-wrap: wrap;
 }
 
+/* Form styles for edit prompt modal */
+.modalForm {
+  text-align: left;
+  margin-bottom: var(--go-ui-spacing-xl);
+  flex: 1;
+  overflow-y: auto;
+  max-height: 60vh;
+  padding-right: var(--go-ui-spacing-sm);
+}
+
+.formField {
+  margin-bottom: var(--go-ui-spacing-lg);
+}
+
+.formLabel {
+  display: block;
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  font-weight: var(--go-ui-font-weight-medium);
+  color: var(--go-ui-color-gray-700);
+  margin-bottom: var(--go-ui-spacing-xs);
+}
+
+.formInput {
+  width: 100%;
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-30);
+  border-radius: var(--go-ui-border-radius-md);
+  padding: var(--go-ui-spacing-sm) var(--go-ui-spacing-md);
+  font-size: var(--go-ui-font-size-sm);
+  font-family: var(--go-ui-font-family-sans);
+  transition: all var(--go-ui-duration-transition-medium) ease;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--go-ui-color-red-90);
+  box-shadow: 0 0 0 3px var(--go-ui-color-red-10);
+}
+
+.formInput:disabled {
+  background-color: var(--go-ui-color-gray-20);
+  color: var(--go-ui-color-gray-500);
+  cursor: not-allowed;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 120px;
+  font-family: var(--go-ui-font-family-mono);
+  line-height: 1.5;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .adminContainer {
