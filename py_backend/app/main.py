@@ -65,18 +65,10 @@ async def health():
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)
 def root():
     return """<!doctype html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>PromptAid Vision</title>
-    <meta http-equiv="refresh" content="0;url=/app/">
-</head>
-<body>
-    <h1>PromptAid Vision</h1>
-    <p>Redirecting to app...</p>
-    <p><a href="/app/">Click here if not redirected automatically</a></p>
-</body>
-</html>"""
+<title>PromptAid Vision</title>
+<h1>PromptAid Vision</h1>
+<p>OK</p>
+<p><a href="/app/">Open UI</a> • <a href="/docs">API Docs</a></p>"""
 
 # Static file serving - must come AFTER API routes
 if os.path.exists("/app"):
