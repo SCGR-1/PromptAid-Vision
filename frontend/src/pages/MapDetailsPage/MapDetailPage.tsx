@@ -6,6 +6,7 @@ import styles from './MapDetailPage.module.css';
 import { useFilterContext } from '../../contexts/FilterContext';
 import { useAdmin } from '../../contexts/AdminContext';
 
+// FORCE REBUILD - MapDetailsPage updated with three-part analysis display
 interface MapOut {
   image_id: string;
   file_key: string;

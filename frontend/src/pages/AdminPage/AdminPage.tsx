@@ -1,4 +1,4 @@
-// Force rebuild - Frontend updated with edit prompt functionality
+// FORCE REBUILD - AdminPage updated with edit prompt functionality and improved prompts table
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { PageContainer, Heading, Button, Container, TextInput, SelectInput } from '@ifrc-go/ui';
