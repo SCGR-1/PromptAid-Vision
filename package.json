@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@types/react-simple-maps": "^3.0.6",
-    "react-simple-maps": "^3.0.0"
-  }
-}
