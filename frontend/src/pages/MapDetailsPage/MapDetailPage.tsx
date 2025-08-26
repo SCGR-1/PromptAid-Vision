@@ -24,7 +24,16 @@ interface MapOut {
   prompt?: string;
   model?: string;
   schema_id?: string;
-  raw_json?: Record<string, unknown>;
+  raw_json?: {
+    extracted_metadata?: {
+      description?: string;
+      analysis?: string;
+      recommended_actions?: string;
+      metadata?: Record<string, unknown>;
+    };
+    fallback_info?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
   generated?: string;
   edited?: string;
   accuracy?: number;
@@ -956,23 +965,114 @@ export default function MapDetailPage() {
                       </div>
                     </Container>
 
-                    <Container
-                      heading="Description"
-                      headingLevel={3}
-                      withHeaderBorder
-                      withInternalPadding
-                      spacing="comfortable"
-                    >
-                      <div className={styles.captionContainer}>
-                        {filteredMap.generated ? (
-                          <div className={styles.captionText}>
-                            <p>{filteredMap.edited || filteredMap.generated}</p>
-                          </div>
+                    {/* Three-Part Analysis Structure */}
+                    {filteredMap.raw_json ? (
+                      <>
+                        {/* Try to extract three parts from edited field first (new format) */}
+                        {filteredMap.edited && filteredMap.edited.includes('Description:') ? (
+                          <>
+                            <Container
+                              heading="Description"
+                              headingLevel={3}
+                              withHeaderBorder
+                              withInternalPadding
+                              spacing="comfortable"
+                            >
+                              <div className={styles.captionContainer}>
+                                {(() => {
+                                  const descMatch = filteredMap.edited.match(/Description:\s*(.*?)(?=\n\nAnalysis:|$)/s);
+                                  return descMatch ? (
+                                    <div className={styles.captionText}>
+                                      <p>{descMatch[1].trim()}</p>
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-500 italic">— no description available —</p>
+                                  );
+                                })()}
+                              </div>
+                            </Container>
+
+                            <Container
+                              heading="Analysis"
+                              headingLevel={3}
+                              withHeaderBorder
+                              withInternalPadding
+                              spacing="comfortable"
+                            >
+                              <div className={styles.captionContainer}>
+                                {(() => {
+                                  const analysisMatch = filteredMap.edited.match(/Analysis:\s*(.*?)(?=\n\nRecommended Actions:|$)/s);
+                                  return analysisMatch ? (
+                                    <div className={styles.captionText}>
+                                      <p>{analysisMatch[1].trim()}</p>
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-500 italic">— no analysis available —</p>
+                                  );
+                                })()}
+                              </div>
+                            </Container>
+
+                            <Container
+                              heading="Recommended Actions"
+                              headingLevel={3}
+                              withHeaderBorder
+                              withInternalPadding
+                              spacing="comfortable"
+                            >
+                              <div className={styles.captionContainer}>
+                                {(() => {
+                                  const actionsMatch = filteredMap.edited.match(/Recommended Actions:\s*(.*?)$/s);
+                                  return actionsMatch ? (
+                                    <div className={styles.captionText}>
+                                      <p>{actionsMatch[1].trim()}</p>
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-500 italic">— no recommended actions available —</p>
+                                  );
+                                })()}
+                              </div>
+                            </Container>
+                          </>
                         ) : (
-                          <p>— no caption yet —</p>
+                          <Container
+                            heading="Description"
+                            headingLevel={3}
+                            withHeaderBorder
+                            withInternalPadding
+                            spacing="comfortable"
+                          >
+                            <div className={styles.captionContainer}>
+                              {filteredMap.generated ? (
+                                <div className={styles.captionText}>
+                                  <p>{filteredMap.edited || filteredMap.generated}</p>
+                                </div>
+                              ) : (
+                                <p>— no caption yet —</p>
+                              )}
+                            </div>
+                          </Container>
                         )}
-                      </div>
-                    </Container>
+                      </>
+                    ) : (
+                      <Container
+                        heading="Description"
+                        headingLevel={3}
+                        withHeaderBorder
+                        withInternalPadding
+                        spacing="comfortable"
+                      >
+                        <div className={styles.captionContainer}>
+                          {filteredMap.generated ? (
+                            <div className={styles.captionText}>
+                              <p>{filteredMap.edited || filteredMap.generated}</p>
+                            </div>
+                          ) : (
+                            <p>— no caption yet —</p>
+                          )}
+                        </div>
+                      </Container>
+                    )}
                   </div>
                 </div>
 
