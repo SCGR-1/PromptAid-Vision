@@ -1353,41 +1353,26 @@ export default function UploadPage() {
                 >
                   <div className="text-left space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Description
-                      </label>
                       <TextArea
-                        name="description"
-                        value={description}
-                        onChange={(value) => setDescription(value || '')}
-                        rows={4}
-                        placeholder="AI-generated description will appear here..."
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Analysis
-                      </label>
-                      <TextArea
-                        name="analysis"
-                        value={analysis}
-                        onChange={(value) => setAnalysis(value || '')}
-                        rows={4}
-                        placeholder="AI-generated analysis will appear here..."
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Recommended Actions
-                      </label>
-                      <TextArea
-                        name="recommendedActions"
-                        value={recommendedActions}
-                        onChange={(value) => setRecommendedActions(value || '')}
-                        rows={4}
-                        placeholder="AI-generated recommended actions will appear here..."
+                        name="generatedContent"
+                        value={`Description:\n${description || 'AI-generated description will appear here...'}\n\nAnalysis:\n${analysis || 'AI-generated analysis will appear here...'}\n\nRecommended Actions:\n${recommendedActions || 'AI-generated recommended actions will appear here...'}`}
+                        onChange={(value) => {
+                          // Parse the combined text back into separate fields
+                          if (value) {
+                            const lines = value.split('\n');
+                            const descIndex = lines.findIndex(line => line.startsWith('Description:'));
+                            const analysisIndex = lines.findIndex(line => line.startsWith('Analysis:'));
+                            const actionsIndex = lines.findIndex(line => line.startsWith('Recommended Actions:'));
+                            
+                            if (descIndex !== -1 && analysisIndex !== -1 && actionsIndex !== -1) {
+                              setDescription(lines.slice(descIndex + 1, analysisIndex).join('\n').trim());
+                              setAnalysis(lines.slice(analysisIndex + 1, actionsIndex).join('\n').trim());
+                              setRecommendedActions(lines.slice(actionsIndex + 1).join('\n').trim());
+                            }
+                          }
+                        }}
+                        rows={12}
+                        placeholder="AI-generated content will appear here..."
                       />
                     </div>
                   </div>
