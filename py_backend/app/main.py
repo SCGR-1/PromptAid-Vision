@@ -56,18 +56,6 @@ async def list_images_no_slash():
     finally:
         db.close()
 
-@app.get("/api/prompts", include_in_schema=False)
-async def list_prompts_no_slash():
-    """Handle /api/prompts without trailing slash to prevent 307 redirect"""
-    from app.routers.prompts import get_prompts
-    from app.database import SessionLocal
-    
-    db = SessionLocal()
-    try:
-        return get_prompts(db)
-    finally:
-        db.close()
-
 
 
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)

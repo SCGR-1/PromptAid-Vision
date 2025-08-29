@@ -17,6 +17,25 @@ def get_prompts(db: Session = Depends(get_db)):
     """Get all available prompts"""
     return crud.get_prompts(db)
 
+@router.post("/", response_model=schemas.PromptOut)
+def create_prompt(prompt_data: schemas.PromptCreate, db: Session = Depends(get_db)):
+    """Create a new prompt"""
+    try:
+        prompt = crud.create_prompt(db, prompt_data)
+        return prompt
+    except ValueError as e:
+        from fastapi import HTTPException
+        raise HTTPException(400, str(e))
+
+@router.get("/active/{image_type}", response_model=schemas.PromptOut)
+def get_active_prompt(image_type: str, db: Session = Depends(get_db)):
+    """Get the active prompt for a specific image type"""
+    prompt = crud.get_active_prompt_by_image_type(db, image_type)
+    if not prompt:
+        from fastapi import HTTPException
+        raise HTTPException(404, "No active prompt found for this image type")
+    return prompt
+
 @router.get("/{p_code}", response_model=schemas.PromptOut)
 def get_prompt(p_code: str, db: Session = Depends(get_db)):
     """Get a specific prompt by code"""
@@ -43,25 +62,6 @@ def toggle_prompt_active(p_code: str, image_type: str, db: Session = Depends(get
         if not prompt:
             from fastapi import HTTPException
             raise HTTPException(404, "Prompt not found")
-        return prompt
-    except ValueError as e:
-        from fastapi import HTTPException
-        raise HTTPException(400, str(e))
-
-@router.get("/active/{image_type}", response_model=schemas.PromptOut)
-def get_active_prompt(image_type: str, db: Session = Depends(get_db)):
-    """Get the active prompt for a specific image type"""
-    prompt = crud.get_active_prompt_by_image_type(db, image_type)
-    if not prompt:
-        from fastapi import HTTPException
-        raise HTTPException(404, "No active prompt found for this image type")
-    return prompt
-
-@router.post("/", response_model=schemas.PromptOut)
-def create_prompt(prompt_data: schemas.PromptCreate, db: Session = Depends(get_db)):
-    """Create a new prompt"""
-    try:
-        prompt = crud.create_prompt(db, prompt_data)
         return prompt
     except ValueError as e:
         from fastapi import HTTPException
