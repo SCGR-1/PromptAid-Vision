@@ -87,6 +87,12 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
+  // Debug effect to see when prompts state changes
+  useEffect(() => {
+    console.log('=== availablePrompts state changed ===');
+    console.log('New prompts state:', availablePrompts);
+  }, [availablePrompts]);
+
   const fetchModels = () => {
     fetch('/api/models')
       .then(r => r.json())
