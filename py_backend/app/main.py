@@ -68,6 +68,21 @@ async def list_prompts_no_slash():
     finally:
         db.close()
 
+@app.post("/api/prompts", include_in_schema=False)
+async def create_prompt_no_slash(prompt_data: dict):
+    """Handle POST /api/prompts without trailing slash to prevent 307 redirect"""
+    from app.routers.prompts import create_prompt
+    from app.database import SessionLocal
+    from app.schemas import PromptCreate
+    
+    db = SessionLocal()
+    try:
+        # Convert dict to PromptCreate schema
+        prompt_create = PromptCreate(**prompt_data)
+        return create_prompt(prompt_create, db)
+    finally:
+        db.close()
+
 
 
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)
