@@ -15,8 +15,17 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    # Drop the incorrect unique constraint
-    op.drop_constraint('uq_prompts_image_type_active', 'prompts', type_='unique')
+    # Check if the constraint exists before trying to drop it
+    connection = op.get_bind()
+    inspector = sa.inspect(connection)
+    
+    # Get existing constraints on the prompts table
+    constraints = inspector.get_unique_constraints('prompts')
+    constraint_names = [c['name'] for c in constraints]
+    
+    # Only drop if the constraint exists
+    if 'uq_prompts_image_type_active' in constraint_names:
+        op.drop_constraint('uq_prompts_image_type_active', 'prompts', type_='unique')
     
     # Create a partial unique constraint that only applies when is_active = true
     # This allows multiple inactive prompts per image type, but only one active
