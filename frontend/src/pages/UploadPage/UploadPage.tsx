@@ -201,16 +201,22 @@ export default function UploadPage() {
               }
               
               if (data.generated) {
-                try {
-                  const parsedGenerated = JSON.parse(data.generated);
-                  if (parsedGenerated.analysis) {
-                    setDraft(parsedGenerated.analysis);
-                  } else {
-                    setDraft(data.generated);
+                // Extract the three parts from raw_json.extracted_metadata (same as regular upload flow)
+                const extractedMetadataForParts = data.raw_json?.extracted_metadata;
+                if (extractedMetadataForParts) {
+                  if (extractedMetadataForParts.description) {
+                    setDescription(extractedMetadataForParts.description);
                   }
-                } catch (e) {
-                  setDraft(data.generated);
+                  if (extractedMetadataForParts.analysis) {
+                    setAnalysis(extractedMetadataForParts.analysis);
+                  }
+                  if (extractedMetadataForParts.recommended_actions) {
+                    setRecommendedActions(extractedMetadataForParts.recommended_actions);
+                  }
                 }
+                
+                // Set draft with the generated content for backward compatibility
+                setDraft(data.generated);
               }
               
               let extractedMetadata = data.raw_json?.extracted_metadata;

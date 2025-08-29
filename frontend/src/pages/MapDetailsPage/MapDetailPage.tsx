@@ -463,8 +463,13 @@ export default function MapDetailPage() {
         throw new Error(errorData.error || 'Failed to generate caption');
       }
       
-              const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
-        navigate(url);
+      // Wait for the VLM response to be processed
+      const captionData = await capRes.json();
+      console.log('Caption generation response:', captionData);
+      
+      // Now navigate to the upload page with the processed data
+      const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
+      navigate(url);
       
     } catch (error: unknown) {
       console.error('Contribution failed:', error);
@@ -966,53 +971,31 @@ export default function MapDetailPage() {
                     </Container>
 
                     {/* Combined Analysis Structure */}
-                    {filteredMap.raw_json ? (
-                      <>
-                        {/* Try to extract three parts from edited field first (new format) */}
-                        {filteredMap.edited && filteredMap.edited.includes('Description:') ? (
-                          <Container
-                            heading="AI Generated Content"
-                            headingLevel={3}
-                            withHeaderBorder
-                            withInternalPadding
-                            spacing="comfortable"
-                          >
-                            <div className={styles.captionContainer}>
-                              <div className={styles.captionText}>
-                                {filteredMap.edited.split('\n').map((line, index) => (
-                                  <div key={index}>
-                                    {line.startsWith('Description:') || line.startsWith('Analysis:') || line.startsWith('Recommended Actions:') ? (
-                                      <h4 className="font-semibold text-gray-800 mt-4 mb-2">{line}</h4>
-                                    ) : line.trim() === '' ? (
-                                      <br />
-                                    ) : (
-                                      <p className="mb-2">{line}</p>
-                                    )}
-                                  </div>
-                                ))}
+                    {(filteredMap.edited && filteredMap.edited.includes('Description:')) || 
+                     (filteredMap.generated && filteredMap.generated.includes('Description:')) ? (
+                      <Container
+                        heading="AI Generated Content"
+                        headingLevel={3}
+                        withHeaderBorder
+                        withInternalPadding
+                        spacing="comfortable"
+                      >
+                        <div className={styles.captionContainer}>
+                          <div className={styles.captionText}>
+                            {(filteredMap.edited || filteredMap.generated || '').split('\n').map((line, index) => (
+                              <div key={index}>
+                                {line.startsWith('Description:') || line.startsWith('Analysis:') || line.startsWith('Recommended Actions:') ? (
+                                  <h4 className="font-semibold text-gray-800 mt-4 mb-2">{line}</h4>
+                                ) : line.trim() === '' ? (
+                                  <br />
+                                ) : (
+                                  <p className="mb-2">{line}</p>
+                                )}
                               </div>
-                            </div>
-                          </Container>
-                        ) : (
-                          <Container
-                            heading="Description"
-                            headingLevel={3}
-                            withHeaderBorder
-                            withInternalPadding
-                            spacing="comfortable"
-                          >
-                            <div className={styles.captionContainer}>
-                              {filteredMap.generated ? (
-                                <div className={styles.captionText}>
-                                  <p>{filteredMap.edited || filteredMap.generated}</p>
-                                </div>
-                              ) : (
-                                <p>— no caption yet —</p>
-                              )}
-                            </div>
-                          </Container>
-                        )}
-                      </>
+                            ))}
+                          </div>
+                        </div>
+                      </Container>
                     ) : (
                       <Container
                         heading="Description"
