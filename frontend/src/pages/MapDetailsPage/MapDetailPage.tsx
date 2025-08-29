@@ -240,16 +240,26 @@ export default function MapDetailPage() {
         
         const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
         
+        // If current image is not in filtered list, add it temporarily for navigation
         if (currentIndex === -1) {
+          const currentImage = images.find((img: any) => img.image_id === mapId);
+          if (currentImage) {
+            filteredImages.push(currentImage);
+          }
+        }
+        
+        const adjustedCurrentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
+        
+        if (adjustedCurrentIndex === -1) {
           console.error('Current image not found in filtered list');
           return;
         }
         
         let targetIndex: number;
         if (direction === 'previous') {
-          targetIndex = currentIndex > 0 ? currentIndex - 1 : filteredImages.length - 1;
+          targetIndex = adjustedCurrentIndex > 0 ? adjustedCurrentIndex - 1 : filteredImages.length - 1;
         } else {
-          targetIndex = currentIndex < filteredImages.length - 1 ? currentIndex + 1 : 0;
+          targetIndex = adjustedCurrentIndex < filteredImages.length - 1 ? adjustedCurrentIndex + 1 : 0;
         }
         
         const targetImage = filteredImages[targetIndex];

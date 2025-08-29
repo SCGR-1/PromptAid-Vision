@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageContainer, TextInput, SelectInput, MultiSelectInput, Container, SegmentInput, Spinner, Button, Checkbox } from '@ifrc-go/ui';
+import { PageContainer, Container, SegmentInput, Spinner, Button, Checkbox } from '@ifrc-go/ui';
 import { useFilterContext } from '../../contexts/FilterContext';
+import FilterBar from '../../components/FilterBar';
 import styles from './ExplorePage.module.css';
 
 interface ImageWithCaptionOut {
@@ -484,112 +485,13 @@ export default function ExplorePage() {
               {/* Layer 1: Search, Reference Examples, Clear Filters */}
               <div className="flex flex-wrap items-center gap-4">
                 <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
-                  <TextInput
-                    name="search"
-                    placeholder="Search examples..."
-                    value={search}
-                    onChange={(v) => setSearch(v || '')}
-                  />
-                </Container>
-
-                {/* Reference Examples Filter - Available to all users */}
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <Button
-                    name="reference-examples"
-                    variant={showReferenceExamples ? "primary" : "secondary"}
-                    onClick={() => setShowReferenceExamples(!showReferenceExamples)}
-                    className="whitespace-nowrap"
-                  >
-                    <span className="mr-2">
-                      {showReferenceExamples ? (
-                        <span className="text-yellow-400">★</span>
-                      ) : (
-                        <span className="text-yellow-400">☆</span>
-                      )}
-                    </span>
-                    Reference Examples
-                  </Button>
-                </Container>
-
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <Button
-                    name="clear-filters"
-                    variant="secondary"
-                    onClick={clearAllFilters}
-                  >
-                    Clear Filters
-                  </Button>
-                </Container>
-              </div>
-
-              {/* Layer 2: 5 Filter Bars */}
-              <div className="flex flex-wrap items-center gap-4">
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <SelectInput
-                    name="source"
-                    placeholder={isLoadingFilters ? "Loading..." : "All Sources"}
-                    options={sources}
-                    value={srcFilter || null}
-                    onChange={(v) => setSrcFilter(v as string || '')}
-                    keySelector={(o) => o.s_code}
-                    labelSelector={(o) => o.label}
-                    required={false}
-                    disabled={isLoadingFilters}
-                  />
-                </Container>
-
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <SelectInput
-                    name="category"
-                    placeholder={isLoadingFilters ? "Loading..." : "All Categories"}
-                    options={types}
-                    value={catFilter || null}
-                    onChange={(v) => setCatFilter(v as string || '')}
-                    keySelector={(o) => o.t_code}
-                    labelSelector={(o) => o.label}
-                    required={false}
-                    disabled={isLoadingFilters}
-                  />
-                </Container>
-
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <SelectInput
-                    name="region"
-                    placeholder={isLoadingFilters ? "Loading..." : "All Regions"}
-                    options={regions}
-                    value={regionFilter || null}
-                    onChange={(v) => setRegionFilter(v as string || '')}
-                    keySelector={(o) => o.r_code}
-                    labelSelector={(o) => o.label}
-                    required={false}
-                    disabled={isLoadingFilters}
-                  />
-                </Container>
-
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <MultiSelectInput
-                    name="country"
-                    placeholder={isLoadingFilters ? "Loading..." : "All Countries"}
-                    options={countries}
-                    value={countryFilter ? [countryFilter] : []}
-                    onChange={(v) => setCountryFilter((v as string[])[0] || '')}
-                    keySelector={(o) => o.c_code}
-                    labelSelector={(o) => o.label}
-                    disabled={isLoadingFilters}
-                  />
-                </Container>
-
-                <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-                  <SelectInput
-                    name="imageType"
-                    placeholder={isLoadingFilters ? "Loading..." : "All Image Types"}
-                    options={imageTypes}
-                    value={imageTypeFilter || null}
-                    onChange={(v) => setImageTypeFilter(v as string || '')}
-                    keySelector={(o) => o.image_type}
-                    labelSelector={(o) => o.label}
-                    required={false}
-                    disabled={isLoadingFilters}
+                  <FilterBar
+                    sources={sources}
+                    types={types}
+                    regions={regions}
+                    countries={countries}
+                    imageTypes={imageTypes}
+                    isLoadingFilters={isLoadingFilters}
                   />
                 </Container>
               </div>
