@@ -33,15 +33,26 @@ export default function AdminPage() {
     p_code: string;
     label: string;
     metadata_instructions?: string;
+    image_type: string;
+    is_active: boolean;
+  }>>([]);
+  
+  const [imageTypes, setImageTypes] = useState<Array<{
+    image_type: string;
+    label: string;
   }>>([]);
   
   // Prompt management state
   const [showEditPromptForm, setShowEditPromptForm] = useState(false);
+  const [showAddPromptForm, setShowAddPromptForm] = useState(false);
+  const [addingPromptType, setAddingPromptType] = useState<'crisis_map' | 'drone_image' | null>(null);
   const [editingPrompt, setEditingPrompt] = useState<any>(null);
   const [newPromptData, setNewPromptData] = useState({
     p_code: '',
     label: '',
-    metadata_instructions: ''
+    metadata_instructions: '',
+    image_type: 'crisis_map',
+    is_active: false
   });
   
      // Model management state
@@ -72,6 +83,7 @@ export default function AdminPage() {
     if (isAuthenticated) {
       fetchModels();
       fetchPrompts();
+      fetchImageTypes();
     }
   }, [isAuthenticated]);
 
@@ -113,12 +125,26 @@ export default function AdminPage() {
       });
   };
 
+  const fetchImageTypes = () => {
+    fetch('/api/image-types')
+      .then(r => r.json())
+      .then(imageTypesData => {
+        console.log('Image types data received:', imageTypesData);
+        setImageTypes(imageTypesData || []);
+      })
+      .catch(() => {
+        // Handle error silently
+      });
+  };
+
   const handleEditPrompt = (prompt: any) => {
     setEditingPrompt(prompt);
     setNewPromptData({
       p_code: prompt.p_code,
       label: prompt.label || '',
-      metadata_instructions: prompt.metadata_instructions || ''
+      metadata_instructions: prompt.metadata_instructions || '',
+      image_type: prompt.image_type || 'crisis_map',
+      is_active: prompt.is_active || false
     });
     setShowEditPromptForm(true);
   };
@@ -132,7 +158,9 @@ export default function AdminPage() {
         },
         body: JSON.stringify({
           label: newPromptData.label,
-          metadata_instructions: newPromptData.metadata_instructions
+          metadata_instructions: newPromptData.metadata_instructions,
+          image_type: newPromptData.image_type,
+          is_active: newPromptData.is_active
         }),
       });
 
@@ -141,13 +169,77 @@ export default function AdminPage() {
         fetchPrompts();
         setShowEditPromptForm(false);
         setEditingPrompt(null);
-        setNewPromptData({ p_code: '', label: '', metadata_instructions: '' });
+        setNewPromptData({ p_code: '', label: '', metadata_instructions: '', image_type: 'crisis_map', is_active: false });
       } else {
         const errorData = await response.json();
         alert(`Failed to update prompt: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       alert(`Error updating prompt: ${error}`);
+    }
+  };
+
+  const handleTogglePromptActive = async (promptCode: string, imageType: string) => {
+    try {
+      const response = await fetch(`/api/prompts/${promptCode}/toggle-active?image_type=${imageType}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Refresh prompts to show updated status
+        fetchPrompts();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to toggle prompt active status: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert('Error toggling prompt active status');
+    }
+  };
+
+  const handleAddPrompt = (imageType: 'crisis_map' | 'drone_image') => {
+    setAddingPromptType(imageType);
+    setNewPromptData({
+      p_code: '',
+      label: '',
+      metadata_instructions: '',
+      image_type: imageType,
+      is_active: false
+    });
+    setShowAddPromptForm(true);
+  };
+
+  const handleSaveNewPrompt = async () => {
+    try {
+      const response = await fetch('/api/prompts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newPromptData),
+      });
+
+      if (response.ok) {
+        // Refresh prompts and close form
+        fetchPrompts();
+        setShowAddPromptForm(false);
+        setAddingPromptType(null);
+        setNewPromptData({
+          p_code: '',
+          label: '',
+          metadata_instructions: '',
+          image_type: 'crisis_map',
+          is_active: false
+        });
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to create prompt: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert(`Error creating prompt: ${error}`);
     }
   };
 
@@ -731,72 +823,159 @@ Model "${newModelData.label}" added successfully!
                    </div>
                  </Container>
 
-                 {/* Prompts Section */}
+                 {/* Prompts Management Section */}
                  <Container
-                   heading="Prompts Management"
+                   heading="Prompt Management"
                    headingLevel={2}
                    withHeaderBorder
                    withInternalPadding
                  >
                    <div className={styles.modelManagementArea}>
-                     {/* Prompts Table */}
-                     <div className={styles.modelsTable}>
-                       <table>
-                         <thead>
-                           <tr>
-                             <th>Code</th>
-                             <th>Label</th>
-                             <th>Actions</th>
-                           </tr>
-                         </thead>
-                         <tbody>
-                           {availablePrompts.map(prompt => (
-                             <tr key={prompt.p_code}>
-                               <td className={styles.modelCode}>{prompt.p_code}</td>
-                               <td className={styles.promptLabel}>{prompt.label || 'No label'}</td>
-                               <td>
-                                 <div className={styles.modelActions}>
-                                   <Button
-                                     name={`view-${prompt.p_code}`}
-                                     variant="secondary"
-                                     size={1}
-                                     onClick={() => {
-                                       setTestResults(`=== Prompt Details ===\nCode: ${prompt.p_code}\nLabel: ${prompt.label}\n\nMetadata Instructions:\n${prompt.metadata_instructions || 'No instructions available'}`);
-                                       setTestResultsTitle(`Prompt: ${prompt.p_code}`);
-                                       setShowTestResultsModal(true);
-                                     }}
-                                   >
-                                     View
-                                   </Button>
-                                   <Button
-                                     name={`edit-${prompt.p_code}`}
-                                     variant="secondary"
-                                     size={1}
-                                     onClick={() => handleEditPrompt(prompt)}
-                                   >
-                                     Edit
-                                   </Button>
-                                 </div>
-                               </td>
+                     
+                     {/* Crisis Maps Sub-section */}
+                     <div className={styles.promptSubsection}>
+                       <h4 className={styles.promptSubsectionTitle}>Crisis Maps</h4>
+                       <div className={styles.modelsTable}>
+                         <table>
+                           <thead>
+                             <tr>
+                               <th>Code</th>
+                               <th>Label</th>
+                               <th>Status</th>
+                               <th>Actions</th>
                              </tr>
-                           ))}
-                         </tbody>
-                       </table>
+                           </thead>
+                           <tbody>
+                             {availablePrompts
+                               .filter(prompt => prompt.image_type === 'crisis_map')
+                               .map(prompt => (
+                               <tr key={prompt.p_code}>
+                                 <td className={styles.modelCode}>{prompt.p_code}</td>
+                                 <td className={styles.promptLabel}>{prompt.label || 'No label'}</td>
+                                 <td>
+                                   <Button
+                                     name={`toggle-crisis-${prompt.p_code}`}
+                                     variant={prompt.is_active ? "primary" : "secondary"}
+                                     size={1}
+                                     onClick={() => handleTogglePromptActive(prompt.p_code, 'crisis_map')}
+                                   >
+                                     {prompt.is_active ? 'Active' : 'Inactive'}
+                                   </Button>
+                                 </td>
+                                 <td>
+                                   <div className={styles.modelActions}>
+                                     <Button
+                                       name={`view-${prompt.p_code}`}
+                                       variant="secondary"
+                                       size={1}
+                                       onClick={() => {
+                                         setTestResults(`=== Prompt Details ===\nCode: ${prompt.p_code}\nLabel: ${prompt.label}\nImage Type: ${prompt.image_type}\nActive: ${prompt.is_active}\n\nMetadata Instructions:\n${prompt.metadata_instructions || 'No instructions available'}`);
+                                         setTestResultsTitle(`Prompt: ${prompt.p_code}`);
+                                         setShowTestResultsModal(true);
+                                       }}
+                                     >
+                                       View
+                                     </Button>
+                                     <Button
+                                       name={`edit-${prompt.p_code}`}
+                                       variant="secondary"
+                                       size={1}
+                                       onClick={() => handleEditPrompt(prompt)}
+                                     >
+                                       Edit
+                                     </Button>
+                                   </div>
+                                 </td>
+                               </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                       </div>
+
+                       {/* Add Crisis Map Prompt Button */}
+                       <div className={styles.addModelButtonContainer}>
+                         <Button
+                           name="add-crisis-prompt"
+                           variant="primary"
+                           onClick={() => handleAddPrompt('crisis_map')}
+                         >
+                           Add New Crisis Map Prompt
+                         </Button>
+                       </div>
                      </div>
 
-                     {/* Add Prompt Button */}
-                     <div className={styles.addModelButtonContainer}>
-                       <Button
-                         name="add-prompt"
-                         variant="primary"
-                         onClick={() => {
-                           // TODO: Implement add prompt functionality
-                           alert('Add prompt functionality coming soon!');
-                         }}
-                       >
-                         Add New Prompt
-                       </Button>
+                     {/* Drone Images Sub-section */}
+                     <div className={styles.promptSubsection}>
+                       <h4 className={styles.promptSubsectionTitle}>Drone Images</h4>
+                       <div className={styles.modelsTable}>
+                         <table>
+                           <thead>
+                             <tr>
+                               <th>Code</th>
+                               <th>Label</th>
+                               <th>Status</th>
+                               <th>Actions</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {availablePrompts
+                               .filter(prompt => prompt.image_type === 'drone_image')
+                               .map(prompt => (
+                               <tr key={prompt.p_code}>
+                                 <td className={styles.modelCode}>{prompt.p_code}</td>
+                                 <td className={styles.promptLabel}>{prompt.label || 'No label'}</td>
+                                 <td>
+                                   <Button
+                                     name={`toggle-drone-${prompt.p_code}`}
+                                     variant={prompt.is_active ? "primary" : "secondary"}
+                                     size={1}
+                                     onClick={() => handleTogglePromptActive(prompt.p_code, 'drone_image')}
+                                   >
+                                     {prompt.is_active ? 'Active' : 'Inactive'}
+                                   </Button>
+                                 </td>
+                                 <td>
+                                   <div className={styles.modelActions}>
+                                     <Button
+                                       name={`view-${prompt.p_code}`}
+                                       variant="secondary"
+                                       size={1}
+                                       onClick={() => {
+                                         setTestResults(`=== Prompt Details ===\nCode: ${prompt.p_code}\nLabel: ${prompt.label}\nImage Type: ${prompt.image_type}\nActive: ${prompt.is_active}\n\nMetadata Instructions:\n${prompt.metadata_instructions || 'No instructions available'}`);
+                                         setTestResultsTitle(`Prompt: ${prompt.p_code}`);
+                                         setShowTestResultsModal(true);
+                                       }}
+                                     >
+                                       View
+                                     </Button>
+                                     <Button
+                                       name={`edit-${prompt.p_code}`}
+                                       variant="secondary"
+                                       size={1}
+                                       onClick={() => handleEditPrompt(prompt)}
+                                     >
+                                       Edit
+                                     </Button>
+                                   </div>
+                                 </td>
+                               </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                       </div>
+
+                       {/* Add Drone Image Prompt Button */}
+                       <div className={styles.addModelButtonContainer}>
+                         <Button
+                           name="add-drone-prompt"
+                           variant="primary"
+                           onClick={() => handleAddPrompt('drone_image')}
+                         >
+                           Add New Drone Image Prompt
+                         </Button>
+                       </div>
                      </div>
+
                    </div>
                  </Container>
 
@@ -992,6 +1171,28 @@ Model "${newModelData.label}" added successfully!
                   />
                 </div>
                 <div className={styles.formField}>
+                  <label className={styles.formLabel}>Image Type:</label>
+                  <SelectInput
+                    name="prompt-image-type"
+                    value={newPromptData.image_type}
+                    onChange={(value) => setNewPromptData(prev => ({ ...prev, image_type: value || 'crisis_map' }))}
+                    options={imageTypes}
+                    keySelector={(o) => o.image_type}
+                    labelSelector={(o) => o.label}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Active Status:</label>
+                  <div className={styles.addModelFormCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={newPromptData.is_active}
+                      onChange={(e) => setNewPromptData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    />
+                    <span>Active for this image type</span>
+                  </div>
+                </div>
+                <div className={styles.formField}>
                   <label className={styles.formLabel}>Metadata Instructions:</label>
                   <textarea
                     name="prompt-instructions"
@@ -1009,7 +1210,7 @@ Model "${newModelData.label}" added successfully!
                   onClick={() => {
                     setShowEditPromptForm(false);
                     setEditingPrompt(null);
-                    setNewPromptData({ p_code: '', label: '', metadata_instructions: '' });
+                    setNewPromptData({ p_code: '', label: '', metadata_instructions: '', image_type: 'crisis_map', is_active: false });
                   }}
                 >
                   Cancel
@@ -1020,6 +1221,94 @@ Model "${newModelData.label}" added successfully!
                   onClick={handleSavePrompt}
                 >
                   Save Changes
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Prompt Form Modal */}
+      {showAddPromptForm && (
+        <div className={styles.modalOverlay} onClick={() => setShowAddPromptForm(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalBody}>
+              <h3 className={styles.modalTitle}>
+                Add New {addingPromptType === 'crisis_map' ? 'Crisis Map' : 'Drone Image'} Prompt
+              </h3>
+              <div className={styles.modalForm}>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Code:</label>
+                  <TextInput
+                    name="prompt-code"
+                    value={newPromptData.p_code}
+                    onChange={(value) => setNewPromptData(prev => ({ ...prev, p_code: value || '' }))}
+                    placeholder="e.g., CUSTOM_CRISIS_MAP_001"
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Label:</label>
+                  <TextInput
+                    name="prompt-label"
+                    value={newPromptData.label}
+                    onChange={(value) => setNewPromptData(prev => ({ ...prev, label: value || '' }))}
+                    placeholder="Enter prompt description..."
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Image Type:</label>
+                  <TextInput
+                    name="prompt-image-type"
+                    value={newPromptData.image_type}
+                    onChange={() => {}} // Disabled - automatically set
+                    disabled={true}
+                    className={styles.formInput}
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Active Status:</label>
+                  <div className={styles.addModelFormCheckbox}>
+                    <input
+                      type="checkbox"
+                      checked={newPromptData.is_active}
+                      onChange={(e) => setNewPromptData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    />
+                    <span>Active for this image type</span>
+                  </div>
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Metadata Instructions:</label>
+                  <textarea
+                    name="prompt-instructions"
+                    value={newPromptData.metadata_instructions}
+                    onChange={(e) => setNewPromptData(prev => ({ ...prev, metadata_instructions: e.target.value }))}
+                    placeholder="Enter metadata extraction instructions..."
+                    className={`${styles.formInput} ${styles.textarea}`}
+                    rows={8}
+                  />
+                </div>
+              </div>
+              <div className={styles.modalButtons}>
+                <Button
+                  name="cancel-add-prompt"
+                  variant="tertiary"
+                  onClick={() => {
+                    setShowAddPromptForm(false);
+                    setAddingPromptType(null);
+                    setNewPromptData({ p_code: '', label: '', metadata_instructions: '', image_type: 'crisis_map', is_active: false });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  name="save-new-prompt"
+                  variant="primary"
+                  onClick={handleSaveNewPrompt}
+                  disabled={!newPromptData.p_code || !newPromptData.label}
+                >
+                  Create Prompt
                 </Button>
               </div>
             </div>

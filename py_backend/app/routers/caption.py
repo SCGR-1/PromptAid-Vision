@@ -87,7 +87,7 @@ def get_db():
 async def create_caption(
     image_id: str,
     title: str = Form(...),
-    prompt: str = Form(...),
+    prompt: str = Form(None),  # Made optional since we'll use active prompts
     model_name: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
@@ -97,14 +97,22 @@ async def create_caption(
     if not img:
         raise HTTPException(404, "image not found")
 
-
-    print(f"Looking for prompt: '{prompt}' (type: {type(prompt)})")
-
-    prompt_obj = crud.get_prompt(db, prompt)
-    
-    if not prompt_obj:
-        print(f"Prompt not found by code, trying to find by label...")
-        prompt_obj = crud.get_prompt_by_label(db, prompt)
+    # Get the active prompt for this image type
+    if prompt:
+        # If prompt is provided, use it (for backward compatibility)
+        print(f"Looking for prompt: '{prompt}' (type: {type(prompt)})")
+        prompt_obj = crud.get_prompt(db, prompt)
+        
+        if not prompt_obj:
+            print(f"Prompt not found by code, trying to find by label...")
+            prompt_obj = crud.get_prompt_by_label(db, prompt)
+    else:
+        # Use the active prompt for the image type
+        print(f"Looking for active prompt for image type: {img.image_type}")
+        prompt_obj = crud.get_active_prompt_by_image_type(db, img.image_type)
+        
+        if not prompt_obj:
+            raise HTTPException(400, f"No active prompt found for image type '{img.image_type}'")
     
     print(f"Prompt lookup result: {prompt_obj}")
     if not prompt_obj:

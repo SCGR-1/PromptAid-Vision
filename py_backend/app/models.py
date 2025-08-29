@@ -62,6 +62,11 @@ class Prompts(Base):
     p_code = Column(String, primary_key=True)
     label = Column(Text, nullable=False)
     metadata_instructions = Column(Text, nullable=True)
+    image_type = Column(String, ForeignKey("image_types.image_type"), nullable=False)
+    is_active = Column(Boolean, default=False, nullable=False)
+    
+    # Relationship to image_types table
+    image_type_r = relationship("ImageTypes")
 
 class Models(Base):
     __tablename__ = "models"

@@ -616,7 +616,7 @@ export default function UploadPage() {
           },
           body: new URLSearchParams({
             title: title || 'Generated Caption',
-            prompt: imageType === 'drone_image' ? 'DEFAULT_DRONE_IMAGE' : 'DEFAULT_CRISIS_MAP',
+            // No prompt specified - backend will use active prompt for image type
             ...(modelName && { model_name: modelName })
           })
         },
@@ -737,7 +737,7 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                   body: new URLSearchParams({
             title: 'Generated Caption',
-            prompt: imageType === 'drone_image' ? 'DEFAULT_DRONE_IMAGE' : 'DEFAULT_CRISIS_MAP',
+            // No prompt specified - backend will use active prompt for image type
             ...(modelName && { model_name: modelName }),
           }),
       });

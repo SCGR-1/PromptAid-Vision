@@ -98,13 +98,24 @@ class PromptOut(BaseModel):
     p_code: str
     label: str
     metadata_instructions: str | None = None
+    image_type: str
+    is_active: bool
     
     class Config:
         from_attributes = True
 
+class PromptCreate(BaseModel):
+    p_code: str
+    label: str
+    metadata_instructions: str | None = None
+    image_type: str
+    is_active: bool
+
 class PromptUpdate(BaseModel):
     label: str
     metadata_instructions: str | None = None
+    image_type: str
+    is_active: bool
 
 class SourceOut(BaseModel):
     s_code: str

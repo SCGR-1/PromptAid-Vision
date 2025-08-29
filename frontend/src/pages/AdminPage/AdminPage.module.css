@@ -93,6 +93,28 @@
   margin-bottom: var(--go-ui-spacing-xl);
 }
 
+/* Prompt subsections */
+.promptSubsection {
+  margin-bottom: var(--go-ui-spacing-2xl);
+  padding: var(--go-ui-spacing-lg);
+  background-color: var(--go-ui-color-gray-5);
+  border-radius: var(--go-ui-border-radius-lg);
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-20);
+}
+
+.promptSubsection:last-child {
+  margin-bottom: 0;
+}
+
+.promptSubsectionTitle {
+  font-size: var(--go-ui-font-size-lg);
+  font-weight: var(--go-ui-font-weight-semibold);
+  color: var(--go-ui-color-gray-90);
+  margin: 0 0 var(--go-ui-spacing-lg) 0;
+  padding-bottom: var(--go-ui-spacing-sm);
+  border-bottom: var(--go-ui-width-separator-thin) solid var(--go-ui-color-gray-30);
+}
+
 .modelsTable table {
   width: 100%;
   border-collapse: collapse;

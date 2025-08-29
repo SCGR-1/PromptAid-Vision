@@ -19,7 +19,6 @@ from app.routers.schemas import router as schemas_router
 
 app = FastAPI(title="PromptAid Vision")
 
-# Add request logging middleware
 @app.middleware("http")
 async def log_requests(request, call_next):
     print(f"DEBUG: {request.method} {request.url.path}")
@@ -36,7 +35,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API routes - must come BEFORE static file mounting
 app.include_router(caption.router,     prefix="/api",            tags=["captions"])
 app.include_router(metadata.router,    prefix="/api",            tags=["metadata"])
 app.include_router(models.router,      prefix="/api",            tags=["models"])
@@ -58,17 +56,7 @@ async def list_images_no_slash():
     finally:
         db.close()
 
-@app.get("/api/prompts", include_in_schema=False)
-async def list_prompts_no_slash():
-    """Handle /api/prompts without trailing slash to prevent 307 redirect"""
-    from app.routers.prompts import get_prompts
-    from app.database import SessionLocal
-    
-    db = SessionLocal()
-    try:
-        return get_prompts(db)
-    finally:
-        db.close()
+
 
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)
 async def health():
@@ -82,17 +70,16 @@ def root():
 <p>OK</p>
 <p><a href="/app/">Open UI</a> • <a href="/docs">API Docs</a></p>"""
 
-# Static file serving - must come AFTER API routes
 if os.path.exists("/app"):
     STATIC_DIR = "/app/static"
 else:
-    STATIC_DIR = "static"  # Use relative path to py_backend/static
+    STATIC_DIR = "static"  
 
 print(f"Looking for static files in: {STATIC_DIR}")
 
 if os.path.isdir(STATIC_DIR):
     print(f"Static directory found: {STATIC_DIR}")
-    # Mount static files at /app to avoid conflicts with /api routes
+
     app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="static")
     print(f"Static files mounted at /app from {STATIC_DIR}")
 else:
@@ -101,7 +88,6 @@ else:
     print(f"Parent directory contents: {os.listdir(os.path.dirname(os.path.dirname(__file__)))}")
     print(f"Attempting to find static directory...")
     
-    # Try to find static directory
     possible_paths = [
         "static",
         "../static", 
@@ -119,7 +105,7 @@ else:
     else:
         print("Could not find static directory - static file serving disabled")
 
-# SPA fallback - must come AFTER static file mounting
+
 @app.get("/app/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
     index = os.path.join(STATIC_DIR, "index.html")
@@ -127,7 +113,7 @@ def spa_fallback(full_path: str):
         return FileResponse(index)
     raise HTTPException(status_code=404, detail="Not Found")
 
-# Debug route to show all registered routes
+
 @app.get("/debug-routes", include_in_schema=False)
 async def debug_routes():
     """Show all registered routes for debugging"""

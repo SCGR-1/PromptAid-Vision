@@ -34,3 +34,35 @@ def update_prompt(p_code: str, prompt_update: schemas.PromptUpdate, db: Session 
         from fastapi import HTTPException
         raise HTTPException(404, "Prompt not found")
     return prompt
+
+@router.post("/{p_code}/toggle-active", response_model=schemas.PromptOut)
+def toggle_prompt_active(p_code: str, image_type: str, db: Session = Depends(get_db)):
+    """Toggle the active status of a prompt for a specific image type"""
+    try:
+        prompt = crud.toggle_prompt_active_status(db, p_code, image_type)
+        if not prompt:
+            from fastapi import HTTPException
+            raise HTTPException(404, "Prompt not found")
+        return prompt
+    except ValueError as e:
+        from fastapi import HTTPException
+        raise HTTPException(400, str(e))
+
+@router.get("/active/{image_type}", response_model=schemas.PromptOut)
+def get_active_prompt(image_type: str, db: Session = Depends(get_db)):
+    """Get the active prompt for a specific image type"""
+    prompt = crud.get_active_prompt_by_image_type(db, image_type)
+    if not prompt:
+        from fastapi import HTTPException
+        raise HTTPException(404, "No active prompt found for this image type")
+    return prompt
+
+@router.post("/", response_model=schemas.PromptOut)
+def create_prompt(prompt_data: schemas.PromptCreate, db: Session = Depends(get_db)):
+    """Create a new prompt"""
+    try:
+        prompt = crud.create_prompt(db, prompt_data)
+        return prompt
+    except ValueError as e:
+        from fastapi import HTTPException
+        raise HTTPException(400, str(e))

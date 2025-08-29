@@ -142,13 +142,111 @@ def get_prompt_by_label(db: Session, label: str):
     """Get a specific prompt by label text"""
     return db.query(models.Prompts).filter(models.Prompts.label == label).first()
 
+def get_active_prompt_by_image_type(db: Session, image_type: str):
+    """Get the active prompt for a specific image type"""
+    return db.query(models.Prompts).filter(
+        models.Prompts.image_type == image_type,
+        models.Prompts.is_active == True
+    ).first()
+
+def toggle_prompt_active_status(db: Session, p_code: str, image_type: str):
+    """Toggle the active status of a prompt for a specific image type"""
+    # Validate that the image_type exists
+    image_type_obj = db.query(models.ImageTypes).filter(models.ImageTypes.image_type == image_type).first()
+    if not image_type_obj:
+        raise ValueError(f"Invalid image_type: {image_type}")
+    
+    # Get the prompt to toggle
+    prompt = db.query(models.Prompts).filter(models.Prompts.p_code == p_code).first()
+    if not prompt:
+        return None
+    
+    # If the prompt is already active, deactivate it
+    if prompt.is_active:
+        prompt.is_active = False
+        db.commit()
+        db.refresh(prompt)
+        return prompt
+    
+    # If the prompt is not active, first deactivate the currently active prompt
+    # then activate this one
+    current_active = db.query(models.Prompts).filter(
+        models.Prompts.image_type == image_type,
+        models.Prompts.is_active == True
+    ).first()
+    
+    if current_active:
+        current_active.is_active = False
+        # Commit the deactivation first to avoid constraint violation
+        db.commit()
+    
+    prompt.is_active = True
+    db.commit()
+    db.refresh(prompt)
+    return prompt
+
+def create_prompt(db: Session, prompt_data: schemas.PromptCreate):
+    """Create a new prompt"""
+    # Validate that the image_type exists
+    image_type_obj = db.query(models.ImageTypes).filter(models.ImageTypes.image_type == prompt_data.image_type).first()
+    if not image_type_obj:
+        raise ValueError(f"Invalid image_type: {prompt_data.image_type}")
+    
+    # Check if prompt code already exists
+    existing_prompt = db.query(models.Prompts).filter(models.Prompts.p_code == prompt_data.p_code).first()
+    if existing_prompt:
+        raise ValueError(f"Prompt with code '{prompt_data.p_code}' already exists")
+    
+    # If this prompt is set as active, deactivate the currently active prompt for this image type
+    if prompt_data.is_active:
+        current_active = db.query(models.Prompts).filter(
+            models.Prompts.image_type == prompt_data.image_type,
+            models.Prompts.is_active == True
+        ).first()
+        
+        if current_active:
+            current_active.is_active = False
+            # Commit the deactivation first to avoid constraint violation
+            db.commit()
+    
+    # Create the new prompt
+    new_prompt = models.Prompts(
+        p_code=prompt_data.p_code,
+        label=prompt_data.label,
+        metadata_instructions=prompt_data.metadata_instructions,
+        image_type=prompt_data.image_type,
+        is_active=prompt_data.is_active
+    )
+    
+    db.add(new_prompt)
+    db.commit()
+    db.refresh(new_prompt)
+    return new_prompt
+
 def update_prompt(db: Session, p_code: str, prompt_update: schemas.PromptUpdate):
     """Update a specific prompt by code"""
     prompt = db.query(models.Prompts).filter(models.Prompts.p_code == p_code).first()
     if not prompt:
         return None
     
-    for field, value in prompt_update.dict(exclude_unset=True).items():
+    # Handle is_active field specially to maintain unique constraint
+    update_data = prompt_update.dict(exclude_unset=True)
+    
+    # If we're setting this prompt as active, deactivate other prompts for this image type
+    if 'is_active' in update_data and update_data['is_active']:
+        current_active = db.query(models.Prompts).filter(
+            models.Prompts.image_type == prompt.image_type,
+            models.Prompts.is_active == True,
+            models.Prompts.p_code != p_code  # Exclude current prompt
+        ).first()
+        
+        if current_active:
+            current_active.is_active = False
+            # Commit the deactivation first to avoid constraint violation
+            db.commit()
+    
+    # Update all fields
+    for field, value in update_data.items():
         setattr(prompt, field, value)
     
     db.commit()
