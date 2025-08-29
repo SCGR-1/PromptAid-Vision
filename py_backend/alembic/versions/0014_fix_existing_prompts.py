@@ -35,7 +35,7 @@ def upgrade():
         UPDATE prompts 
         SET image_type = 'crisis_map', is_active = false 
         WHERE image_type IS NULL
-    "")
+    """)
 
 def downgrade():
     # This is a data fix migration, no downgrade needed
