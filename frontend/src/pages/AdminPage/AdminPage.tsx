@@ -858,6 +858,7 @@ Model "${newModelData.label}" added successfully!
                            <tbody>
                              {availablePrompts
                                .filter(prompt => prompt.image_type === 'crisis_map')
+                               .sort((a, b) => a.p_code.localeCompare(b.p_code)) // Stable sort by code
                                .map(prompt => (
                                <tr key={prompt.p_code}>
                                  <td className={styles.modelCode}>{prompt.p_code}</td>
@@ -930,6 +931,7 @@ Model "${newModelData.label}" added successfully!
                            <tbody>
                              {availablePrompts
                                .filter(prompt => prompt.image_type === 'drone_image')
+                               .sort((a, b) => a.p_code.localeCompare(b.p_code)) // Stable sort by code
                                .map(prompt => (
                                <tr key={prompt.p_code}>
                                  <td className={styles.modelCode}>{prompt.p_code}</td>
