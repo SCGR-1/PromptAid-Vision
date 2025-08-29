@@ -114,13 +114,17 @@ export default function AdminPage() {
   };
 
   const fetchPrompts = () => {
+    console.log('=== fetchPrompts called ===');
     fetch('/api/prompts')
       .then(r => r.json())
       .then(promptsData => {
         console.log('Prompts data received:', promptsData);
+        console.log('Current availablePrompts state:', availablePrompts);
         setAvailablePrompts(promptsData || []);
+        console.log('State update triggered with:', promptsData || []);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error fetching prompts:', error);
         // Handle error silently
       });
   };
