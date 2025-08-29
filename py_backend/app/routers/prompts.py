@@ -15,7 +15,16 @@ def get_db():
 @router.get("/", response_model=List[schemas.PromptOut])
 def get_prompts(db: Session = Depends(get_db)):
     """Get all available prompts"""
-    return crud.get_prompts(db)
+    print("=== get_prompts called ===")
+    try:
+        prompts = crud.get_prompts(db)
+        print(f"=== Found {len(prompts)} prompts ===")
+        for prompt in prompts:
+            print(f"  - {prompt.p_code}: {prompt.label} ({prompt.image_type}, active: {prompt.is_active})")
+        return prompts
+    except Exception as e:
+        print(f"=== Error in get_prompts: {e} ===")
+        raise
 
 @router.post("/", response_model=schemas.PromptOut)
 def create_prompt(prompt_data: schemas.PromptCreate, db: Session = Depends(get_db)):
