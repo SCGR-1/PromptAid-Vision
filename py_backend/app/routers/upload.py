@@ -304,16 +304,14 @@ async def get_image_file(image_id: str, db: Session = Depends(get_db)):
     
     try:
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
-            print(f"🔍 Using S3 storage - redirecting to S3 URL")
+            print(f"�� Using S3 storage - serving file content directly")
             try:
-                url = storage.get_object_url(img.file_key)
-                from fastapi.responses import RedirectResponse
-                return RedirectResponse(url=url, status_code=302)
-            except Exception as e:
-                print(f"❌ Failed to generate S3 URL: {e}")
-                # Fallback to direct S3 object serving
                 response = storage.s3.get_object(Bucket=settings.S3_BUCKET, Key=img.file_key)
                 content = response['Body'].read()
+                print(f"✅ Read {len(content)} bytes from S3")
+            except Exception as e:
+                print(f"❌ Failed to get S3 object: {e}")
+                raise HTTPException(500, f"Failed to retrieve image from storage: {e}")
         else:
             print(f"🔍 Using local storage")
             import os
