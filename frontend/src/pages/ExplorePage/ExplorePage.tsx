@@ -37,14 +37,13 @@ export default function ExplorePage() {
   const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
   
   const {
-    search, setSearch,
-    srcFilter, setSrcFilter,
-    catFilter, setCatFilter,
-    regionFilter, setRegionFilter,
-    countryFilter, setCountryFilter,
-    imageTypeFilter, setImageTypeFilter,
-    showReferenceExamples, setShowReferenceExamples,
-    clearAllFilters
+    search, 
+    srcFilter, 
+    catFilter, 
+    regionFilter, 
+    countryFilter, 
+    imageTypeFilter, 
+    showReferenceExamples
   } = useFilterContext();
   
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
@@ -55,13 +54,6 @@ export default function ExplorePage() {
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportModalStage, setExportModalStage] = useState<'filters' | 'export'>('filters');
-  const [exportMode, setExportMode] = useState<'standard' | 'fine-tuning'>('standard');
-  const [trainSplit, setTrainSplit] = useState(80);
-  const [testSplit, setTestSplit] = useState(10);
-  const [valSplit, setValSplit] = useState(10);
-  const [crisisMapsSelected, setCrisisMapsSelected] = useState(true);
-  const [droneImagesSelected, setDroneImagesSelected] = useState(true);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'List' },
@@ -120,9 +112,9 @@ export default function ExplorePage() {
     if (exportParam === 'true') {
       setShowExportModal(true);
       if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
-        setExportModalStage('filters');
+
       } else {
-        setExportModalStage('export');
+
       }
       // Clean up the URL
       navigate('/explore', { replace: true });
@@ -242,8 +234,8 @@ export default function ExplorePage() {
 
             crisisImagesBySource.forEach((images, _source) => {
               const totalImages = images.length;
-              const trainCount = Math.floor(totalImages * (trainSplit / 100));
-              const testCount = Math.floor(totalImages * (testSplit / 100));
+              const trainCount = Math.floor(totalImages * (80 / 100));
+              const testCount = Math.floor(totalImages * (10 / 100));
 
               const shuffledImages = [...images].sort(() => Math.random() - 0.5);
 
@@ -362,8 +354,8 @@ export default function ExplorePage() {
 
             droneImagesByEventType.forEach((images, _eventType) => {
               const totalImages = images.length;
-              const trainCount = Math.floor(totalImages * (trainSplit / 100));
-              const testCount = Math.floor(totalImages * (testSplit / 100));
+              const trainCount = Math.floor(totalImages * (80 / 100));
+              const testCount = Math.floor(totalImages * (10 / 100));
 
               const shuffledImages = [...images].sort(() => Math.random() - 0.5);
 
@@ -483,14 +475,7 @@ export default function ExplorePage() {
           <Button
             name="export-dataset"
             variant="secondary"
-            onClick={() => {
-              setShowExportModal(true);
-              if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
-                setExportModalStage('filters');
-              } else {
-                setExportModalStage('export');
-              }
-            }}
+            onClick={() => setShowExportModal(true)}
           >
             Export
           </Button>

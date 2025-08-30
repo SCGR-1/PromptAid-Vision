@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button, SegmentInput, Checkbox } from '@ifrc-go/ui';
 import styles from './ExportModal.module.css';
 
@@ -21,14 +21,10 @@ export default function ExportModal({
   isOpen,
   onClose,
   onExport,
-  filteredCount,
-  totalCount,
-  hasFilters,
   crisisMapsCount,
   droneImagesCount,
   isLoading = false,
   variant = 'bulk',
-  onNavigateToList,
   onNavigateAndExport
 }: ExportModalProps) {
   const [exportMode, setExportMode] = useState<'standard' | 'fine-tuning'>('standard');

@@ -1,4 +1,4 @@
-import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput, Checkbox } from '@ifrc-go/ui';
+import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput } from '@ifrc-go/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';
@@ -517,7 +517,7 @@ export default function MapDetailPage() {
         
         if (crisisImagesFolder) {
           try {
-            const response = await fetch(map.image_url);
+            const response = await fetch(`/api/images/${map.image_id}/file`);
             if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
             
             const blob = await response.blob();
@@ -586,7 +586,7 @@ export default function MapDetailPage() {
         
         if (droneImagesFolder) {
           try {
-            const response = await fetch(map.image_url);
+            const response = await fetch(`/api/images/${map.image_id}/file`);
             if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
             
             const blob = await response.blob();
@@ -655,7 +655,7 @@ export default function MapDetailPage() {
         
         if (genericImagesFolder) {
           try {
-            const response = await fetch(map.image_url);
+            const response = await fetch(`/api/images/${map.image_id}/file`);
             if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
             
             const blob = await response.blob();
