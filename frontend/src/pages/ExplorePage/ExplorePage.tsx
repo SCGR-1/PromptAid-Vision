@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PageContainer, Container, SegmentInput, Spinner, Button } from '@ifrc-go/ui';
-import { useFilterContext } from '../../contexts/FilterContext';
+import { useFilterContext } from '../../hooks/useFilterContext';
 import FilterBar from '../../components/FilterBar';
 import styles from './ExplorePage.module.css';
 import ExportModal from '../../components/ExportModal';

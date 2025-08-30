@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';
 import styles from './MapDetailPage.module.css';
-import { useFilterContext } from '../../contexts/FilterContext';
-import { useAdmin } from '../../contexts/AdminContext';
+import { useFilterContext } from '../../hooks/useFilterContext';
+import { useAdmin } from '../../hooks/useAdmin';
 import ExportModal from '../../components/ExportModal';
 
 interface MapOut {

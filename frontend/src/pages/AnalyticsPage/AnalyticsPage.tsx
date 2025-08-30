@@ -353,7 +353,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetchLookupData();
-  }, []);
+  }, [fetchLookupData]);
 
   useEffect(() => {
     if (sourcesLookup.length > 0 && typesLookup.length > 0 && regionsLookup.length > 0 && modelsLookup.length > 0) {
@@ -590,7 +590,7 @@ export default function AnalyticsPage() {
       },
     ),
     
-  ], [formatEditTime]);
+  ], []);
 
   const editTimeColumns = useMemo(() => [
     createStringColumn<EditTimeData, number>(
@@ -618,7 +618,7 @@ export default function AnalyticsPage() {
       'Max Edit Time',
       (item) => formatEditTime(item.maxEditTime),
     ),
-  ], [formatEditTime]);
+  ], []);
 
     const percentageModifiedColumns = useMemo(() => [
     createStringColumn<PercentageModifiedData, number>(
@@ -1053,7 +1053,7 @@ export default function AnalyticsPage() {
         };
       })
       .sort((a, b) => b.count - a.count);
-  }, [data]);
+  }, [data, getModelLabel]);
 
      const getImageTypeModelsTableData = useCallback((imageType: string) => {
      if (!data) return [];

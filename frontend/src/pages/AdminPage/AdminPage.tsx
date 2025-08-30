@@ -1,10 +1,38 @@
 // Force rebuild - Frontend updated with edit prompt functionality
-import React, { useState, useEffect } from 'react';
-import { useAdmin } from '../../contexts/AdminContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAdmin } from '../../hooks/useAdmin';
 import { PageContainer, Heading, Button, Container, TextInput, SelectInput } from '@ifrc-go/ui';
 import styles from './AdminPage.module.css';
 
 const SELECTED_MODEL_KEY = 'selectedVlmModel';
+
+interface PromptData {
+  p_code: string;
+  label: string;
+  metadata_instructions?: string;
+  image_type: string;
+  is_active: boolean;
+}
+
+interface ModelData {
+  m_code: string;
+  label: string;
+  model_type: string;
+  provider?: string;
+  model_id?: string;
+  config?: {
+    provider?: string;
+    model_id?: string;
+    model?: string;
+    stub?: boolean;
+  };
+  is_available: boolean;
+}
+
+interface ImageTypeData {
+  image_type: string;
+  label: string;
+}
 
 export default function AdminPage() {
   const { isAuthenticated, isLoading, login, logout } = useAdmin();
@@ -12,42 +40,20 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  const [availableModels, setAvailableModels] = useState<Array<{
-    m_code: string;
-    label: string;
-    model_type: string;
-    is_available: boolean;
-     provider?: string;
-     model_id?: string;
-     config?: {
-       provider?: string;
-       model_id?: string;
-       model?: string;
-       stub?: boolean;
-     };
-  }>>([]);
+  const [availableModels, setAvailableModels] = useState<ModelData[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   
   // Prompts state
-  const [availablePrompts, setAvailablePrompts] = useState<Array<{
-    p_code: string;
-    label: string;
-    metadata_instructions?: string;
-    image_type: string;
-    is_active: boolean;
-  }>>([]);
+  const [availablePrompts, setAvailablePrompts] = useState<PromptData[]>([]);
   
-  const [imageTypes, setImageTypes] = useState<Array<{
-    image_type: string;
-    label: string;
-  }>>([]);
+  const [imageTypes, setImageTypes] = useState<ImageTypeData[]>([]);
   
   // Prompt management state
   const [showEditPromptForm, setShowEditPromptForm] = useState(false);
   const [showAddPromptForm, setShowAddPromptForm] = useState(false);
   const [addingPromptType, setAddingPromptType] = useState<'crisis_map' | 'drone_image' | null>(null);
-  const [editingPrompt, setEditingPrompt] = useState<any>(null);
-  const [newPromptData, setNewPromptData] = useState({
+  const [editingPrompt, setEditingPrompt] = useState<PromptData | null>(null);
+  const [newPromptData, setNewPromptData] = useState<PromptData>({
     p_code: '',
     label: '',
     metadata_instructions: '',
@@ -58,8 +64,8 @@ export default function AdminPage() {
      // Model management state
    const [showAddModelForm, setShowAddModelForm] = useState(false);
    const [showEditModelForm, setShowEditModelForm] = useState(false);
-   const [editingModel, setEditingModel] = useState<any>(null);
-   const [newModelData, setNewModelData] = useState({
+   const [editingModel, setEditingModel] = useState<ModelData | null>(null);
+   const [newModelData, setNewModelData] = useState<ModelData>({
      m_code: '',
      label: '',
      model_type: 'custom',
@@ -79,21 +85,7 @@ export default function AdminPage() {
     const [testResults, setTestResults] = useState<string>('');
     const [testResultsTitle, setTestResultsTitle] = useState<string>('');
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchModels();
-      fetchPrompts();
-      fetchImageTypes();
-    }
-  }, [isAuthenticated]);
-
-  // Debug effect to see when prompts state changes
-  useEffect(() => {
-    console.log('=== availablePrompts state changed ===');
-    console.log('New prompts state:', availablePrompts);
-  }, [availablePrompts]);
-
-  const fetchModels = () => {
+  const fetchModels = useCallback(() => {
     fetch('/api/models')
       .then(r => r.json())
       .then(modelsData => {
@@ -117,15 +109,14 @@ export default function AdminPage() {
       .catch(() => {
         // Handle error silently
       });
-  };
+  }, []);
 
-  const fetchPrompts = () => {
+  const fetchPrompts = useCallback(() => {
     console.log('=== fetchPrompts called ===');
     fetch('/api/prompts')
       .then(r => r.json())
       .then(promptsData => {
         console.log('Prompts data received:', promptsData);
-        console.log('Current availablePrompts state:', availablePrompts);
         setAvailablePrompts(promptsData || []);
         console.log('State update triggered with:', promptsData || []);
       })
@@ -133,9 +124,9 @@ export default function AdminPage() {
         console.error('Error fetching prompts:', error);
         // Handle error silently
       });
-  };
+  }, []);
 
-  const fetchImageTypes = () => {
+  const fetchImageTypes = useCallback(() => {
     fetch('/api/image-types')
       .then(r => r.json())
       .then(imageTypesData => {
@@ -145,9 +136,19 @@ export default function AdminPage() {
       .catch(() => {
         // Handle error silently
       });
-  };
+  }, []);
 
-  const handleEditPrompt = (prompt: any) => {
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchModels();
+      fetchPrompts();
+      fetchImageTypes();
+    }
+  }, [isAuthenticated, fetchModels, fetchPrompts, fetchImageTypes]);
+
+
+
+  const handleEditPrompt = (prompt: PromptData) => {
     setEditingPrompt(prompt);
     setNewPromptData({
       p_code: prompt.p_code,
@@ -161,7 +162,12 @@ export default function AdminPage() {
 
   const handleSavePrompt = async () => {
     try {
-      const response = await fetch(`/api/prompts/${editingPrompt.p_code}`, {
+             if (!editingPrompt) {
+         alert('No prompt selected for editing');
+         return;
+       }
+       
+       const response = await fetch(`/api/prompts/${editingPrompt.p_code}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -184,8 +190,8 @@ export default function AdminPage() {
         const errorData = await response.json();
         alert(`Failed to update prompt: ${errorData.error || 'Unknown error'}`);
       }
-    } catch (error) {
-      alert(`Error updating prompt: ${error}`);
+    } catch {
+      alert('Error updating prompt');
     }
   };
 
@@ -205,7 +211,7 @@ export default function AdminPage() {
         const errorData = await response.json();
         alert(`Failed to toggle prompt active status: ${errorData.detail || 'Unknown error'}`);
       }
-    } catch (error) {
+    } catch {
       alert('Error toggling prompt active status');
     }
   };
@@ -248,8 +254,8 @@ export default function AdminPage() {
         const errorData = await response.json();
         alert(`Failed to create prompt: ${errorData.detail || 'Unknown error'}`);
       }
-    } catch (error) {
-      alert(`Error creating prompt: ${error}`);
+    } catch {
+      alert('Error creating prompt');
     }
   };
 
@@ -277,7 +283,7 @@ export default function AdminPage() {
         const errorData = await response.json();
         alert(`Failed to toggle model availability: ${errorData.error || 'Unknown error'}`);
       }
-    } catch {
+    } catch (_error) {
       alert('Error toggling model availability');
     }
   };
@@ -340,7 +346,7 @@ Model "${newModelData.label}" added successfully!
     }
   };
 
-     const handleEditModel = (model: any) => {
+     const handleEditModel = (model: ModelData) => {
      setEditingModel(model);
      setNewModelData({
        m_code: model.m_code,
@@ -367,6 +373,11 @@ Model "${newModelData.label}" added successfully!
        };
        
        console.log('Update payload:', updatePayload);
+       
+       if (!editingModel) {
+         alert('No model selected for editing');
+         return;
+       }
        
        const response = await fetch(`/api/admin/models/${editingModel.m_code}`, {
          method: 'PUT',
@@ -429,7 +440,7 @@ Model "${newModelData.label}" added successfully!
         const errorData = await response.json();
         alert(`Failed to delete model: ${errorData.detail || 'Unknown error'}`);
       }
-    } catch (error) {
+    } catch {
       alert('Error deleting model');
     }
   };
@@ -449,7 +460,7 @@ Model "${newModelData.label}" added successfully!
       if (!success) {
         setError('Invalid password');
       }
-    } catch (err) {
+    } catch {
       setError('Login failed. Please try again.');
     } finally {
       setIsLoggingIn(false);

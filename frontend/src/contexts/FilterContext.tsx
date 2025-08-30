@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface FilterContextType {
@@ -24,15 +24,7 @@ interface FilterContextType {
   clearAllFilters: () => void;
 }
 
-const FilterContext = createContext<FilterContextType | undefined>(undefined);
-
-export const useFilterContext = () => {
-  const context = useContext(FilterContext);
-  if (context === undefined) {
-    throw new Error('useFilterContext must be used within a FilterProvider');
-  }
-  return context;
-};
+export const FilterContext = createContext<FilterContextType | undefined>(undefined);
 
 interface FilterProviderProps {
   children: ReactNode;
@@ -81,3 +73,5 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     </FilterContext.Provider>
   );
 };
+
+

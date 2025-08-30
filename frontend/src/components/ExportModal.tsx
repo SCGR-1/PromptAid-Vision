@@ -214,7 +214,7 @@ export default function ExportModal({
                 name="crisis-maps"
                 label={`Crisis Maps (${crisisMapsCount} images)`}
                 value={crisisMapsSelected}
-                onChange={(value, _name) => setCrisisMapsSelected(value)}
+                onChange={(value) => setCrisisMapsSelected(value)}
                 disabled={isLoading}
               />
             </div>
@@ -224,7 +224,7 @@ export default function ExportModal({
                 name="drone-images"
                 label={`Drone Images (${droneImagesCount} images)`}
                 value={droneImagesSelected}
-                onChange={(value, _name) => setDroneImagesSelected(value)}
+                onChange={(value) => setDroneImagesSelected(value)}
                 disabled={isLoading}
               />
             </div>

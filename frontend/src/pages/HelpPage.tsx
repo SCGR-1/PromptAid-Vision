@@ -1,6 +1,6 @@
 import { PageContainer, Heading, Button } from '@ifrc-go/ui';
 import { useNavigate } from 'react-router-dom';
-import { useFilterContext } from '../contexts/FilterContext';
+import { useFilterContext } from '../hooks/useFilterContext';
 import styles from './HelpPage.module.css';
 
 export default function HelpPage() {

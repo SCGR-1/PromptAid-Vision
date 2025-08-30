@@ -1,7 +1,6 @@
 import React from 'react';
 import { Container, TextInput, SelectInput, MultiSelectInput, Button } from '@ifrc-go/ui';
-import { useFilterContext } from '../contexts/FilterContext';
-import styles from './FilterBar.module.css';
+import { useFilterContext } from '../hooks/useFilterContext';
 
 interface FilterBarProps {
   sources: {s_code: string, label: string}[];

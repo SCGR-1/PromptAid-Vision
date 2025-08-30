@@ -102,7 +102,7 @@ export default function UploadPage() {
         setImageType(imageTypesData[0].image_type);
       }
     });
-  }, [searchParams]);
+  }, [searchParams, imageType]);
 
   const handleNavigation = useCallback((to: string) => {
     if (to === '/upload' || to === '/') {
@@ -201,8 +201,8 @@ export default function UploadPage() {
               }
               
               if (data.generated) {
-                // Extract the three parts from raw_json.extracted_metadata (same as regular upload flow)
-                const extractedMetadataForParts = data.raw_json?.extracted_metadata;
+                // Extract the three parts from raw_json.metadata (same as regular upload flow)
+                const extractedMetadataForParts = data.raw_json?.metadata;
                 if (extractedMetadataForParts) {
                   if (extractedMetadataForParts.description) {
                     setDescription(extractedMetadataForParts.description);
@@ -219,8 +219,8 @@ export default function UploadPage() {
                 setDraft(data.generated);
               }
               
-              let extractedMetadata = data.raw_json?.extracted_metadata;
-              console.log('Raw extracted_metadata:', extractedMetadata);
+              let extractedMetadata = data.raw_json?.metadata;
+              console.log('Raw metadata:', extractedMetadata);
               
               if (!extractedMetadata && data.generated) {
                 try {
@@ -642,7 +642,7 @@ export default function UploadPage() {
         setShowFallbackNotification(true);
       }
 
-      const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
+      const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.metadata;
       if (extractedMetadata) {
         const metadata = (extractedMetadata as Record<string, unknown>).metadata || extractedMetadata;
         if ((metadata as Record<string, unknown>).title) setTitle((metadata as Record<string, unknown>).title as string);
@@ -668,8 +668,8 @@ export default function UploadPage() {
         }
       }
 
-      // Extract the three parts from raw_json.extracted_metadata
-      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
+      // Extract the three parts from raw_json.metadata
+      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.metadata;
       if (extractedMetadataForParts) {
         if ((extractedMetadataForParts as Record<string, unknown>).description) {
           setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);
@@ -761,7 +761,7 @@ export default function UploadPage() {
         setShowFallbackNotification(true);
       }
 
-      const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
+      const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.metadata;
       if (extractedMetadata) {
         const metadata = (extractedMetadata as Record<string, unknown>).metadata || extractedMetadata;
         if ((metadata as Record<string, unknown>).title) setTitle((metadata as Record<string, unknown>).title as string);
@@ -786,8 +786,8 @@ export default function UploadPage() {
         }
       }
 
-      // Extract the three parts from raw_json.extracted_metadata
-      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.extracted_metadata;
+      // Extract the three parts from raw_json.metadata
+      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.metadata;
       if (extractedMetadataForParts) {
         if ((extractedMetadataForParts as Record<string, unknown>).description) {
           setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);
