@@ -5,6 +5,7 @@ import { ChevronLeftLineIcon, ChevronRightLineIcon, DeleteBinLineIcon } from '@i
 import styles from './MapDetailPage.module.css';
 import { useFilterContext } from '../../contexts/FilterContext';
 import { useAdmin } from '../../contexts/AdminContext';
+import ExportModal from '../../components/ExportModal';
 
 interface MapOut {
   image_id: string;
@@ -797,7 +798,7 @@ export default function MapDetailPage() {
             variant="secondary"
             onClick={() => setShowExportModal(true)}
           >
-            Export Dataset
+            Export
           </Button>
         </div>
 
@@ -1187,160 +1188,30 @@ export default function MapDetailPage() {
 
       {/* Export Selection Modal */}
       {showExportModal && (
-        <div className={styles.fullSizeModalOverlay} onClick={() => setShowExportModal(false)}>
-          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.ratingWarningContent}>
-              <h3 className={styles.ratingWarningTitle}>Export Dataset</h3>
-              
-              {/* Export Mode Switch */}
-              <div className={styles.exportModeSection}>
-                <SegmentInput
-                  name="export-mode"
-                  value={exportMode}
-                  onChange={(value) => {
-                    if (value === 'standard' || value === 'fine-tuning') {
-                      setExportMode(value);
-                    }
-                  }}
-                  options={[
-                    { key: 'standard' as const, label: 'Standard' },
-                    { key: 'fine-tuning' as const, label: 'Fine-tuning' }
-                  ]}
-                  keySelector={(o) => o.key}
-                  labelSelector={(o) => o.label}
-                />
-              </div>
-              
-              {/* Train/Test/Val Split Configuration - Only show for Fine-tuning mode */}
-              {exportMode === 'fine-tuning' && (
-                <div className={styles.splitConfigSection}>
-                  <div className={styles.splitConfigTitle}>Dataset Split Configuration</div>
-                  <div className={styles.splitInputsContainer}>
-                    <div className={styles.splitInputGroup}>
-                      <label htmlFor="train-split" className={styles.splitInputLabel}>Train (%)</label>
-                      <input
-                        id="train-split"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={trainSplit}
-                        onChange={(e) => {
-                          const newTrain = parseInt(e.target.value) || 0;
-                          const remaining = 100 - newTrain;
-                          if (remaining >= 0) {
-                            setTrainSplit(newTrain);
-                            if (testSplit + valSplit > remaining) {
-                              setTestSplit(Math.floor(remaining / 2));
-                              setValSplit(remaining - Math.floor(remaining / 2));
-                            }
-                          }
-                        }}
-                        className={styles.splitInput}
-                      />
-                    </div>
-                    
-                    <div className={styles.splitInputGroup}>
-                      <label htmlFor="test-split" className={styles.splitInputLabel}>Test (%)</label>
-                      <input
-                        id="test-split"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={testSplit}
-                        onChange={(e) => {
-                          const newTest = parseInt(e.target.value) || 0;
-                          const remaining = 100 - trainSplit - newTest;
-                          if (remaining >= 0) {
-                            setTestSplit(newTest);
-                            setValSplit(remaining);
-                          }
-                        }}
-                        className={styles.splitInput}
-                      />
-                    </div>
-                    
-                    <div className={styles.splitInputGroup}>
-                      <label htmlFor="val-split" className={styles.splitInputLabel}>Val (%)</label>
-                      <input
-                        id="val-split"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={valSplit}
-                        onChange={(e) => {
-                          const newVal = parseInt(e.target.value) || 0;
-                          const remaining = 100 - trainSplit - newVal;
-                          if (remaining >= 0) {
-                            setValSplit(newVal);
-                            setTestSplit(remaining);
-                          }
-                        }}
-                        className={styles.splitInput}
-                      />
-                    </div>
-                  </div>
-                  
-                  {trainSplit + testSplit + valSplit !== 100 && (
-                    <div className={styles.splitTotal}>
-                      <span className={styles.splitTotalError}>Must equal 100%</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className={styles.checkboxesContainer}>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    name="crisis-maps"
-                    label="Crisis Maps"
-                    value={crisisMapsSelected}
-                    onChange={(value, _name) => setCrisisMapsSelected(value)}
-                  />
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    name="drone-images"
-                    label="Drone Images"
-                    value={droneImagesSelected}
-                    onChange={(value, _name) => setDroneImagesSelected(value)}
-                  />
-                </div>
-              </div>
-              
-              <div className={styles.ratingWarningButtons}>
-                <Button
-                  name="confirm-export"
-                  onClick={() => {
-                    if (!crisisMapsSelected && !droneImagesSelected) {
-                      alert('Please select at least one image type to export.');
-                      return;
-                    }
-                    
-                    if ((map?.image_type === 'crisis_map' && crisisMapsSelected) || 
-                        (map?.image_type === 'drone_image' && droneImagesSelected)) {
-                      exportDataset(exportMode);
-                    } else {
-                      alert('The current image type is not selected for export.');
-                      return;
-                    }
-                    
-                    setShowExportModal(false);
-                  }}
-                >
-                  Export Selected
-                </Button>
-                <Button
-                  name="cancel-export"
-                  variant="tertiary"
-                  onClick={() => setShowExportModal(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          onExport={(mode, selectedTypes) => {
+            if (selectedTypes.includes(map.image_type)) {
+              exportDataset(mode);
+            }
+          }}
+          filteredCount={1}
+          totalCount={1}
+          hasFilters={false}
+          crisisMapsCount={map.image_type === 'crisis_map' ? 1 : 0}
+          droneImagesCount={map.image_type === 'drone_image' ? 1 : 0}
+          isLoading={false}
+          variant="single"
+          onNavigateToList={() => {
+            setShowExportModal(false);
+            navigate('/explore');
+          }}
+          onNavigateAndExport={() => {
+            setShowExportModal(false);
+            navigate('/explore?export=true');
+          }}
+        />
       )}
     </PageContainer>
   );

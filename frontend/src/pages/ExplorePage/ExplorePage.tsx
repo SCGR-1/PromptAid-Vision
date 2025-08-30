@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PageContainer, Container, SegmentInput, Spinner, Button, Checkbox } from '@ifrc-go/ui';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { PageContainer, Container, SegmentInput, Spinner, Button } from '@ifrc-go/ui';
 import { useFilterContext } from '../../contexts/FilterContext';
 import FilterBar from '../../components/FilterBar';
 import styles from './ExplorePage.module.css';
+import ExportModal from '../../components/ExportModal';
 
 interface ImageWithCaptionOut {
   image_id: string;
@@ -31,6 +32,7 @@ interface ImageWithCaptionOut {
 
 export default function ExplorePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [view, setView] = useState<'explore' | 'mapDetails'>('explore');
   const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
   
@@ -110,6 +112,22 @@ export default function ExplorePage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const exportParam = searchParams.get('export');
+
+    if (exportParam === 'true') {
+      setShowExportModal(true);
+      if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
+        setExportModalStage('filters');
+      } else {
+        setExportModalStage('export');
+      }
+      // Clean up the URL
+      navigate('/explore', { replace: true });
+    }
+  }, [location.search, navigate, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
 
   useEffect(() => {
 
@@ -474,7 +492,7 @@ export default function ExplorePage() {
               }
             }}
           >
-            Export Dataset
+            Export
           </Button>
         </div>
 
@@ -593,241 +611,20 @@ export default function ExplorePage() {
       </div>
 
       {/* Export Selection Modal */}
-      {showExportModal && (
-        <div className={styles.fullSizeModalOverlay} onClick={() => setShowExportModal(false)}>
-          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.ratingWarningContent}>
-              {exportModalStage === 'filters' ? (
-                <>
-                  <h3 className={styles.ratingWarningTitle}>Export Dataset</h3>
-                  
-                  {/* Filter Status Message */}
-                  <div className={styles.filterStatusContainer}>
-                    {(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) ? (
-                      <>
-                        <div className={styles.filterStatusMessage}>
-                          Filters are being applied
-                        </div>
-                        <div className={styles.filterStatusCount}>
-                          {filtered.length} of {captions.length} examples
-                        </div>
-                        <div className={styles.activeFiltersList}>
-                          {search && <span className={styles.activeFilter}>Search: "{search}"</span>}
-                          {srcFilter && <span className={styles.activeFilter}>Source: {sources.find(s => s.s_code === srcFilter)?.label || srcFilter}</span>}
-                          {catFilter && <span className={styles.activeFilter}>Category: {types.find(t => t.t_code === catFilter)?.label || catFilter}</span>}
-                          {regionFilter && <span className={styles.activeFilter}>Region: {regions.find(r => r.r_code === regionFilter)?.label || regionFilter}</span>}
-                          {countryFilter && <span className={styles.activeFilter}>Country: {countries.find(c => c.c_code === countryFilter)?.label || countryFilter}</span>}
-                          {imageTypeFilter && <span className={styles.activeFilter}>Type: {imageTypes.find(it => it.image_type === imageTypeFilter)?.label || imageTypeFilter}</span>}
-                          {showReferenceExamples && <span className={styles.activeFilter}>Reference Examples Only</span>}
-                        </div>
-                        <div className={styles.filterStatusActions}>
-                          <Button
-                            name="clear-filters-modal"
-                            variant="secondary"
-                            size={1}
-                            onClick={clearAllFilters}
-                          >
-                            Clear Filters
-                          </Button>
-                          <Button
-                            name="continue-with-filters"
-                            variant="primary"
-                            size={1}
-                            onClick={() => setExportModalStage('export')}
-                          >
-                            Continue
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className={styles.filterStatusCount}>
-                          {captions.length} examples available
-                        </div>
-                        <Button
-                          name="continue-no-filters"
-                          variant="primary"
-                          size={1}
-                          onClick={() => setExportModalStage('export')}
-                        >
-                          Continue
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className={styles.ratingWarningButtons}>
-                    <Button
-                      name="cancel-export"
-                      variant="tertiary"
-                      onClick={() => {
-                        setShowExportModal(false);
-                        setExportModalStage('filters');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                                    <h3 className={styles.ratingWarningTitle}>Export Dataset</h3>
-                  
-                  {/* Export Mode Switch */}
-                  <div className={styles.exportModeSection}>
-                <SegmentInput
-                  name="export-mode"
-                  value={exportMode}
-                  onChange={(value) => {
-                    if (value === 'standard' || value === 'fine-tuning') {
-                      setExportMode(value);
-                    }
-                  }}
-                  options={[
-                    { key: 'standard' as const, label: 'Standard' },
-                    { key: 'fine-tuning' as const, label: 'Fine-tuning' }
-                  ]}
-                  keySelector={(o) => o.key}
-                  labelSelector={(o) => o.label}
-                />
-              </div>
-              
-              {/* Train/Test/Val Split Configuration - Only show for Fine-tuning mode */}
-              {exportMode === 'fine-tuning' && (
-                <div className={styles.splitConfigSection}>
-                  <div className={styles.splitConfigTitle}>Dataset Split Configuration</div>
-                  <div className={styles.splitInputsContainer}>
-                    <div className={styles.splitInputGroup}>
-                      <label htmlFor="train-split" className={styles.splitInputLabel}>Train (%)</label>
-                      <input
-                        id="train-split"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={trainSplit}
-                        onChange={(e) => {
-                          const newTrain = parseInt(e.target.value) || 0;
-                          const remaining = 100 - newTrain;
-                          if (remaining >= 0) {
-                            setTrainSplit(newTrain);
-                            if (testSplit + valSplit > remaining) {
-                              setTestSplit(Math.floor(remaining / 2));
-                              setValSplit(remaining - Math.floor(remaining / 2));
-                            }
-                          }
-                        }}
-                        className={styles.splitInput}
-                      />
-                    </div>
-                    
-                    <div className={styles.splitInputGroup}>
-                      <label htmlFor="test-split" className={styles.splitInputLabel}>Test (%)</label>
-                      <input
-                        id="test-split"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={testSplit}
-                        onChange={(e) => {
-                          const newTest = parseInt(e.target.value) || 0;
-                          const remaining = 100 - trainSplit - newTest;
-                          if (remaining >= 0) {
-                            setTestSplit(newTest);
-                            setValSplit(remaining);
-                          }
-                        }}
-                        className={styles.splitInput}
-                      />
-                    </div>
-                    
-                    <div className={styles.splitInputGroup}>
-                      <label htmlFor="val-split" className={styles.splitInputLabel}>Val (%)</label>
-                      <input
-                        id="val-split"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={valSplit}
-                        onChange={(e) => {
-                          const newVal = parseInt(e.target.value) || 0;
-                          const remaining = 100 - trainSplit - newVal;
-                          if (remaining >= 0) {
-                            setValSplit(newVal);
-                            setTestSplit(remaining);
-                          }
-                        }}
-                        className={styles.splitInput}
-                      />
-                    </div>
-                  </div>
-                  
-                  {trainSplit + testSplit + valSplit !== 100 && (
-                    <div className={styles.splitTotal}>
-                      <span className={styles.splitTotalError}>Must equal 100%</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className={styles.checkboxesContainer}>
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    name="crisis-maps"
-                    label={`Crisis Maps (${filtered.filter(img => img.image_type === 'crisis_map').length} images)`}
-                    value={crisisMapsSelected}
-                    onChange={(value, _name) => setCrisisMapsSelected(value)}
-                    disabled={isLoadingFilters}
-                  />
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    name="drone-images"
-                    label={`Drone Images (${filtered.filter(img => img.image_type === 'drone_image').length} images)`}
-                    value={droneImagesSelected}
-                    onChange={(value, _name) => setDroneImagesSelected(value)}
-                    disabled={isLoadingFilters}
-                  />
-                </div>
-              </div>
-              
-                                <div className={styles.ratingWarningButtons}>
-                    {(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) && (
-                      <Button
-                        name="back-to-filters"
-                        variant="secondary"
-                        onClick={() => setExportModalStage('filters')}
-                      >
-                        Back to Filters
-                      </Button>
-                    )}
-                <Button
-                  name="confirm-export"
-                  onClick={() => {
-                    if (!crisisMapsSelected && !droneImagesSelected) {
-                      alert('Please select at least one image type to export.');
-                      return;
-                    }
-                    
-                    const selectedTypes: string[] = [];
-                    if (crisisMapsSelected) selectedTypes.push('crisis_map');
-                    if (droneImagesSelected) selectedTypes.push('drone_image');
-                    
-                    const filteredByType = filtered.filter(img => selectedTypes.includes(img.image_type));
-                    exportDataset(filteredByType, exportMode);
-                    setShowExportModal(false);
-                    setExportModalStage('filters');
-                  }}
-                >
-                  Export Selected
-                </Button>
-              </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={(mode, selectedTypes) => {
+          const filteredByType = filtered.filter(img => selectedTypes.includes(img.image_type));
+          exportDataset(filteredByType, mode);
+        }}
+        filteredCount={filtered.length}
+        totalCount={captions.length}
+        hasFilters={!!(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples)}
+        crisisMapsCount={filtered.filter(img => img.image_type === 'crisis_map').length}
+        droneImagesCount={filtered.filter(img => img.image_type === 'drone_image').length}
+        isLoading={isLoadingFilters}
+      />
     </PageContainer>
   );
 }
