@@ -479,8 +479,8 @@ export default function MapDetailPage() {
       console.log('Caption generation response:', captionData);
       
       // Now navigate to the upload page with the processed data
-      const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
-      navigate(url);
+              const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
+        navigate(url);
       
     } catch (error: unknown) {
       console.error('Contribution failed:', error);
@@ -984,15 +984,15 @@ export default function MapDetailPage() {
                     {/* Combined Analysis Structure */}
                     {(filteredMap.edited && filteredMap.edited.includes('Description:')) || 
                      (filteredMap.generated && filteredMap.generated.includes('Description:')) ? (
-                      <Container
+                            <Container
                         heading="AI Generated Content"
-                        headingLevel={3}
-                        withHeaderBorder
-                        withInternalPadding
-                        spacing="comfortable"
-                      >
-                        <div className={styles.captionContainer}>
-                          <div className={styles.captionText}>
+                              headingLevel={3}
+                              withHeaderBorder
+                              withInternalPadding
+                              spacing="comfortable"
+                            >
+                              <div className={styles.captionContainer}>
+                                    <div className={styles.captionText}>
                             {(filteredMap.edited || filteredMap.generated || '').split('\n').map((line, index) => (
                               <div key={index}>
                                 {line.startsWith('Description:') || line.startsWith('Analysis:') || line.startsWith('Recommended Actions:') ? (
@@ -1004,28 +1004,28 @@ export default function MapDetailPage() {
                                 )}
                               </div>
                             ))}
-                          </div>
-                        </div>
-                      </Container>
-                    ) : (
-                      <Container
-                        heading="Description"
-                        headingLevel={3}
-                        withHeaderBorder
-                        withInternalPadding
-                        spacing="comfortable"
-                      >
-                        <div className={styles.captionContainer}>
-                          {filteredMap.generated ? (
-                            <div className={styles.captionText}>
-                              <p>{filteredMap.edited || filteredMap.generated}</p>
+                                    </div>
+                              </div>
+                            </Container>
+                        ) : (
+                          <Container
+                            heading="Description"
+                            headingLevel={3}
+                            withHeaderBorder
+                            withInternalPadding
+                            spacing="comfortable"
+                          >
+                            <div className={styles.captionContainer}>
+                              {filteredMap.generated ? (
+                                <div className={styles.captionText}>
+                                  <p>{filteredMap.edited || filteredMap.generated}</p>
+                                </div>
+                              ) : (
+                                <p>— no caption yet —</p>
+                              )}
                             </div>
-                          ) : (
-                            <p>— no caption yet —</p>
-                          )}
-                        </div>
-                      </Container>
-                    )}
+                          </Container>
+                        )}
                   </div>
                 </div>
 

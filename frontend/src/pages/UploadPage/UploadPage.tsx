@@ -563,6 +563,8 @@ export default function UploadPage() {
     if (!file) return;
 
     setIsLoading(true);
+    
+    console.log('DEBUG: handleGenerate called - starting regular upload flow');
 
     const fd = new FormData();
     fd.append('file', file);
@@ -621,8 +623,7 @@ export default function UploadPage() {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: new URLSearchParams({
-            title: title || 'Generated Caption',
-            // No prompt specified - backend will use active prompt for image type
+            title: 'Generated Caption',
             ...(modelName && { model_name: modelName })
           })
         },
