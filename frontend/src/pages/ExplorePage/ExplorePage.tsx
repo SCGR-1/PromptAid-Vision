@@ -200,7 +200,7 @@ export default function ExplorePage() {
         if (crisisImagesFolder) {
           const crisisImagePromises = crisisMaps.map(async (image, index) => {
             try {
-              const response = await fetch(image.image_url);
+              const response = await fetch(`/api/images/${image.image_id}/file`);
               if (!response.ok) throw new Error(`Failed to fetch image ${image.image_id}`);
               
               const blob = await response.blob();
@@ -320,7 +320,7 @@ export default function ExplorePage() {
         if (droneImagesFolder) {
           const droneImagePromises = droneImages.map(async (image, index) => {
             try {
-              const response = await fetch(image.image_url);
+              const response = await fetch(`/api/images/${image.image_id}/file`);
               if (!response.ok) throw new Error(`Failed to fetch image ${image.image_id}`);
               
               const blob = await response.blob();
