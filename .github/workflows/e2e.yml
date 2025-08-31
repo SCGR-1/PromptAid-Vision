@@ -32,7 +32,7 @@ jobs:
 
       - name: Start E2E environment
         run: |
-          docker-compose -f e2e/docker-compose.e2e.yml up -d --build
+          docker compose -f e2e/docker-compose.e2e.yml up -d --build
 
       - name: Wait for services to be ready
         run: |
@@ -75,4 +75,4 @@ jobs:
       - name: Cleanup E2E environment
         if: always()
         run: |
-          docker-compose -f e2e/docker-compose.e2e.yml down -v
+          docker compose -f e2e/docker-compose.e2e.yml down -v

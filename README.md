@@ -9,19 +9,58 @@ pinned: false
 ---
 
 # PromptAid Vision
-AI-powered crisis map analysis platform using Vision Language Models.
 
-## Features
-- Crisis map/drone imagery analysis
-- Explore & export database
-- Analytics dashboard
+A comprehensive vision analysis platform for crisis mapping and drone image processing.
 
-## Tech Stack
-Backend: FastAPI (Python 3.11)  
-Frontend: React + TS  
-Database: PostgreSQL (use external DB in Spaces)  
-Storage: S3-compatible (use external service)  
-Models: OpenAI / Gemini / HF
+## Testing
 
-## Env Vars
-DATABASE_URL, S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, OPENAI_API_KEY, GOOGLE_API_KEY, HF_API_KEY
+### Frontend Tests
+- **Unit Tests**: `frontend/src/test/unit_tests/` - Component and hook testing with Vitest
+- **Integration Tests**: `frontend/src/test/integration/` - Component interaction testing
+
+### Backend Tests
+- **Unit Tests**: `py_backend/tests/unit_tests/` - Individual service testing
+- **Integration Tests**: `py_backend/tests/integration_tests/` - API and workflow testing
+
+### End-to-End Tests
+- **E2E Tests**: `e2e/` - Complete user workflow testing with Playwright
+- **CI/CD**: `.github/workflows/e2e.yml` - Automated E2E testing pipeline
+
+## Quick Start
+
+### Development
+```bash
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Backend
+cd py_backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+### Testing
+```bash
+# Frontend tests
+cd frontend
+npm run test:unit
+npm run test:integration
+
+# Backend tests
+cd py_backend
+python -m pytest tests/
+
+# E2E tests
+cd e2e
+./run_e2e_tests.sh
+```
+
+## Project Structure
+```
+├── frontend/                 # React + TypeScript
+├── py_backend/              # FastAPI + Python
+├── e2e/                     # End-to-end tests
+└── .github/workflows/       # CI/CD pipelines
+```
