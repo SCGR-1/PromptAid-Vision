@@ -1271,33 +1271,33 @@ export default function UploadPage() {
         )}
 
         {step === '2b' && (
-          <div className={styles.step2Layout}>
-            <div className={styles.mapColumn}>
-              <Container heading="Uploaded Image" headingLevel={3} withHeaderBorder withInternalPadding>
-                <div className={styles.uploadedMapContainer}>
-                  <div className={styles.uploadedMapImage}>
-                    <img
-                      src={imageUrl || preview || undefined}
-                      alt="Uploaded image preview"
-                    />
+          <div className={styles.step2bLayout}>
+            {/* Top Row - Image and Rating horizontally aligned */}
+            <div className={styles.topRow}>
+              <div className={styles.imageSection}>
+                <Container heading="Uploaded Image" headingLevel={3} withHeaderBorder withInternalPadding>
+                  <div className={styles.uploadedMapContainer}>
+                    <div className={styles.uploadedMapImage}>
+                      <img
+                        src={imageUrl || preview || undefined}
+                        alt="Uploaded image preview"
+                      />
+                    </div>
+                    <div className={styles.viewFullSizeButton}>
+                      <Button
+                        name="view-full-size"
+                        variant="secondary"
+                        size={1}
+                        onClick={() => setIsFullSizeModalOpen(true)}
+                      >
+                        View Image
+                      </Button>
+                    </div>
                   </div>
-                  <div className={styles.viewFullSizeButton}>
-                    <Button
-                      name="view-full-size"
-                      variant="secondary"
-                      size={1}
-                      onClick={() => setIsFullSizeModalOpen(true)}
-                    >
-                      View Image
-                    </Button>
-                  </div>
-                </div>
-              </Container>
-            </div>
+                </Container>
+              </div>
 
-            {/* Right Column - Content */}
-            <div className={styles.contentColumn}>
-              {/* ────── RATING SLIDERS ────── */}
+              {/* Rating Section */}
               <div className={styles.metadataSectionCard}>
                 <Container
                   heading="AI Performance Rating"
@@ -1305,7 +1305,7 @@ export default function UploadPage() {
                   withHeaderBorder
                   withInternalPadding
                 >
-                  <div className={styles.ratingSection}>
+                  <div className={styles.ratingContent}>
                     {!isPerformanceConfirmed && (
                       <>
                         <p className={styles.ratingDescription}>How well did the AI perform on the task?</p>
@@ -1350,67 +1350,68 @@ export default function UploadPage() {
                   </div>
                 </Container>
               </div>
+            </div>
 
-              <div className={styles.metadataSectionCard}>
-                <Container
-                  heading="Generated Text"
-                  headingLevel={3}
-                  withHeaderBorder
-                  withInternalPadding
-                >
-                  <div className="text-left space-y-4">
-                    <div>
-                      <TextArea
-                        name="generatedContent"
-                        value={`Description:\n${description || 'AI-generated description will appear here...'}\n\nAnalysis:\n${analysis || 'AI-generated analysis will appear here...'}\n\nRecommended Actions:\n${recommendedActions || 'AI-generated recommended actions will appear here...'}`}
-                        onChange={(value) => {
-                          // Parse the combined text back into separate fields
-                          if (value) {
-                            const lines = value.split('\n');
-                            const descIndex = lines.findIndex(line => line.startsWith('Description:'));
-                            const analysisIndex = lines.findIndex(line => line.startsWith('Analysis:'));
-                            const actionsIndex = lines.findIndex(line => line.startsWith('Recommended Actions:'));
-                            
-                            if (descIndex !== -1 && analysisIndex !== -1 && actionsIndex !== -1) {
-                              setDescription(lines.slice(descIndex + 1, analysisIndex).join('\n').trim());
-                              setAnalysis(lines.slice(analysisIndex + 1, actionsIndex).join('\n').trim());
-                              setRecommendedActions(lines.slice(actionsIndex + 1).join('\n').trim());
-                            }
+            {/* Bottom Row - Generated Text spanning full width */}
+            <div className={styles.metadataSectionCard}>
+              <Container
+                heading="Generated Text"
+                headingLevel={3}
+                withHeaderBorder
+                withInternalPadding
+              >
+                <div className="text-left space-y-4">
+                  <div>
+                    <TextArea
+                      name="generatedContent"
+                      value={`Description:\n${description || 'AI-generated description will appear here...'}\n\nAnalysis:\n${analysis || 'AI-generated analysis will appear here...'}\n\nRecommended Actions:\n${recommendedActions || 'AI-generated recommended actions will appear here...'}`}
+                      onChange={(value) => {
+                        // Parse the combined text back into separate fields
+                        if (value) {
+                          const lines = value.split('\n');
+                          const descIndex = lines.findIndex(line => line.startsWith('Description:'));
+                          const analysisIndex = lines.findIndex(line => line.startsWith('Analysis:'));
+                          const actionsIndex = lines.findIndex(line => line.startsWith('Recommended Actions:'));
+                          
+                          if (descIndex !== -1 && analysisIndex !== -1 && actionsIndex !== -1) {
+                            setDescription(lines.slice(descIndex + 1, analysisIndex).join('\n').trim());
+                            setAnalysis(lines.slice(analysisIndex + 1, actionsIndex).join('\n').trim());
+                            setRecommendedActions(lines.slice(actionsIndex + 1).join('\n').trim());
                           }
-                        }}
-                        rows={12}
-                        placeholder="AI-generated content will appear here..."
-                      />
-                    </div>
+                        }
+                      }}
+                      rows={12}
+                      placeholder="AI-generated content will appear here..."
+                    />
                   </div>
-                  
-                  {/* ────── SUBMIT BUTTONS ────── */}
-                  <div className={styles.submitSection}>
-                    <Button
-                      name="back"
-                      variant="secondary"
-                      onClick={() => handleStepChange('2a')}
-                    >
-                      Back
-                    </Button>
-                    <IconButton
-                      name="delete"
-                      variant="tertiary"
-                      onClick={handleDelete}
-                      title="Delete"
-                      ariaLabel="Delete uploaded image"
-                    >
-                      <DeleteBinLineIcon />
-                    </IconButton>
-                    <Button
-                      name="submit"
-                      onClick={handleSubmit}
-                    >
-                      Submit
-                    </Button>
-                  </div>
-                </Container>
-              </div>
+                </div>
+                
+                {/* ────── SUBMIT BUTTONS ────── */}
+                <div className={styles.submitSection}>
+                  <Button
+                    name="back"
+                    variant="secondary"
+                    onClick={() => handleStepChange('2a')}
+                  >
+                    Back
+                  </Button>
+                  <IconButton
+                    name="delete"
+                    variant="tertiary"
+                    onClick={handleDelete}
+                    title="Delete"
+                    ariaLabel="Delete uploaded image"
+                  >
+                    <DeleteBinLineIcon />
+                  </IconButton>
+                  <Button
+                    name="submit"
+                    onClick={handleSubmit}
+                  >
+                    Submit
+                  </Button>
+                </div>
+              </Container>
             </div>
           </div>
         )}

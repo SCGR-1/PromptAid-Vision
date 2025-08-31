@@ -405,6 +405,40 @@
 }
 
 .step2Layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--go-ui-spacing-2xl);
+}
+
+.topRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--go-ui-spacing-2xl);
+  align-items: start;
+}
+
+.imageSection {
+  position: sticky;
+  top: var(--go-ui-spacing-lg);
+}
+
+.ratingSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.ratingContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--go-ui-spacing-md);
+}
+
+.bottomRow {
+  width: 100%;
+}
+
+/* Support for step 2a layout (side-by-side) */
+.step2Layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--go-ui-spacing-2xl);
@@ -422,6 +456,13 @@
   gap: var(--go-ui-spacing-lg);
 }
 
+/* Support for step 2b layout (top row + bottom row) */
+.step2bLayout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--go-ui-spacing-2xl);
+}
+
 .contentColumn .formGrid {
   display: grid;
   gap: var(--go-ui-spacing-lg);
@@ -436,7 +477,16 @@
     gap: var(--go-ui-spacing-lg);
   }
   
+  .topRow {
+    grid-template-columns: 1fr;
+    gap: var(--go-ui-spacing-lg);
+  }
+  
   .mapColumn {
+    position: static;
+  }
+  
+  .imageSection {
     position: static;
   }
 }
