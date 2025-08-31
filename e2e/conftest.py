@@ -67,21 +67,21 @@ def wait_for_services():
     if not backend_ready:
         pytest.fail("Backend service is not ready")
     
-    # Wait for frontend
-    frontend_ready = False
+    # Wait for application (frontend served by backend)
+    app_ready = False
     for i in range(30):  # Wait up to 30 seconds
         try:
-            response = requests.get("http://localhost:3000", timeout=5)
+            response = requests.get("http://localhost:7860", timeout=5)
             if response.status_code == 200:
-                frontend_ready = True
-                print("Frontend is ready")
+                app_ready = True
+                print("Application is ready")
                 break
         except requests.exceptions.RequestException:
             pass
         time.sleep(1)
     
-    if not frontend_ready:
-        pytest.fail("Frontend service is not ready")
+    if not app_ready:
+        pytest.fail("Application service is not ready")
     
     print("All services are ready!")
 
