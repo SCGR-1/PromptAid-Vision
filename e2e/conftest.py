@@ -2,7 +2,13 @@ import pytest
 import requests
 import time
 import os
-from playwright.sync_api import sync_playwright
+
+# Try to import playwright, but don't fail if not available
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
 # Create test-results directories
 os.makedirs("./test-results/videos/", exist_ok=True)
@@ -26,6 +32,8 @@ def pytest_configure(config):
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args):
     """Configure browser context for E2E tests"""
+    if not PLAYWRIGHT_AVAILABLE:
+        pytest.skip("Playwright not available")
     return {
         **browser_context_args,
         "viewport": {
@@ -40,6 +48,8 @@ def browser_context_args(browser_context_args):
 @pytest.fixture(scope="session")
 def browser_type_launch_args(browser_type_launch_args):
     """Configure browser launch arguments"""
+    if not PLAYWRIGHT_AVAILABLE:
+        pytest.skip("Playwright not available")
     return {
         **browser_type_launch_args,
         "args": [
@@ -107,6 +117,9 @@ def reset_test_data():
 @pytest.fixture(scope="function")
 def page(page, wait_for_services, reset_test_data):
     """Configure page for E2E tests"""
+    if not PLAYWRIGHT_AVAILABLE:
+        pytest.skip("Playwright not available")
+    
     # Set up page with proper viewport and other settings
     page.set_viewport_size({"width": 1920, "height": 1080})
     

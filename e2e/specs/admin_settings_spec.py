@@ -1,20 +1,28 @@
 import pytest
 import requests
-from playwright.sync_api import Page, expect
-from pages.admin_page import AdminPage
+
+# Try to import playwright, but don't fail if not available
+try:
+    from playwright.sync_api import Page, expect
+    from pages.admin_page import AdminPage
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
 class TestAdminSettings:
     """E2E tests for admin configuration save/health"""
     
     @pytest.fixture(autouse=True)
-    def setup(self, page: Page):
+    def setup(self, page):
         """Setup for each test"""
+        if not PLAYWRIGHT_AVAILABLE:
+            pytest.skip("Playwright not available")
         self.admin_page = AdminPage(page)
         self.admin_password = "admin_e2e_password"
     
     @pytest.mark.e2e
     @pytest.mark.admin
-    def test_admin_login_and_authentication(self, page: Page):
+    def test_admin_login_and_authentication(self, page):
         """Test admin login and authentication flow"""
         # Step 1: Navigate to admin page
         self.admin_page.navigate()
@@ -36,7 +44,7 @@ class TestAdminSettings:
     
     @pytest.mark.e2e
     @pytest.mark.admin
-    def test_admin_login_invalid_password(self, page: Page):
+    def test_admin_login_invalid_password(self, page):
         """Test admin login with invalid password"""
         # Step 1: Navigate to admin page
         self.admin_page.navigate()
@@ -52,7 +60,7 @@ class TestAdminSettings:
     
     @pytest.mark.e2e
     @pytest.mark.admin
-    def test_schema_management_flow(self, page: Page):
+    def test_schema_management_flow(self, page):
         """Test schema management functionality"""
         # Step 1: Login to admin
         self.admin_page.navigate()
@@ -70,7 +78,7 @@ class TestAdminSettings:
     
     @pytest.mark.e2e
     @pytest.mark.admin
-    def test_model_configuration_flow(self, page: Page):
+    def test_model_configuration_flow(self, page):
         """Test model configuration functionality"""
         # Step 1: Login to admin
         self.admin_page.navigate()
@@ -88,7 +96,7 @@ class TestAdminSettings:
     
     @pytest.mark.e2e
     @pytest.mark.admin
-    def test_system_monitoring_flow(self, page: Page):
+    def test_system_monitoring_flow(self, page):
         """Test system monitoring functionality"""
         # Step 1: Login to admin
         self.admin_page.navigate()

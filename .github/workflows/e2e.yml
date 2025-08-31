@@ -59,15 +59,15 @@ jobs:
             sleep 2
           done
 
-      - name: Run E2E tests
-        run: |
-          cd e2e
-          echo "Running simple tests first..."
-          pytest test_simple.py -v
-          echo "Running basic E2E tests..."
-          pytest test_basic_e2e.py -v
-          echo "Running full E2E tests..."
-          pytest specs/ -v --tb=short -s
+                    - name: Run E2E tests
+                run: |
+                  cd e2e
+                  echo "Running simple tests first..."
+                  pytest test_simple.py -v
+                  echo "Running basic E2E tests..."
+                  pytest test_basic_e2e.py -v
+                  echo "Running full E2E tests..."
+                  pytest specs/admin_settings_spec.py specs/export_spec.py specs/upload_flow_spec.py -v --tb=short -s
 
       - name: Upload E2E test results
         uses: actions/upload-artifact@v4

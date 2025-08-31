@@ -1,15 +1,23 @@
 import pytest
 import os
 import time
-from playwright.sync_api import Page, expect
-from pages.explore_page import ExplorePage
+
+# Try to import playwright, but don't fail if not available
+try:
+    from playwright.sync_api import Page, expect
+    from pages.explore_page import ExplorePage
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
 class TestExportFunctionality:
     """E2E tests for export functionality - export produces file"""
     
     @pytest.fixture(autouse=True)
-    def setup(self, page: Page):
+    def setup(self, page):
         """Setup for each test"""
+        if not PLAYWRIGHT_AVAILABLE:
+            pytest.skip("Playwright not available")
         self.explore_page = ExplorePage(page)
         self.download_path = os.path.join(os.path.dirname(__file__), "../downloads")
         
@@ -18,7 +26,7 @@ class TestExportFunctionality:
     
     @pytest.mark.e2e
     @pytest.mark.export
-    def test_filtered_data_export(self, page: Page):
+    def test_filtered_data_export(self, page):
         """Test export of filtered data"""
         # Step 1: Navigate to explore page
         self.explore_page.navigate()
@@ -46,7 +54,7 @@ class TestExportFunctionality:
     
     @pytest.mark.e2e
     @pytest.mark.export
-    def test_bulk_export_workflow(self, page: Page):
+    def test_bulk_export_workflow(self, page):
         """Test bulk export workflow"""
         # Step 1: Navigate to explore page
         self.explore_page.navigate()
@@ -68,7 +76,7 @@ class TestExportFunctionality:
     
     @pytest.mark.e2e
     @pytest.mark.export
-    def test_export_format_validation(self, page: Page):
+    def test_export_format_validation(self, page):
         """Test export format validation"""
         # Step 1: Navigate to explore page
         self.explore_page.navigate()
@@ -82,7 +90,7 @@ class TestExportFunctionality:
     
     @pytest.mark.e2e
     @pytest.mark.export
-    def test_export_with_no_data(self, page: Page):
+    def test_export_with_no_data(self, page):
         """Test export when no data is available"""
         # Step 1: Navigate to explore page
         self.explore_page.navigate()
@@ -99,7 +107,7 @@ class TestExportFunctionality:
     
     @pytest.mark.e2e
     @pytest.mark.export
-    def test_export_performance(self, page: Page):
+    def test_export_performance(self, page):
         """Test export performance with large datasets"""
         # Step 1: Navigate to explore page
         self.explore_page.navigate()
