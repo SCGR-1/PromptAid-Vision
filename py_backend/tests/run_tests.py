@@ -6,18 +6,19 @@ import sys
 import os
 import time
 
-def run_test(test_file, description):
-    """Run a single test file and report results"""
+def run_test_directory(directory, description):
+    """Run all tests in a directory and report results"""
     print(f"\n{'='*50}")
     print(f"Running: {description}")
-    print(f"File: {test_file}")
+    print(f"Directory: {directory}")
     print(f"{'='*50}")
     
     try:
         os.chdir(os.path.dirname(os.path.dirname(__file__)))
         
-        result = subprocess.run([sys.executable, f"tests/{test_file}"], 
-                              capture_output=True, text=True, timeout=120)
+        # Run the directory's test runner
+        result = subprocess.run([sys.executable, f"tests/{directory}/run_{directory.replace('_', '')}_tests.py"], 
+                              capture_output=True, text=True, timeout=300)
         
         if result.returncode == 0:
             print("SUCCESS: PASSED")
@@ -36,7 +37,7 @@ def run_test(test_file, description):
         return result.returncode == 0
         
     except subprocess.TimeoutExpired:
-        print("TIMEOUT: Test took too long")
+        print("TIMEOUT: Tests took too long")
         return False
     except Exception as e:
         print(f"ERROR: {e}")
@@ -48,22 +49,10 @@ def main():
     print(f"Python: {sys.executable}")
     print(f"Working Directory: {os.getcwd()}")
     
-    # Organized by category
-    tests = [
-        # Core functionality tests
-        ("test_core.py", "Core Application Tests"),
-        ("test_config.py", "Configuration and Storage Tests"),
-        
-        # API and integration tests
-        ("test_upload_flow.py", "Upload Flow Tests"),
-        ("test_openai_integration.py", "OpenAI Integration Tests"),
-        ("test_admin_endpoints.py", "Admin Endpoints Tests"),
-        
-        # Schema validation tests
-        ("test_schema_validation.py", "Schema Validation Tests"),
-        
-        # Frontend and UI tests
-        ("test_explore_page.py", "Explore Page Tests"),
+    # Organized test directories
+    test_directories = [
+        ("unit_tests", "Unit Tests"),
+        ("integration_tests", "Integration Tests"),
     ]
     
     passed = 0
@@ -71,8 +60,8 @@ def main():
     
     start_time = time.time()
     
-    for test_file, description in tests:
-        if run_test(test_file, description):
+    for directory, description in test_directories:
+        if run_test_directory(directory, description):
             passed += 1
         else:
             failed += 1
@@ -83,16 +72,16 @@ def main():
     print(f"\n{'='*50}")
     print("TEST SUMMARY")
     print(f"{'='*50}")
-    print(f"Total Tests: {len(tests)}")
+    print(f"Total Test Categories: {len(test_directories)}")
     print(f"Passed: {passed}")
     print(f"Failed: {failed}")
     print(f"Duration: {duration:.2f} seconds")
     
     if failed == 0:
-        print("\nSUCCESS: All tests passed!")
+        print("\nSUCCESS: All test categories passed!")
         return 0
     else:
-        print(f"\nWARNING: {failed} test(s) failed!")
+        print(f"\nWARNING: {failed} test category(ies) failed!")
         return 1
 
 if __name__ == "__main__":

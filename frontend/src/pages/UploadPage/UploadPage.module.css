@@ -257,7 +257,7 @@
   margin-left: var(--go-ui-spacing-sm);
   width: 2.5rem;
   text-align: right;
-  tabular-nums: true;
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
   font-size: var(--go-ui-font-size-sm);
   color: var(--go-ui-color-gray-70);

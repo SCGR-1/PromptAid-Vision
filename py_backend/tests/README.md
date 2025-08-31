@@ -1,27 +1,28 @@
 # PromptAid Vision Test Suite
 
-This directory contains comprehensive tests for the PromptAid Vision application.
+This directory contains comprehensive tests for the PromptAid Vision application, organized into two main categories.
 
 ## 🧪 Test Structure
 
-### Core Tests
-- **`test_core.py`** - Core application functionality, database connections, and API endpoints
-- **`test_config.py`** - Configuration and storage system tests
+### 📁 **Unit Tests** (`unit_tests/`)
+Tests for individual components and functions in isolation:
+- **`test_basic.py`** - Basic Python and unittest setup verification
+- **`test_schema_validator.py`** - Schema validation service tests
+- **`test_image_preprocessor.py`** - Image preprocessing service tests
+- **`test_vlm_service.py`** - VLM service manager and stub service tests
 
-### API & Integration Tests
-- **`test_upload_flow.py`** - Complete upload workflow testing
+### 🔗 **Integration Tests** (`integration_tests/`)
+Tests for component interactions, API endpoints, and workflows:
+- **`test_upload_flow.py`** - Complete upload workflow with database and API
+- **`test_schema_validation.py`** - Schema validation integration tests
+- **`test_admin_endpoints.py`** - Admin authentication and model management
+- **`test_explore_page.py`** - Frontend explore page functionality
 - **`test_openai_integration.py`** - OpenAI API integration tests
-- **`test_admin_endpoints.py`** - Admin authentication and model management endpoints
-
-### Schema Validation Tests
-- **`test_schema_validation.py`** - Comprehensive schema validation and integration tests
-  - Crisis map data validation
-  - Drone image data validation
-  - VLM response format handling
-  - Admin schema management endpoints
-
-### Frontend Tests
-- **`test_explore_page.py`** - Frontend explore page functionality tests
+- **`test_config.py`** - Configuration and storage system tests
+- **`test_core.py`** - Core application functionality tests
+- **`test_crisis_analysis_workflow.py`** - Crisis analysis workflow integration tests
+- **`test_admin_management_workflow.py`** - Admin management workflow integration tests
+- **`test_data_export_workflow.py`** - Data export workflow integration tests
 
 ## 🚀 Running Tests
 
@@ -31,36 +32,29 @@ cd py_backend
 python tests/run_tests.py
 ```
 
-### Run Individual Tests
+### Run Specific Test Categories
 ```bash
-cd py_backend
-python tests/test_core.py
-python tests/test_schema_validation.py
-python tests/test_admin_endpoints.py
+# Unit tests only
+python tests/unit_tests/run_unit_tests.py
+
+# Integration tests only
+python tests/integration_tests/run_integration_tests.py
 ```
 
-### Test Configuration
-- Set `ADMIN_PASSWORD` environment variable for admin endpoint tests
-- Ensure backend is running on `localhost:8000` for integration tests
-- Update `BASE_URL` in test files if using different backend URL
+### Run Individual Test Files
+```bash
+cd py_backend
+python tests/unit_tests/test_schema_validator.py
+python tests/integration_tests/test_upload_flow.py
+```
 
-## 📋 Test Categories
+## 📋 Test Categories Summary
 
-### ✅ **KEPT** (Relevant & Up-to-date)
-- Core application tests
-- Schema validation tests
-- Admin endpoint tests
-- Upload flow tests
-- OpenAI integration tests
-- Frontend tests
-
-### 🗑️ **REMOVED** (Outdated/Redundant)
-- ~~`test_hf.py`~~ - Old HuggingFace API tests (replaced by generic service)
-- ~~`test_simple_validation.py`~~ - Simple validation (merged into comprehensive test)
-- ~~`test_schema_integration.py`~~ - Schema integration (merged into validation test)
-- ~~`run_tests_simple.py`~~ - Redundant test runner
-- ~~`HUGGINGFACE_INTEGRATION.md`~~ - Outdated documentation
-- ~~`TROUBLESHOOTING_HF.md`~~ - Outdated troubleshooting guide
+| Category | Count | Purpose | Location |
+|----------|-------|---------|----------|
+| **Unit Tests** | 4 | Test individual components | `unit_tests/` |
+| **Integration Tests** | 10 | Test component interactions and workflows | `integration_tests/` |
+| **Total** | **14** | Comprehensive test coverage | `tests/` |
 
 ## 🔧 Test Environment
 
@@ -85,6 +79,11 @@ Tests provide detailed output including:
 2. **Database Connection**: Verify PostgreSQL is running and accessible
 3. **API Keys**: Check environment variables for required API keys
 4. **Backend Status**: Ensure FastAPI backend is running on expected port
+
+### Test Configuration
+- Set `ADMIN_PASSWORD` environment variable for admin endpoint tests
+- Ensure backend is running on `localhost:8000` for integration tests
+- Update `BASE_URL` in test files if using different backend URL
 
 ### Getting Help
 - Check test output for specific error messages

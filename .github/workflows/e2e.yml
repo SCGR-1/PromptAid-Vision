@@ -1,0 +1,78 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          cd e2e
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          cd e2e
+          playwright install
+
+      - name: Start E2E environment
+        run: |
+          docker-compose -f e2e/docker-compose.e2e.yml up -d --build
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for services to be ready..."
+          sleep 30
+          
+          # Wait for backend health
+          for i in {1..30}; do
+            if curl -f http://localhost:7860/health > /dev/null 2>&1; then
+              echo "Backend is ready"
+              break
+            fi
+            echo "Waiting for backend..."
+            sleep 2
+          done
+          
+          # Wait for frontend
+          for i in {1..30}; do
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "Frontend is ready"
+              break
+            fi
+            echo "Waiting for frontend..."
+            sleep 2
+          done
+
+      - name: Run E2E tests
+        run: |
+          cd e2e
+          pytest -m e2e -v --tb=short
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: e2e/test-results/
+          retention-days: 7
+
+      - name: Cleanup E2E environment
+        if: always()
+        run: |
+          docker-compose -f e2e/docker-compose.e2e.yml down -v
