@@ -39,7 +39,7 @@ services:
   # Backend API
   backend:
     build:
-      context: ./py_backend
+      context: ../py_backend
       dockerfile: Dockerfile
     environment:
       ENV: e2e
@@ -66,7 +66,7 @@ services:
   # Frontend
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     environment:
       VITE_API_BASE_URL: http://localhost:7860
