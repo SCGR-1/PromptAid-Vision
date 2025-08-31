@@ -27,7 +27,7 @@ class BasePage:
     
     def expect_element_visible(self, selector: str):
         """Expect element to be visible"""
-        expect(self.page.locator(selector)).toBeVisible()
+        expect(self.page.locator(selector)).to_be_visible()
     
     def expect_element_not_visible(self, selector: str):
         """Expect element to not be visible"""
