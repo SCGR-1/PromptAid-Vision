@@ -62,7 +62,7 @@ jobs:
       - name: Run E2E tests
         run: |
           cd e2e
-          pytest -m e2e -v --tb=short
+          pytest specs/ -v --tb=short -s
 
       - name: Upload E2E test results
         uses: actions/upload-artifact@v4
