@@ -49,13 +49,13 @@ jobs:
             sleep 2
           done
           
-          # Wait for frontend
+          # Wait for application (frontend served by backend)
           for i in {1..30}; do
-            if curl -f http://localhost:3000 > /dev/null 2>&1; then
-              echo "Frontend is ready"
+            if curl -f http://localhost:7860 > /dev/null 2>&1; then
+              echo "Application is ready"
               break
             fi
-            echo "Waiting for frontend..."
+            echo "Waiting for application..."
             sleep 2
           done
 
