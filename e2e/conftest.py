@@ -4,6 +4,10 @@ import time
 import os
 from playwright.sync_api import sync_playwright
 
+# Create test-results directories
+os.makedirs("./test-results/videos/", exist_ok=True)
+os.makedirs("./test-results/har/", exist_ok=True)
+
 def pytest_configure(config):
     """Configure pytest for E2E tests"""
     config.addinivalue_line(
@@ -30,7 +34,7 @@ def browser_context_args(browser_context_args):
         },
         "ignore_https_errors": True,
         "record_video_dir": "./test-results/videos/",
-        "record_har_path": "./test-results/har/",
+        "record_har_path": "./test-results/har/test.har",
     }
 
 @pytest.fixture(scope="session")
@@ -106,14 +110,10 @@ def page(page, wait_for_services, reset_test_data):
     # Set up page with proper viewport and other settings
     page.set_viewport_size({"width": 1920, "height": 1080})
     
-    # Enable video recording
-    page.video.start()
-    
     yield page
     
-    # Clean up after test
-    if page.video:
-        page.video.save_as(f"./test-results/videos/{page.url.replace('/', '_')}.webm")
+    # Video recording is handled automatically by Playwright
+    # No manual start/stop needed
 
 def pytest_runtest_setup(item):
     """Setup before each test"""

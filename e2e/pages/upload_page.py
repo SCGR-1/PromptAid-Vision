@@ -16,7 +16,7 @@ class UploadPage(BasePage):
     
     def __init__(self, page):
         super().__init__(page)
-        self.page_url = "/"
+        self.page_url = "/upload"
     
     def navigate(self):
         """Navigate to upload page"""

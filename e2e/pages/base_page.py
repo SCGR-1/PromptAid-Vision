@@ -6,7 +6,7 @@ class BasePage:
     
     def __init__(self, page: Page):
         self.page = page
-        self.base_url = "http://localhost:3000"
+        self.base_url = "http://localhost:7860"
     
     def navigate_to(self, path: str = ""):
         """Navigate to the page"""
