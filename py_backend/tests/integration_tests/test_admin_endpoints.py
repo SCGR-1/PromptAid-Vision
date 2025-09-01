@@ -42,39 +42,6 @@ def test_schema_endpoints():
     # since we don't have the admin password set up
     print("⏭️ Skipping schema endpoints test - requires admin setup")
     assert True, "Skipping schema endpoints test"
-    
-    print("\n🧪 Testing Schema Endpoints...")
-    
-    headers = {"Authorization": f"Bearer {token}"}
-    
-    # Test get schemas
-    try:
-        response = requests.get(f"{BASE_URL}/api/schemas", headers=headers)
-        if response.status_code == 200:
-            schemas = response.json()
-            print(f"✅ Get schemas successful: found {len(schemas)} schemas")
-            for schema in schemas:
-                print(f"   - {schema['schema_id']}: {schema['title']}")
-        else:
-            print(f"❌ Get schemas failed: {response.status_code}")
-            print(f"   Response: {response.text}")
-    except Exception as e:
-        print(f"❌ Get schemas error: {e}")
-    
-    # Test validation stats
-    try:
-        response = requests.get(f"{BASE_URL}/api/schemas/validation-stats", headers=headers)
-        if response.status_code == 200:
-            stats = response.json()
-            print(f"✅ Validation stats successful:")
-            print(f"   Total images: {stats.get('total_images', 0)}")
-            print(f"   Validation passed: {stats.get('validation_passed', 0)}")
-            print(f"   Validation failed: {stats.get('validation_failed', 0)}")
-        else:
-            print(f"❌ Validation stats failed: {response.status_code}")
-            print(f"   Response: {response.text}")
-    except Exception as e:
-        print(f"❌ Validation stats error: {e}")
 
 def main():
     print("🚀 Testing Admin and Schema Endpoints")

@@ -6,6 +6,7 @@ Tests the GPT4V service with the test.jpg file
 
 import asyncio
 import os
+import pytest
 from pathlib import Path
 import sys
 
@@ -14,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 from app.services.gpt4v_service import GPT4VService
 from app.config import settings
 
+@pytest.mark.asyncio
 async def test_gpt4v_service():
     """Test the GPT4V service"""
     print("🧪 OpenAI GPT-4 Vision Integration Test")

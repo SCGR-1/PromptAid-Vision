@@ -4,6 +4,7 @@
 import os
 import sys
 import asyncio
+import pytest
 from pathlib import Path
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -60,6 +61,7 @@ def test_database():
         print(f"ERROR: Database test failed: {e}")
         assert False, f"Database test failed: {e}"
 
+@pytest.mark.asyncio
 async def test_api_endpoints():
     """Test basic API endpoint availability"""
     print("\nTESTING: API endpoints...")
