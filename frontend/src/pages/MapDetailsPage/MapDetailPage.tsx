@@ -195,6 +195,14 @@ export default function MapDetailPage() {
     if (!map || loading || isDeleting) return;
     
     if (!mapId || mapId === 'undefined' || mapId === 'null' || mapId.trim() === '') {
+      console.log('Auto-navigation skipped: Invalid mapId');
+      return;
+    }
+    
+    // Validate current mapId format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(mapId)) {
+      console.log('Auto-navigation skipped: Invalid mapId format');
       return;
     }
     
@@ -218,6 +226,7 @@ export default function MapDetailPage() {
     };
 
     if (!currentMapMatches()) {
+      console.log('Current map does not match filters, looking for first matching item');
       // Find first matching item and navigate to it
       fetch('/api/images')
         .then(r => r.json())
@@ -241,8 +250,21 @@ export default function MapDetailPage() {
             return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
           });
           
-          if (firstMatching && firstMatching.image_id !== mapId) {
-            navigate(`/map/${firstMatching.image_id}`);
+          if (firstMatching && 
+              firstMatching.image_id && 
+              firstMatching.image_id !== 'undefined' && 
+              firstMatching.image_id !== 'null' && 
+              firstMatching.image_id.trim() !== '' &&
+              firstMatching.image_id !== mapId) {
+            
+            // Additional UUID validation
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (uuidRegex.test(firstMatching.image_id)) {
+              console.log('Auto-navigating to:', firstMatching.image_id);
+              navigate(`/map/${firstMatching.image_id}`);
+            } else {
+              console.error('Auto-navigation blocked: Invalid image_id format:', firstMatching.image_id);
+            }
           }
         })
         .catch(console.error);
@@ -342,8 +364,19 @@ export default function MapDetailPage() {
         }
         
         const targetImage = filteredImages[targetIndex];
-        if (targetImage) {
-          navigate(`/map/${targetImage.image_id}`);
+        if (targetImage && 
+            targetImage.image_id && 
+            targetImage.image_id !== 'undefined' && 
+            targetImage.image_id !== 'null' && 
+            targetImage.image_id.trim() !== '') {
+          
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (uuidRegex.test(targetImage.image_id)) {
+            console.log('Carousel navigating to:', targetImage.image_id);
+            navigate(`/map/${targetImage.image_id}`);
+          } else {
+            console.error('Carousel navigation blocked: Invalid image_id format:', targetImage.image_id);
+          }
         }
       }
     } catch (error) {
@@ -455,11 +488,42 @@ export default function MapDetailPage() {
               console.log('Navigation target:', { currentIndex, targetIndex, targetId: remainingImages[targetIndex]?.image_id });
               
               if (targetIndex >= 0 && targetIndex < remainingImages.length) {
-                console.log('Navigating to:', remainingImages[targetIndex].image_id);
-                navigate(`/map/${remainingImages[targetIndex].image_id}`);
+                const nextImage = remainingImages[targetIndex];
+                if (nextImage && 
+                    nextImage.image_id && 
+                    nextImage.image_id !== 'undefined' && 
+                    nextImage.image_id !== 'null' && 
+                    nextImage.image_id.trim() !== '') {
+                  
+                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                  if (uuidRegex.test(nextImage.image_id)) {
+                    console.log('Navigating to:', nextImage.image_id);
+                    navigate(`/map/${nextImage.image_id}`);
+                  } else {
+                    console.error('Navigation blocked: Invalid image_id format:', nextImage.image_id);
+                    navigate('/explore');
+                  }
+                } else {
+                  console.error('Navigation blocked: Invalid image_id:', nextImage?.image_id);
+                  navigate('/explore');
+                }
+              } else if (remainingImages[0] && 
+                         remainingImages[0].image_id && 
+                         remainingImages[0].image_id !== 'undefined' && 
+                         remainingImages[0].image_id !== 'null' && 
+                         remainingImages[0].image_id.trim() !== '') {
+                
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (uuidRegex.test(remainingImages[0].image_id)) {
+                  console.log('Fallback navigation to first item:', remainingImages[0].image_id);
+                  navigate(`/map/${remainingImages[0].image_id}`);
+                } else {
+                  console.error('Fallback navigation blocked: Invalid image_id format:', remainingImages[0].image_id);
+                  navigate('/explore');
+                }
               } else {
-                console.log('Fallback navigation to first item:', remainingImages[0].image_id);
-                navigate(`/map/${remainingImages[0].image_id}`);
+                console.log('No valid remaining items, going to explore page');
+                navigate('/explore');
               }
             } else {
               console.log('No remaining items, going to explore page');
