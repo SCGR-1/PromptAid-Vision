@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, SegmentInput, Checkbox } from '@ifrc-go/ui';
+import { Button, SegmentInput, Checkbox, Spinner } from '@ifrc-go/ui';
 import styles from './ExportModal.module.css';
 
 interface ExportModalProps {
@@ -66,6 +66,15 @@ export default function ExportModal({
     return (
       <div className={styles.fullSizeModalOverlay} onClick={handleClose}>
         <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+          {isLoading && (
+            <div className={styles.loadingOverlay}>
+              <div className="flex flex-col items-center gap-4">
+                <Spinner className="text-ifrcRed" />
+                <div className="text-lg font-medium">Exporting...</div>
+                <div className="text-sm text-gray-600">Please wait while your data is being prepared</div>
+              </div>
+            </div>
+          )}
           <div className={styles.ratingWarningContent}>
             <h3 className={styles.ratingWarningTitle}>Export Single Item</h3>
             
@@ -88,13 +97,22 @@ export default function ExportModal({
               <Button
                 name="continue-export"
                 onClick={handleExport}
+                disabled={isLoading}
               >
-                Continue
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner className="text-white" />
+                    Exporting...
+                  </div>
+                ) : (
+                  'Continue'
+                )}
               </Button>
               <Button
                 name="cancel-export"
                 variant="tertiary"
                 onClick={handleClose}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
@@ -109,6 +127,15 @@ export default function ExportModal({
   return (
     <div className={styles.fullSizeModalOverlay} onClick={handleClose}>
       <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+        {isLoading && (
+          <div className={styles.loadingOverlay}>
+            <div className="flex flex-col items-center gap-4">
+              <Spinner className="text-ifrcRed" />
+              <div className="text-lg font-medium">Exporting...</div>
+              <div className="text-sm text-gray-600">Please wait while your data is being prepared</div>
+            </div>
+          </div>
+        )}
         <div className={styles.ratingWarningContent}>
           <h3 className={styles.ratingWarningTitle}>Export Dataset</h3>
           
@@ -128,6 +155,7 @@ export default function ExportModal({
               ]}
               keySelector={(o) => o.key}
               labelSelector={(o) => o.label}
+              disabled={isLoading}
             />
           </div>
           
@@ -156,6 +184,7 @@ export default function ExportModal({
                       }
                     }}
                     className={styles.splitInput}
+                    disabled={isLoading}
                   />
                 </div>
                 
@@ -176,6 +205,7 @@ export default function ExportModal({
                       }
                     }}
                     className={styles.splitInput}
+                    disabled={isLoading}
                   />
                 </div>
                 
@@ -196,6 +226,7 @@ export default function ExportModal({
                       }
                     }}
                     className={styles.splitInput}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -234,13 +265,22 @@ export default function ExportModal({
             <Button
               name="confirm-export"
               onClick={handleExport}
+              disabled={isLoading}
             >
-              Export Selected
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Spinner className="text-white" />
+                  Exporting...
+                </div>
+              ) : (
+                'Export Selected'
+              )}
             </Button>
             <Button
               name="cancel-export"
               variant="tertiary"
               onClick={handleClose}
+              disabled={isLoading}
             >
               Cancel
             </Button>

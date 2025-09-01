@@ -123,11 +123,26 @@
 .userInteractionCardLabel {
   font-size: var(--go-ui-font-size-sm);
   color: var(--go-ui-color-text-secondary);
-  margin-bottom: var(--go-ui-spacing-lg);
+  margin-bottom: var(--go-ui-spacing-md);
+  font-weight: var(--go-ui-font-weight-medium);
 }
 
 .userInteractionCardButton {
   width: 100%;
+}
+
+.userInteractionCard .chartContainer {
+  min-height: 200px;
+  background-color: transparent;
+  border: none;
+  padding: var(--go-ui-spacing-md);
+  margin-bottom: var(--go-ui-spacing-lg);
+}
+
+/* Make Types Distribution chart 10% wider on crisis maps */
+.userInteractionCard:nth-child(3) .chartContainer {
+  width: 110%;
+  margin-left: -5%;
 }
 
 .summaryStatsCards {

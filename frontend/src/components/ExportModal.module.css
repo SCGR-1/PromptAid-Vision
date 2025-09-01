@@ -21,6 +21,7 @@
   box-shadow: var(--go-ui-box-shadow-xl);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .ratingWarningContent {
@@ -169,6 +170,20 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  border-radius: var(--go-ui-border-radius-lg);
 }
 
 /* Responsive adjustments for modal */

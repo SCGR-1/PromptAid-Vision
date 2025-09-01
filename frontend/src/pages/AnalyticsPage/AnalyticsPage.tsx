@@ -128,12 +128,18 @@ export default function AnalyticsPage() {
   const [showEditTimeModal, setShowEditTimeModal] = useState(false);
   const [showPercentageModal, setShowPercentageModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRegionsModal, setShowRegionsModal] = useState(false);
+  const [showSourcesModal, setShowSourcesModal] = useState(false);
+  const [showTypesModal, setShowTypesModal] = useState(false);
 
   // Function to handle opening a specific modal and closing others
-  const openModal = (modalType: 'editTime' | 'percentage' | 'delete' | 'none') => {
+  const openModal = (modalType: 'editTime' | 'percentage' | 'delete' | 'regions' | 'sources' | 'types' | 'none') => {
     setShowEditTimeModal(modalType === 'editTime');
     setShowPercentageModal(modalType === 'percentage');
     setShowDeleteModal(modalType === 'delete');
+    setShowRegionsModal(modalType === 'regions');
+    setShowSourcesModal(modalType === 'sources');
+    setShowTypesModal(modalType === 'types');
   };
 
   const viewOptions = [
@@ -1246,19 +1252,81 @@ export default function AnalyticsPage() {
               </div>
             </Container>
 
-            <Container heading="Regions Distribution" headingLevel={3} withHeaderBorder withInternalPadding>
-              <div className={styles.chartSection}>
-                <div className={styles.chartContainer}>
-                  <PieChart
-                    data={getImageTypeRegionsChartData('crisis_map')}
-                    valueSelector={d => d.value}
-                    labelSelector={d => d.name}
-                    keySelector={d => d.name}
-                    colors={ifrcColors}
-                    showPercentageInLegend
-                  />
+            <Container heading="Distribution Analysis" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.userInteractionCards}>
+                {/* Regions Distribution Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardLabel}>Regions Distribution</div>
+                  <div className={styles.chartContainer}>
+                    <PieChart
+                      data={getImageTypeRegionsChartData('crisis_map')}
+                      valueSelector={d => d.value}
+                      labelSelector={d => d.name}
+                      keySelector={d => d.name}
+                      colors={ifrcColors}
+                      showPercentageInLegend
+                    />
+                  </div>
+                  <Button
+                    name="view-regions-details"
+                    variant={showRegionsModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showRegionsModal ? 'none' : 'regions')}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showRegionsModal ? 'Hide Details' : 'View Details'}
+                  </Button>
                 </div>
-                <div className={styles.tableContainer}>
+
+                {/* Sources Distribution Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardLabel}>Sources Distribution</div>
+                  <div className={styles.chartContainer}>
+                    <PieChart
+                      data={getImageTypeSourcesChartData('crisis_map')}
+                      valueSelector={d => d.value}
+                      labelSelector={d => d.name}
+                      keySelector={d => d.name}
+                      colors={ifrcColors}
+                      showPercentageInLegend
+                    />
+                  </div>
+                  <Button
+                    name="view-sources-details"
+                    variant={showSourcesModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showSourcesModal ? 'none' : 'sources')}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showSourcesModal ? 'Hide Details' : 'View Details'}
+                  </Button>
+                </div>
+
+                {/* Types Distribution Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardLabel}>Types Distribution</div>
+                  <div className={styles.chartContainer}>
+                    <PieChart
+                      data={getImageTypeTypesChartData('crisis_map')}
+                      valueSelector={d => d.value}
+                      labelSelector={d => d.name}
+                      keySelector={d => d.name}
+                      colors={ifrcColors}
+                      showPercentageInLegend
+                    />
+                  </div>
+                  <Button
+                    name="view-types-details"
+                    variant={showTypesModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showTypesModal ? 'none' : 'types')}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showTypesModal ? 'Hide Details' : 'View Details'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Regions Details Table */}
+              {showRegionsModal && (
+                <div className={styles.modelPerformance}>
                   <Table
                     data={getImageTypeRegionsTableData('crisis_map')}
                     columns={regionsColumns}
@@ -1267,22 +1335,11 @@ export default function AnalyticsPage() {
                     pending={false}
                   />
                 </div>
-              </div>
-            </Container>
+              )}
 
-            <Container heading="Sources Distribution" headingLevel={3} withHeaderBorder withInternalPadding>
-              <div className={styles.chartSection}>
-                <div className={styles.chartContainer}>
-                  <PieChart
-                    data={getImageTypeSourcesChartData('crisis_map')}
-                    valueSelector={d => d.value}
-                    labelSelector={d => d.name}
-                    keySelector={d => d.name}
-                    colors={ifrcColors}
-                    showPercentageInLegend
-                  />
-                </div>
-                <div className={styles.tableContainer}>
+              {/* Sources Details Table */}
+              {showSourcesModal && (
+                <div className={styles.modelPerformance}>
                   <Table
                     data={getImageTypeSourcesTableData('crisis_map')}
                     columns={sourcesColumns}
@@ -1291,22 +1348,11 @@ export default function AnalyticsPage() {
                     pending={false}
                   />
                 </div>
-              </div>
-            </Container>
+              )}
 
-            <Container heading="Types Distribution" headingLevel={3} withHeaderBorder withInternalPadding>
-              <div className={styles.chartSection}>
-                <div className={styles.chartContainer}>
-                  <PieChart
-                    data={getImageTypeTypesChartData('crisis_map')}
-                    valueSelector={d => d.value}
-                    labelSelector={d => d.name}
-                    keySelector={d => d.name}
-                    colors={ifrcColors}
-                    showPercentageInLegend
-                  />
-                </div>
-                <div className={styles.tableContainer}>
+              {/* Types Details Table */}
+              {showTypesModal && (
+                <div className={styles.modelPerformance}>
                   <Table
                     data={getImageTypeTypesTableData('crisis_map')}
                     columns={typesColumns}
@@ -1315,7 +1361,7 @@ export default function AnalyticsPage() {
                     pending={false}
                   />
                 </div>
-              </div>
+              )}
             </Container>
 
                          {/* New Analytics Containers */}
@@ -1486,19 +1532,58 @@ export default function AnalyticsPage() {
               </div>
             </Container>
 
-            <Container heading="Regions Distribution" headingLevel={3} withHeaderBorder withInternalPadding>
-              <div className={styles.chartSection}>
-                <div className={styles.chartContainer}>
-                  <PieChart
-                    data={getImageTypeRegionsChartData('drone_image')}
-                    valueSelector={d => d.value}
-                    labelSelector={d => d.name}
-                    keySelector={d => d.name}
-                    colors={ifrcColors}
-                    showPercentageInLegend
-                  />
+            <Container heading="Distribution Analysis" headingLevel={3} withHeaderBorder withInternalPadding>
+              <div className={styles.userInteractionCards}>
+                {/* Regions Distribution Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardLabel}>Regions Distribution</div>
+                  <div className={styles.chartContainer}>
+                    <PieChart
+                      data={getImageTypeRegionsChartData('drone_image')}
+                      valueSelector={d => d.value}
+                      labelSelector={d => d.name}
+                      keySelector={d => d.name}
+                      colors={ifrcColors}
+                      showPercentageInLegend
+                    />
+                  </div>
+                  <Button
+                    name="view-regions-details"
+                    variant={showRegionsModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showRegionsModal ? 'none' : 'regions')}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showRegionsModal ? 'Hide Details' : 'View Details'}
+                  </Button>
                 </div>
-                <div className={styles.tableContainer}>
+
+                {/* Types Distribution Card */}
+                <div className={styles.userInteractionCard}>
+                  <div className={styles.userInteractionCardLabel}>Types Distribution</div>
+                  <div className={styles.chartContainer}>
+                    <PieChart
+                      data={getImageTypeTypesChartData('drone_image')}
+                      valueSelector={d => d.value}
+                      labelSelector={d => d.name}
+                      keySelector={d => d.name}
+                      colors={ifrcColors}
+                      showPercentageInLegend
+                    />
+                  </div>
+                  <Button
+                    name="view-types-details"
+                    variant={showTypesModal ? "primary" : "secondary"}
+                    onClick={() => openModal(showTypesModal ? 'none' : 'types')}
+                    className={styles.userInteractionCardButton}
+                  >
+                    {showTypesModal ? 'Hide Details' : 'View Details'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Regions Details Table */}
+              {showRegionsModal && (
+                <div className={styles.modelPerformance}>
                   <Table
                     data={getImageTypeRegionsTableData('drone_image')}
                     columns={regionsColumns}
@@ -1507,24 +1592,11 @@ export default function AnalyticsPage() {
                     pending={false}
                   />
                 </div>
-              </div>
-            </Container>
+              )}
 
-            
-
-            <Container heading="Types Distribution" headingLevel={3} withHeaderBorder withInternalPadding>
-              <div className={styles.chartSection}>
-                <div className={styles.chartContainer}>
-                  <PieChart
-                    data={getImageTypeTypesChartData('drone_image')}
-                    valueSelector={d => d.value}
-                    labelSelector={d => d.name}
-                    keySelector={d => d.name}
-                    colors={ifrcColors}
-                    showPercentageInLegend
-                  />
-                </div>
-                <div className={styles.tableContainer}>
+              {/* Types Details Table */}
+              {showTypesModal && (
+                <div className={styles.modelPerformance}>
                   <Table
                     data={getImageTypeTypesTableData('drone_image')}
                     columns={typesColumns}
@@ -1533,7 +1605,7 @@ export default function AnalyticsPage() {
                     pending={false}
                   />
                 </div>
-              </div>
+              )}
             </Container>
 
                          {/* User Interaction Statistics Box */}
