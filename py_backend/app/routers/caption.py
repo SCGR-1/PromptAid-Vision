@@ -240,18 +240,18 @@ def get_all_captions_legacy_format(
     for caption in captions:
         db.refresh(caption)
         
-                        # Get the associated image for this caption
-                if caption.images:
-                    for image in caption.images:
-                        from .upload import convert_image_to_dict
-                        
-                        # Build absolute URL using request context
-                        base_url = str(request.base_url).rstrip('/')
-                        url = f"{base_url}/api/images/{image.image_id}/file"
-                        
-                        print(f"DEBUG: Generated image URL: {url}")
-                        
-                        img_dict = convert_image_to_dict(image, url)
+        # Get the associated image for this caption
+        if caption.images:
+            for image in caption.images:
+                from .upload import convert_image_to_dict
+                
+                # Build absolute URL using request context
+                base_url = str(request.base_url).rstrip('/')
+                url = f"{base_url}/api/images/{image.image_id}/file"
+                
+                print(f"DEBUG: Generated image URL: {url}")
+                
+                img_dict = convert_image_to_dict(image, url)
                 
                 # Override with caption data
                 img_dict.update({
