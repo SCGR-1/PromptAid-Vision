@@ -138,10 +138,6 @@ jobs:
           cd py_backend
           source .venv/bin/activate
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-          echo "Current directory: $(pwd)"
-          echo "Python path: $PYTHONPATH"
-          echo "Available modules:"
-          python -c "import sys; print('\n'.join(sys.path))"
           pytest
 
       - name: Cleanup MinIO

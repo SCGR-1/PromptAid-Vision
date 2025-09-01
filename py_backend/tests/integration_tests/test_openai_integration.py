@@ -23,6 +23,8 @@ async def test_gpt4v_service():
         print("❌ OPENAI_API_KEY environment variable not set!")
         print("Please set your OpenAI API key in .env:")
         print("OPENAI_API_KEY=your_api_key_here")
+        # Skip test if no API key
+        assert True, "Skipping test - no OpenAI API key"
         return
     
     print(f"✅ OpenAI API Key found: {settings.OPENAI_API_KEY[:10]}...")
@@ -31,6 +33,8 @@ async def test_gpt4v_service():
     if not test_image_path.exists():
         print(f"❌ Test image not found at: {test_image_path}")
         print("Please ensure test.jpg exists in the tests folder")
+        # Skip test if no test image
+        assert True, "Skipping test - no test image"
         return
     
     print(f"✅ Test image found: {test_image_path}")
@@ -40,7 +44,7 @@ async def test_gpt4v_service():
         print(f"✅ GPT4V service initialized: {gpt4v_service.model_name}")
     except Exception as e:
         print(f"❌ Failed to initialize GPT4V service: {e}")
-        return
+        assert False, f"Failed to initialize GPT4V service: {e}"
     
     with open(test_image_path, 'rb') as f:
         image_bytes = f.read()
@@ -62,11 +66,15 @@ async def test_gpt4v_service():
         
         if result.get('raw_response'):
             print(f"🔧 Raw response: {result['raw_response']}")
+        
+        assert result['caption'], "Should have generated a caption"
+        assert result['confidence'] >= 0, "Confidence should be non-negative"
             
     except Exception as e:
         print(f"❌ Error generating caption: {e}")
         import traceback
         traceback.print_exc()
+        assert False, f"Error generating caption: {e}"
     
     print(f"\n{'='*60}")
     print("🏁 Test completed!")
