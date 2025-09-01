@@ -166,6 +166,16 @@ def list_images(db: Session = Depends(get_db)):
 @router.get("/{image_id}", response_model=schemas.ImageOut)
 def get_image(image_id: str, db: Session = Depends(get_db)):
     """Get a single image by ID"""
+    # Validate image_id before querying database
+    if not image_id or image_id in ['undefined', 'null', '']:
+        raise HTTPException(400, "Invalid image ID")
+    
+    # Validate UUID format
+    import re
+    uuid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+    if not uuid_pattern.match(image_id):
+        raise HTTPException(400, "Invalid image ID format")
+    
     img = crud.get_image(db, image_id)
     if not img:
         raise HTTPException(404, "Image not found")

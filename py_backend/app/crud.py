@@ -141,7 +141,7 @@ def get_all_captions_with_images(db: Session):
     return (
         db.query(models.Captions)
         .options(
-            joinedload(models.Captions.images),
+            joinedload(models.Captions.images).joinedload(models.Images.countries),
         )
         .all()
     )

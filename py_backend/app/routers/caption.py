@@ -242,14 +242,8 @@ def get_all_captions_legacy_format(
         # Get the associated image for this caption
         if caption.images:
             for image in caption.images:
-                # Create a response in the old format where caption data is embedded in image
                 from .upload import convert_image_to_dict
-                try:
-                    url = storage.get_object_url(image.file_key)
-                    if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
-                        url = f"http://localhost:8000{url}"
-                except Exception:
-                    url = f"/api/images/{image.image_id}/file"
+                url = f"/api/images/{image.image_id}/file"
                 
                 img_dict = convert_image_to_dict(image, url)
                 

@@ -91,6 +91,13 @@ export default function MapDetailPage() {
   ];
 
   const fetchMapData = useCallback(async (id: string) => {
+    // Validate the ID before making the request
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+      setError('Invalid Map ID');
+      setLoading(false);
+      return;
+    }
+
     setIsNavigating(true);
     setLoading(true);
     
@@ -112,7 +119,7 @@ export default function MapDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (!mapId) {
+    if (!mapId || mapId === 'undefined' || mapId === 'null') {
       setError('Map ID is required');
       setLoading(false);
       return;
@@ -177,6 +184,11 @@ export default function MapDetailPage() {
   }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading, isDeleting]);
 
   const checkNavigationAvailability = async (currentId: string) => {
+    // Validate the ID before making the request
+    if (!currentId || currentId === 'undefined' || currentId === 'null' || currentId.trim() === '') {
+      return;
+    }
+
     try {
       const response = await fetch('/api/images');
       if (response.ok) {
