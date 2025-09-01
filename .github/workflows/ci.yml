@@ -28,12 +28,11 @@ jobs:
           MINIO_ROOT_PASSWORD: promptaid
         ports:
           - 9000:9000
-        # remove the failing health check:
-        # options:
-        #   --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-        #   --health-interval 10s
-        #   --health-timeout 5s
-        #   --health-retries 5
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Check out code
@@ -68,17 +67,21 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ← optional but recommended: wait for MinIO to actually respond
       - name: Wait for MinIO
         run: |
-          for i in {1..20}; do
-            if curl -s http://localhost:9000/minio/health/live; then
-              echo "MinIO is up"
+          for i in {1..30}; do
+            if curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; then
+              echo "MinIO is up and responding"
               break
             fi
-            echo "Waiting for MinIO..."
-            sleep 1
+            echo "Waiting for MinIO... (attempt $i/30)"
+            sleep 2
           done
+          
+          if ! curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; then
+            echo "MinIO failed to start within expected time"
+            exit 1
+          fi
 
       - name: Setup MinIO bucket
         env:
@@ -87,7 +90,29 @@ jobs:
           S3_SECRET_KEY:  promptaid
         run: |
           pip install boto3
-          python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:9000', aws_access_key_id='promptaid', aws_secret_access_key='promptaid'); s3.create_bucket(Bucket='promptaid'); print('Bucket created')"
+          python -c "
+          import boto3
+          import time
+          
+          s3 = boto3.client(
+              's3',
+              endpoint_url='http://localhost:9000',
+              aws_access_key_id='promptaid',
+              aws_secret_access_key='promptaid'
+          )
+          
+          for attempt in range(5):
+              try:
+                  s3.create_bucket(Bucket='promptaid')
+                  print('Bucket created successfully')
+                  break
+              except Exception as e:
+                  print(f'Attempt {attempt + 1} failed: {e}')
+                  if attempt < 4:
+                      time.sleep(2)
+                  else:
+                      raise
+          "
 
       - name: Run database migrations
         env:
