@@ -22,17 +22,12 @@ jobs:
           --health-retries 5
 
       minio:
-        image: minio/minio
+        image: minio/minio:latest
         env:
           MINIO_ROOT_USER: promptaid
           MINIO_ROOT_PASSWORD: promptaid
         ports:
           - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Check out code
@@ -69,13 +64,16 @@ jobs:
 
       - name: Wait for MinIO
         run: |
+          echo "Waiting for MinIO to start..."
+          sleep 10
+          
           for i in {1..30}; do
             if curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; then
               echo "MinIO is up and responding"
               break
             fi
             echo "Waiting for MinIO... (attempt $i/30)"
-            sleep 2
+            sleep 3
           done
           
           if ! curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; then
