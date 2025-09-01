@@ -28,6 +28,8 @@ jobs:
           MINIO_ROOT_PASSWORD: promptaid
         ports:
           - 9000:9000
+        options: >-
+          --command "server /data --console-address :9001"
 
     steps:
       - name: Check out code
@@ -65,10 +67,14 @@ jobs:
       - name: Wait for MinIO
         run: |
           echo "Waiting for MinIO to start..."
-          sleep 10
+          sleep 15
+          
+          echo "Checking if MinIO container is running..."
+          docker ps | grep minio || echo "MinIO container not found"
           
           for i in {1..30}; do
-            if curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; then
+            echo "Attempt $i: Checking MinIO health endpoint..."
+            if curl -v http://localhost:9000/minio/health/live 2>&1 | grep -q "HTTP/"; then
               echo "MinIO is up and responding"
               break
             fi
@@ -78,6 +84,8 @@ jobs:
           
           if ! curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; then
             echo "MinIO failed to start within expected time"
+            echo "Container logs:"
+            docker logs $(docker ps -q --filter "ancestor=minio/minio:latest") 2>/dev/null || echo "Could not get container logs"
             exit 1
           fi
 
