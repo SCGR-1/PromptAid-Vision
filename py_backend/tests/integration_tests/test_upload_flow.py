@@ -27,13 +27,7 @@ def test_database_connection():
             source="OTHER",
             event_type="OTHER",
             epsg="4326",
-            image_type="crisis_map",
-            title="Test Title",
-            prompt="Test prompt",
-            model="STUB_MODEL",
-            schema_id="default_caption@1.0.0",
-            raw_json={"test": True},
-            generated="This is a test caption"
+            image_type="crisis_map"
         )
         
         db.add(test_img)

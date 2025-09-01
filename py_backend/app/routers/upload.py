@@ -9,6 +9,7 @@ from typing import List, Optional
 import boto3
 import time
 import base64
+import datetime
 
 router = APIRouter()
 
@@ -50,6 +51,62 @@ def convert_image_to_dict(img, image_url):
             print(f"Warning: Error processing countries for image {img.image_id}: {e}")
             countries_list = []
     
+    captions_list = []
+    if hasattr(img, 'captions') and img.captions is not None:
+        try:
+            captions_list = [
+                {
+                    "caption_id": c.caption_id,
+                    "title": c.title,
+                    "prompt": c.prompt,
+                    "model": c.model,
+                    "schema_id": c.schema_id,
+                    "raw_json": c.raw_json,
+                    "generated": c.generated,
+                    "edited": c.edited,
+                    "accuracy": c.accuracy,
+                    "context": c.context,
+                    "usability": c.usability,
+                    "starred": c.starred if c.starred is not None else False,
+                    "created_at": c.created_at,
+                    "updated_at": c.updated_at
+                } for c in img.captions
+            ]
+        except Exception as e:
+            print(f"Warning: Error processing captions for image {img.image_id}: {e}")
+            captions_list = []
+    
+    # Get starred status and other caption fields from first caption for backward compatibility
+    starred = False
+    title = None
+    prompt = None
+    model = None
+    schema_id = None
+    raw_json = None
+    generated = None
+    edited = None
+    accuracy = None
+    context = None
+    usability = None
+    created_at = None
+    updated_at = None
+    
+    if captions_list:
+        first_caption = captions_list[0]
+        starred = first_caption.get("starred", False)
+        title = first_caption.get("title")
+        prompt = first_caption.get("prompt")
+        model = first_caption.get("model")
+        schema_id = first_caption.get("schema_id")
+        raw_json = first_caption.get("raw_json")
+        generated = first_caption.get("generated")
+        edited = first_caption.get("edited")
+        accuracy = first_caption.get("accuracy")
+        context = first_caption.get("context")
+        usability = first_caption.get("usability")
+        created_at = first_caption.get("created_at")
+        updated_at = first_caption.get("updated_at")
+    
     img_dict = {
         "image_id": img.image_id,
         "file_key": img.file_key,
@@ -60,19 +117,23 @@ def convert_image_to_dict(img, image_url):
         "image_type": img.image_type,
         "image_url": image_url,
         "countries": countries_list,
-        "title": img.title,
-        "prompt": img.prompt,
-        "model": img.model,
-        "schema_id": img.schema_id,
-        "raw_json": img.raw_json,
-        "generated": img.generated,
-        "edited": img.edited,
-        "accuracy": img.accuracy,
-        "context": img.context,
-        "usability": img.usability,
-        "starred": img.starred if img.starred is not None else False,
-        "created_at": img.created_at,
-        "updated_at": img.updated_at,
+        "captions": captions_list,
+        "starred": starred,  # Backward compatibility
+        "captured_at": img.captured_at,
+        
+        # Backward compatibility fields for legacy frontend
+        "title": title,
+        "prompt": prompt,
+        "model": model,
+        "schema_id": schema_id,
+        "raw_json": raw_json,
+        "generated": generated,
+        "edited": edited,
+        "accuracy": accuracy,
+        "context": context,
+        "usability": usability,
+        "created_at": created_at,
+        "updated_at": updated_at,
         
         # Drone-specific fields
         "center_lon": getattr(img, 'center_lon', None),
@@ -367,8 +428,21 @@ def update_image_metadata(
             img.epsg = metadata.epsg
         if metadata.image_type is not None:
             img.image_type = metadata.image_type
+        # Handle starred field - update the first caption's starred status
         if metadata.starred is not None:
-            img.starred = metadata.starred
+            if img.captions:
+                # Update the first caption's starred status
+                img.captions[0].starred = metadata.starred
+            else:
+                # If no captions exist, create a minimal caption with starred status
+                from app import models
+                caption = models.Captions(
+                    title="",
+                    starred=metadata.starred,
+                    created_at=datetime.datetime.utcnow()
+                )
+                db.add(caption)
+                img.captions.append(caption)
         
         # Update drone-specific fields
         if metadata.center_lon is not None:
@@ -435,12 +509,15 @@ def delete_image(image_id: str, db: Session = Depends(get_db), content_managemen
     
     # Only increment delete count if this is NOT a content management delete
     # Content management deletes (from map details) should not count against model performance
-    if not content_management and img.model:
-        from .. import crud as crud_module
-        model = crud_module.get_model(db, img.model)
-        if model:
-            model.delete_count += 1
-            db.commit()
+    if not content_management and img.captions:
+        # Get model from the first caption
+        model_name = img.captions[0].model
+        if model_name:
+            from .. import crud as crud_module
+            model = crud_module.get_model(db, model_name)
+            if model:
+                model.delete_count += 1
+                db.commit()
     
     db.delete(img)
     db.commit()

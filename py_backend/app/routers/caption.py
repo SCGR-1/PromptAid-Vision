@@ -82,7 +82,7 @@ def get_db():
 
 @router.post(
     "/images/{image_id}/caption",
-    response_model=schemas.ImageOut,
+    response_model=schemas.CaptionOut,
 )
 async def create_caption(
     image_id: str,
@@ -205,7 +205,7 @@ async def create_caption(
         raw = {"error": str(e), "fallback": True}
         metadata = {}
 
-    c = crud.create_caption(
+    caption = crud.create_caption(
         db,
         image_id=image_id,
         title=title,
@@ -216,141 +216,170 @@ async def create_caption(
         metadata=metadata,
     )
     
-    db.refresh(c)
-    
-    print(f"DEBUG: Caption created, image object: {c}")
-    print(f"DEBUG: file_key: {c.file_key}")
-    print(f"DEBUG: image_id: {c.image_id}")
-    
-    from .upload import convert_image_to_dict
-    try:
-        url = storage.get_object_url(c.file_key)
-        print(f"DEBUG: Generated URL: {url}")
-        if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
-            url = f"http://localhost:8000{url}"
-            print(f"DEBUG: Local URL adjusted to: {url}")
-    except Exception as e:
-        print(f"DEBUG: URL generation failed: {e}")
-        url = f"/api/images/{c.image_id}/file"
-        print(f"DEBUG: Using fallback URL: {url}")
-    
-    img_dict = convert_image_to_dict(c, url)
-    return schemas.ImageOut(**img_dict)
-
-@router.get(
-    "/images/{image_id}/caption",
-    response_model=schemas.ImageOut,
-)
-def get_caption(
-    image_id: str,
-    db: Session = Depends(get_db),
-):
-    caption = crud.get_caption(db, image_id)
-    if not caption or not caption.title:
-        raise HTTPException(404, "caption not found")
-    
     db.refresh(caption)
     
-    from .upload import convert_image_to_dict
-    try:
-        url = storage.get_object_url(caption.file_key)
-        if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
-            url = f"http://localhost:8000{url}"
-    except Exception:
-        url = f"/api/images/{caption.image_id}/file"
+    print(f"DEBUG: Caption created, caption object: {caption}")
+    print(f"DEBUG: caption_id: {caption.caption_id}")
     
-    img_dict = convert_image_to_dict(caption, url)
-    return schemas.ImageOut(**img_dict)
+    return schemas.CaptionOut.from_orm(caption)
+
+@router.get(
+    "/captions/legacy",
+    response_model=List[schemas.ImageOut],
+)
+def get_all_captions_legacy_format(
+    db: Session = Depends(get_db),
+):
+    """Get all images with captions in the old format for backward compatibility"""
+    print(f"DEBUG: Fetching all captions in legacy format...")
+    captions = crud.get_all_captions_with_images(db)
+    print(f"DEBUG: Found {len(captions)} captions")
+    
+    result = []
+    for caption in captions:
+        db.refresh(caption)
+        
+        # Get the associated image for this caption
+        if caption.images:
+            for image in caption.images:
+                # Create a response in the old format where caption data is embedded in image
+                from .upload import convert_image_to_dict
+                try:
+                    url = storage.get_object_url(image.file_key)
+                    if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
+                        url = f"http://localhost:8000{url}"
+                except Exception:
+                    url = f"/api/images/{image.image_id}/file"
+                
+                img_dict = convert_image_to_dict(image, url)
+                
+                # Override with caption data
+                img_dict.update({
+                    "title": caption.title,
+                    "prompt": caption.prompt,
+                    "model": caption.model,
+                    "schema_id": caption.schema_id,
+                    "raw_json": caption.raw_json,
+                    "generated": caption.generated,
+                    "edited": caption.edited,
+                    "accuracy": caption.accuracy,
+                    "context": caption.context,
+                    "usability": caption.usability,
+                    "starred": caption.starred,
+                    "created_at": caption.created_at,
+                    "updated_at": caption.updated_at,
+                })
+                
+                result.append(schemas.ImageOut(**img_dict))
+    
+    print(f"DEBUG: Returning {len(result)} legacy format results")
+    return result
+
+@router.get(
+    "/captions",
+    response_model=List[schemas.CaptionOut],
+)
+def get_all_captions_with_images(
+    db: Session = Depends(get_db),
+):
+    """Get all captions"""
+    print(f"DEBUG: Fetching all captions...")
+    captions = crud.get_all_captions_with_images(db)
+    print(f"DEBUG: Found {len(captions)} captions")
+    
+    result = []
+    for caption in captions:
+        print(f"DEBUG: Processing caption {caption.caption_id}, title: {caption.title}, generated: {caption.generated}, model: {caption.model}")
+        
+        db.refresh(caption)
+        result.append(schemas.CaptionOut.from_orm(caption))
+    
+    print(f"DEBUG: Returning {len(result)} formatted results")
+    return result
 
 @router.get(
     "/images/{image_id}/captions",
-    response_model=List[schemas.ImageOut],
+    response_model=List[schemas.CaptionOut],
 )
 def get_captions_by_image(
     image_id: str,
     db: Session = Depends(get_db),
 ):
-    """Get caption data for a specific image"""
+    """Get all captions for a specific image"""
     captions = crud.get_captions_by_image(db, image_id)
     
-    from .upload import convert_image_to_dict
     result = []
     for caption in captions:
         db.refresh(caption)
-        
-        try:
-            url = storage.get_object_url(caption.file_key)
-        except Exception:
-            url = f"/api/images/{caption.image_id}/file"
-        
-        img_dict = convert_image_to_dict(caption, url)
-        result.append(schemas.ImageOut(**img_dict))
+        result.append(schemas.CaptionOut.from_orm(caption))
     
     return result
 
 @router.get(
-    "/captions",
-    response_model=List[schemas.ImageOut],
+    "/captions/{caption_id}",
+    response_model=schemas.CaptionOut,
 )
-def get_all_captions_with_images(
+def get_caption(
+    caption_id: str,
     db: Session = Depends(get_db),
 ):
-    """Get all images that have caption data"""
-    print(f"DEBUG: Fetching all captions with images...")
-    captions = crud.get_all_captions_with_images(db)
-    print(f"DEBUG: Found {len(captions)} images with caption data")
-    
-    from .upload import convert_image_to_dict
-    result = []
-    for caption in captions:
-        print(f"DEBUG: Processing image {caption.image_id}, title: {caption.title}, generated: {caption.generated}, model: {caption.model}")
-        
-        db.refresh(caption)
-        
-        try:
-            url = storage.get_object_url(caption.file_key)
-        except Exception:
-            url = f"/api/images/{caption.image_id}/file"
-        
-        img_dict = convert_image_to_dict(caption, url)
-        result.append(schemas.ImageOut(**img_dict))
-    
-    print(f"DEBUG: Returning {len(result)} formatted results")
-    return result
-
-@router.put(
-    "/images/{image_id}/caption",
-    response_model=schemas.ImageOut,
-)
-def update_caption(
-    image_id: str,
-    update: schemas.CaptionUpdate,
-    db: Session = Depends(get_db),
-):
-    caption = crud.update_caption(db, image_id, update)
+    caption = crud.get_caption(db, caption_id)
     if not caption:
         raise HTTPException(404, "caption not found")
     
     db.refresh(caption)
-    
-    from .upload import convert_image_to_dict
-    try:
-        url = storage.get_object_url(caption.file_key)
-    except Exception:
-        url = f"/api/images/{caption.image_id}/file"
-    
-    img_dict = convert_image_to_dict(caption, url)
-    return schemas.ImageOut(**img_dict)
+    return schemas.CaptionOut.from_orm(caption)
 
-@router.delete(
-    "/images/{image_id}/caption",
+@router.put(
+    "/captions/{caption_id}",
+    response_model=schemas.CaptionOut,
 )
-def delete_caption(
-    image_id: str,
+def update_caption(
+    caption_id: str,
+    update: schemas.CaptionUpdate,
     db: Session = Depends(get_db),
 ):
-    """Delete caption data for an image"""
-    success = crud.delete_caption(db, image_id)
+    caption = crud.update_caption(db, caption_id, update)
+    if not caption:
+        raise HTTPException(404, "caption not found")
+    
+    db.refresh(caption)
+    return schemas.CaptionOut.from_orm(caption)
+
+@router.put(
+    "/images/{image_id}/caption",
+    response_model=schemas.CaptionOut,
+)
+def update_caption_by_image(
+    image_id: str,
+    update: schemas.CaptionUpdate,
+    db: Session = Depends(get_db),
+):
+    """Update the first caption for an image (for backward compatibility)"""
+    img = crud.get_image(db, image_id)
+    if not img:
+        raise HTTPException(404, "image not found")
+    
+    if not img.captions:
+        raise HTTPException(404, "no captions found for this image")
+    
+    # Update the first caption
+    caption = crud.update_caption(db, str(img.captions[0].caption_id), update)
+    if not caption:
+        raise HTTPException(404, "caption not found")
+    
+    db.refresh(caption)
+    return schemas.CaptionOut.from_orm(caption)
+
+@router.delete(
+    "/captions/{caption_id}",
+)
+def delete_caption(
+    caption_id: str,
+    db: Session = Depends(get_db),
+):
+    """Delete caption data for a caption"""
+    success = crud.delete_caption(db, caption_id)
     if not success:
         raise HTTPException(404, "caption not found")
     return {"message": "Caption deleted successfully"}

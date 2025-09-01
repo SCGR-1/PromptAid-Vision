@@ -163,8 +163,8 @@ def test_database_consistency():
         images = db.query(models.Images).all()
         print(f"  + Total images in database: {len(images)}")
         
-        images_with_captions = db.query(models.Images).filter(models.Images.title.isnot(None)).all()
-        print(f"  + Images with caption data: {len(images_with_captions)}")
+        captions = db.query(models.Captions).all()
+        print(f"  + Total captions in database: {len(captions)}")
         
         sources = db.query(models.Source).all()
         print(f"  + Total sources: {len(sources)}")

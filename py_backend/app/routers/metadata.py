@@ -12,16 +12,16 @@ def get_db():
     finally:
         db.close()
 
-@router.put("/maps/{map_id}/metadata", response_model=schemas.ImageOut)
+@router.put("/captions/{caption_id}/metadata", response_model=schemas.CaptionOut)
 def update_metadata(
-    map_id: str,
+    caption_id: str,
     update: schemas.CaptionUpdate,
     db: Session = Depends(get_db)
 ):
-    c = crud.update_caption(db, map_id, update)
-    if not c:
+    caption = crud.update_caption(db, caption_id, update)
+    if not caption:
         raise HTTPException(404, "caption not found")
-    return c
+    return schemas.CaptionOut.from_orm(caption)
 
 @router.get("/sources", response_model=List[schemas.SourceOut])
 def get_sources(db: Session = Depends(get_db)):

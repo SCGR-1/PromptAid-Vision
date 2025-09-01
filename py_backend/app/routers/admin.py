@@ -290,13 +290,13 @@ async def delete_model(
                 detail=f"Model '{model_code}' not found"
             )
         
-        # Check if model is being used by any images
-        from ..models import Images
-        image_count = db.query(Images).filter(Images.model == model_code).count()
-        if image_count > 0:
+        # Check if model is being used by any captions
+        from ..models import Captions
+        caption_count = db.query(Captions).filter(Captions.model == model_code).count()
+        if caption_count > 0:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot delete model '{model_code}' - it is used by {image_count} image(s)"
+                detail=f"Cannot delete model '{model_code}' - it is used by {caption_count} caption(s)"
             )
         
         # Hard delete model (remove from database)

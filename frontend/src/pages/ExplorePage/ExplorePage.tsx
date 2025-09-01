@@ -62,7 +62,7 @@ export default function ExplorePage() {
 
   const fetchCaptions = () => {
     setIsLoadingContent(true);
-    fetch('/api/captions')
+    fetch('/api/captions/legacy')
       .then(r => {
         if (!r.ok) {
           throw new Error(`HTTP ${r.status}: ${r.statusText}`);

@@ -24,6 +24,22 @@ image_countries = Table(
     ),
 )
 
+images_captions = Table(
+    "images_captions", Base.metadata,
+    Column(
+      "image_id",
+      UUID(as_uuid=True),
+      ForeignKey("images.image_id", ondelete="CASCADE"),
+      primary_key=True,
+    ),
+    Column(
+      "caption_id",
+      UUID(as_uuid=True),
+      ForeignKey("captions.caption_id", ondelete="CASCADE"),
+      primary_key=True,
+    ),
+)
+
 class Source(Base):
     __tablename__ = "sources"
     s_code = Column(String, primary_key=True)
@@ -90,9 +106,12 @@ class JSONSchema(Base):
 class Images(Base):
     __tablename__ = "images"
     __table_args__ = (
-        CheckConstraint('accuracy  IS NULL OR (accuracy  BETWEEN 0 AND 100)', name='chk_images_accuracy'),
-        CheckConstraint('context   IS NULL OR (context   BETWEEN 0 AND 100)', name='chk_images_context'),
-        CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_images_usability'),
+        CheckConstraint('center_lat IS NULL OR (center_lat BETWEEN -90 AND 90)', name='chk_images_center_lat'),
+        CheckConstraint('center_lon IS NULL OR (center_lon BETWEEN -180 AND 180)', name='chk_images_center_lon'),
+        CheckConstraint('heading_deg IS NULL OR (heading_deg >= 0 AND heading_deg <= 360)', name='chk_images_heading_deg'),
+        CheckConstraint('pitch_deg IS NULL OR (pitch_deg BETWEEN -90 AND 90)', name='chk_images_pitch_deg'),
+        CheckConstraint('yaw_deg IS NULL OR (yaw_deg BETWEEN -180 AND 180)', name='chk_images_yaw_deg'),
+        CheckConstraint('roll_deg IS NULL OR (roll_deg BETWEEN -180 AND 180)', name='chk_images_roll_deg'),
     )
 
     image_id    = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -102,27 +121,9 @@ class Images(Base):
     event_type  = Column(String, ForeignKey("event_types.t_code"), nullable=False)
     epsg        = Column(String, ForeignKey("spatial_references.epsg"), nullable=False)
     image_type  = Column(String, ForeignKey("image_types.image_type"), nullable=False)
-    created_at  = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
     captured_at = Column(TIMESTAMP(timezone=True))
 
-    title      = Column(String, nullable=True)
-    prompt     = Column(String, ForeignKey("prompts.p_code"), nullable=True)
-    model      = Column(String, ForeignKey("models.m_code"), nullable=True)
-    schema_id  = Column(String, ForeignKey("json_schemas.schema_id"), nullable=True)
-    raw_json   = Column(JSONB, nullable=True)
-    generated  = Column(Text, nullable=True)
-    edited     = Column(Text)
-    accuracy   = Column(SmallInteger)
-    context    = Column(SmallInteger)
-    usability  = Column(SmallInteger)
-    starred    = Column(Boolean, default=False)
-    updated_at = Column(TIMESTAMP(timezone=True), onupdate=datetime.datetime.utcnow)
-
-    countries = relationship("Country", secondary=image_countries, backref="images")
-    schema    = relationship("JSONSchema")
-    model_r   = relationship("Models", foreign_keys=[model])
-    prompt_r  = relationship("Prompts", foreign_keys=[prompt])
-
+    # Drone-specific fields
     center_lon = Column(Float)   
     center_lat = Column(Float)
     amsl_m     = Column(Float)
@@ -134,3 +135,35 @@ class Images(Base):
     rtk_fix    = Column(Boolean)
     std_h_m    = Column(Float)
     std_v_m    = Column(Float)
+
+    # Relationships
+    countries = relationship("Country", secondary=image_countries, backref="images")
+    captions = relationship("Captions", secondary=images_captions, backref="images")
+
+class Captions(Base):
+    __tablename__ = "captions"
+    __table_args__ = (
+        CheckConstraint('accuracy IS NULL OR (accuracy BETWEEN 0 AND 100)', name='chk_captions_accuracy'),
+        CheckConstraint('context IS NULL OR (context BETWEEN 0 AND 100)', name='chk_captions_context'),
+        CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_captions_usability'),
+    )
+
+    caption_id  = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title       = Column(String, nullable=True)
+    prompt      = Column(String, ForeignKey("prompts.p_code"), nullable=True)
+    model       = Column(String, ForeignKey("models.m_code"), nullable=True)
+    schema_id   = Column(String, ForeignKey("json_schemas.schema_id"), nullable=True)
+    raw_json    = Column(JSONB, nullable=True)
+    generated   = Column(Text, nullable=True)
+    edited      = Column(Text)
+    accuracy    = Column(SmallInteger)
+    context     = Column(SmallInteger)
+    usability   = Column(SmallInteger)
+    starred     = Column(Boolean, default=False)
+    created_at  = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
+    updated_at  = Column(TIMESTAMP(timezone=True), onupdate=datetime.datetime.utcnow)
+
+    # Relationships
+    schema = relationship("JSONSchema")
+    model_r = relationship("Models", foreign_keys=[model])
+    prompt_r = relationship("Prompts", foreign_keys=[prompt])

@@ -210,7 +210,7 @@ export default function AnalyticsPage() {
           if (map.context != null) ctr.avgContext += map.context;
           if (map.usability != null) ctr.avgUsability += map.usability;
           
-          // Calculate edit time if both timestamps exist
+          // Calculate edit time if both timestamps exist (now from captions)
           if (map.created_at && map.updated_at) {
             const created = new Date(map.created_at).getTime();
             const updated = new Date(map.updated_at).getTime();

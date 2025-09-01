@@ -153,17 +153,6 @@ async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Dep
             event_type=event_type,
             epsg=epsg,
             image_type=payload.image_type,
-            title="no title",
-            prompt=prompt_code,
-            model="STUB_MODEL",
-            schema_id=schema_id,
-            raw_json={},
-            generated="",
-            edited="",
-            accuracy=50,
-            context=50,
-            usability=50,
-            starred=False,
             center_lon=payload.center_lon,
             center_lat=payload.center_lat,
             amsl_m=payload.amsl_m,
@@ -219,7 +208,8 @@ async def debug_database_status(db: Session = Depends(get_db)):
         # Check required tables
         tables_to_check = [
             "sources", "event_types", "spatial_references", "image_types",
-            "prompts", "models", "json_schemas", "images", "image_countries"
+            "prompts", "models", "json_schemas", "images", "image_countries",
+            "captions", "images_captions"
         ]
         
         for table in tables_to_check:

@@ -29,7 +29,7 @@ class ImageMetadataUpdate(BaseModel):
     countries: Optional[List[str]] = None
     epsg: Optional[str] = None
     image_type: Optional[str] = None
-    starred: Optional[bool] = None
+    starred: Optional[bool] = None  # Backward compatibility - updates first caption
     
     # Drone-specific fields (optional)
     center_lon: Optional[float] = None
@@ -44,16 +44,8 @@ class ImageMetadataUpdate(BaseModel):
     std_h_m: Optional[float] = None
     std_v_m: Optional[float] = None
 
-class ImageOut(BaseModel):
-    image_id: UUID
-    file_key: str
-    sha256: str
-    source: Optional[str] = None
-    event_type: str
-    epsg: Optional[str] = None
-    image_type: str
-    image_url: str
-    countries: List["CountryOut"] = []
+class CaptionOut(BaseModel):
+    caption_id: UUID
     title: Optional[str] = None
     prompt: Optional[str] = None
     model: Optional[str] = None
@@ -65,6 +57,37 @@ class ImageOut(BaseModel):
     context: Optional[int] = None
     usability: Optional[int] = None
     starred: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class ImageOut(BaseModel):
+    image_id: UUID
+    file_key: str
+    sha256: str
+    source: Optional[str] = None
+    event_type: str
+    epsg: Optional[str] = None
+    image_type: str
+    image_url: str
+    countries: List["CountryOut"] = []
+    captions: List[CaptionOut] = []
+    starred: bool = False  # Backward compatibility - from first caption
+    captured_at: Optional[datetime] = None
+    
+    # Backward compatibility fields for legacy frontend
+    title: Optional[str] = None
+    prompt: Optional[str] = None
+    model: Optional[str] = None
+    schema_id: Optional[str] = None
+    raw_json: Optional[dict] = None
+    generated: Optional[str] = None
+    edited: Optional[str] = None
+    accuracy: Optional[int] = None
+    context: Optional[int] = None
+    usability: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
@@ -93,6 +116,18 @@ class CaptionUpdate(BaseModel):
     accuracy: Optional[int] = None
     context: Optional[int] = None
     usability: Optional[int] = None
+
+class CaptionCreate(BaseModel):
+    title: str
+    prompt: str
+    model: str
+    raw_json: dict
+    generated: str
+    edited: str
+    accuracy: Optional[int] = None
+    context: Optional[int] = None
+    usability: Optional[int] = None
+    starred: bool = False
 
 class PromptOut(BaseModel):
     p_code: str
