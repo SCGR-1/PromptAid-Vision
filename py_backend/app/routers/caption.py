@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Form
+from fastapi import APIRouter, HTTPException, Depends, Form, Request
 from sqlalchemy.orm import Session
 from typing import List
 from .. import crud, database, schemas, storage
@@ -228,6 +228,7 @@ async def create_caption(
     response_model=List[schemas.ImageOut],
 )
 def get_all_captions_legacy_format(
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """Get all images with captions in the old format for backward compatibility"""
@@ -239,13 +240,18 @@ def get_all_captions_legacy_format(
     for caption in captions:
         db.refresh(caption)
         
-        # Get the associated image for this caption
-        if caption.images:
-            for image in caption.images:
-                from .upload import convert_image_to_dict
-                url = f"/api/images/{image.image_id}/file"
-                
-                img_dict = convert_image_to_dict(image, url)
+                        # Get the associated image for this caption
+                if caption.images:
+                    for image in caption.images:
+                        from .upload import convert_image_to_dict
+                        
+                        # Build absolute URL using request context
+                        base_url = str(request.base_url).rstrip('/')
+                        url = f"{base_url}/api/images/{image.image_id}/file"
+                        
+                        print(f"DEBUG: Generated image URL: {url}")
+                        
+                        img_dict = convert_image_to_dict(image, url)
                 
                 # Override with caption data
                 img_dict.update({

@@ -54,6 +54,9 @@ export default function MapDetailPage() {
   console.log('MapDetailsPage: Current URL:', window.location.href);
   console.log('MapDetailsPage: Hash:', window.location.hash);
   console.log('MapDetailsPage: mapId from useParams:', mapId);
+  console.log('MapDetailsPage: mapId type:', typeof mapId);
+  console.log('MapDetailsPage: mapId length:', mapId?.length);
+  console.log('MapDetailsPage: mapId value:', JSON.stringify(mapId));
   
   // Early validation - if mapId is invalid, show error immediately
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -222,7 +225,28 @@ export default function MapDetailPage() {
       const matchesImageType = !imageTypeFilter || map.image_type === imageTypeFilter;
       const matchesReferenceExamples = !showReferenceExamples || map.starred === true;
       
-      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+      const matches = matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+      
+      console.log('Auto-navigation check:', {
+        mapId,
+        search,
+        srcFilter,
+        catFilter,
+        regionFilter,
+        countryFilter,
+        imageTypeFilter,
+        showReferenceExamples,
+        matchesSearch,
+        matchesSource,
+        matchesCategory,
+        matchesRegion,
+        matchesCountry,
+        matchesImageType,
+        matchesReferenceExamples,
+        matches
+      });
+      
+      return matches;
     };
 
     if (!currentMapMatches()) {
@@ -231,6 +255,8 @@ export default function MapDetailPage() {
       fetch('/api/images')
         .then(r => r.json())
         .then(images => {
+          console.log('Auto-navigation: Received images from API:', images.length);
+          console.log('Auto-navigation: First few images:', images.slice(0, 3).map((img: any) => ({ image_id: img.image_id, title: img.title })));
           const firstMatching = images.find((img: any) => {
             const matchesSearch = !search || 
               img.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -249,6 +275,12 @@ export default function MapDetailPage() {
             
             return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
           });
+          
+          console.log('Auto-navigation: Found first matching image:', firstMatching ? {
+            image_id: firstMatching.image_id,
+            title: firstMatching.title,
+            source: firstMatching.source
+          } : 'No matching image found');
           
           if (firstMatching && 
               firstMatching.image_id && 

@@ -550,26 +550,36 @@ export default function ExplorePage() {
                       
                       if (c.image_id && c.image_id !== 'undefined' && c.image_id !== 'null') {
                         console.log('ExplorePage: Navigating to:', `/map/${c.image_id}`);
+                        console.log('ExplorePage: Full navigation URL:', `/#/map/${c.image_id}`);
                         navigate(`/map/${c.image_id}`);
                       } else {
                         console.error('Invalid image_id for navigation:', c.image_id);
+                        console.error('Full item data:', JSON.stringify(c, null, 2));
                         // Show a visual error in production
                         alert(`Cannot navigate: Invalid image ID (${c.image_id})`);
                       }
                     }}>
                       <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
                         {c.image_url ? (
-                          <img 
-                            src={c.image_url} 
-                            alt={c.file_key}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              target.parentElement!.innerHTML = 'Img';
-                            }}
-                          />
+                          <>
+                            {console.log('ExplorePage: Rendering image with URL:', c.image_url)}
+                            <img 
+                              src={c.image_url} 
+                              alt={c.file_key}
+                              onError={(e) => {
+                                console.error('ExplorePage: Image failed to load:', c.image_url);
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.parentElement!.innerHTML = 'Img';
+                              }}
+                              onLoad={() => console.log('ExplorePage: Image loaded successfully:', c.image_url)}
+                            />
+                          </>
                         ) : (
-                          'Img'
+                          <>
+                            {console.log('ExplorePage: No image_url provided for item:', c)}
+                            'Img'
+                          </>
                         )}
                       </div>
                       <div className={styles.mapItemContent}>
