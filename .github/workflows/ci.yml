@@ -21,13 +21,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: promptaid
-          MINIO_ROOT_PASSWORD: promptaid
-        ports:
-          - 9000:9000
+      # Removed MinIO service container - will start manually
 
     steps:
       - name: Check out code
@@ -61,6 +55,15 @@ jobs:
           source .venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Start MinIO
+        run: |
+          docker run -d \
+            --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=promptaid \
+            -e MINIO_ROOT_PASSWORD=promptaid \
+            minio/minio:latest server /data --console-address :9001
 
       - name: Wait for MinIO
         run: |
@@ -135,3 +138,9 @@ jobs:
           cd py_backend
           source .venv/bin/activate
           pytest
+
+      - name: Cleanup MinIO
+        if: always()
+        run: |
+          docker stop minio || true
+          docker rm minio || true
