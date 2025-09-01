@@ -65,18 +65,36 @@ export default function ExplorePage() {
     fetch('/api/captions/legacy')
       .then(r => {
         if (!r.ok) {
-          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+          console.error('ExplorePage: Legacy endpoint failed, trying regular images endpoint');
+          // Fallback to regular images endpoint
+          return fetch('/api/images').then(r2 => {
+            if (!r2.ok) {
+              throw new Error(`HTTP ${r2.status}: ${r2.statusText}`);
+            }
+            return r2.json();
+          });
         }
         return r.json();
       })
       .then(data => {
+        console.log('ExplorePage: API response data:', data);
+        
         if (Array.isArray(data)) {
-          const imagesWithCaptions = data.filter((item: { title?: string; generated?: string; model?: string }) => {
+          const imagesWithCaptions = data.filter((item: { title?: string; generated?: string; model?: string; image_id?: string }) => {
             const hasCaption = item.generated && item.model;
-            return hasCaption;
+            const hasImageId = item.image_id && item.image_id !== 'undefined' && item.image_id !== 'null';
+            
+            if (!hasImageId) {
+              console.error('ExplorePage: Item missing valid image_id:', item);
+            }
+            
+            return hasCaption && hasImageId;
           });
+          
+          console.log('ExplorePage: Filtered images with captions:', imagesWithCaptions.length);
           setCaptions(imagesWithCaptions);
         } else {
+          console.error('ExplorePage: API response is not an array:', data);
           setCaptions([]);
         }
       })
@@ -462,7 +480,11 @@ export default function ExplorePage() {
               if (value === 'explore' || value === 'mapDetails') {
                 setView(value);
                 if (value === 'mapDetails' && captions.length > 0) {
+                  if (captions[0]?.image_id && captions[0].image_id !== 'undefined' && captions[0].image_id !== 'null') {
                   navigate(`/map/${captions[0].image_id}`);
+                } else {
+                  console.error('Invalid image_id for navigation:', captions[0]?.image_id);
+                }
                 }
               }
             }}
@@ -522,7 +544,19 @@ export default function ExplorePage() {
               {!isLoadingContent && (
                 <div className="space-y-4">
                   {filtered.map(c => (
-                    <div key={c.image_id} className={styles.mapItem} onClick={() => navigate(`/map/${c.image_id}`)}>
+                    <div key={c.image_id} className={styles.mapItem} onClick={() => {
+                      console.log('ExplorePage: Clicking on image with ID:', c.image_id);
+                      console.log('ExplorePage: Image data:', c);
+                      
+                      if (c.image_id && c.image_id !== 'undefined' && c.image_id !== 'null') {
+                        console.log('ExplorePage: Navigating to:', `/map/${c.image_id}`);
+                        navigate(`/map/${c.image_id}`);
+                      } else {
+                        console.error('Invalid image_id for navigation:', c.image_id);
+                        // Show a visual error in production
+                        alert(`Cannot navigate: Invalid image ID (${c.image_id})`);
+                      }
+                    }}>
                       <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
                         {c.image_url ? (
                           <img 

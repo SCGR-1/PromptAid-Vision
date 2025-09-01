@@ -49,6 +49,35 @@ export default function MapDetailPage() {
   const { mapId } = useParams<{ mapId: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAdmin();
+  
+  // Debug: Log the current URL and mapId for production debugging
+  console.log('MapDetailsPage: Current URL:', window.location.href);
+  console.log('MapDetailsPage: Hash:', window.location.hash);
+  console.log('MapDetailsPage: mapId from useParams:', mapId);
+  
+  // Early validation - if mapId is invalid, show error immediately
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!mapId || mapId === 'undefined' || mapId === 'null' || mapId.trim() === '' || !uuidRegex.test(mapId)) {
+    return (
+      <PageContainer>
+        <div className="flex flex-col items-center gap-4 text-center py-12">
+          <div className="text-4xl">⚠️</div>
+          <div className="text-xl font-semibold">Invalid Map ID</div>
+          <div>The map ID provided is not valid.</div>
+          <div className="text-sm text-gray-500 mt-2">
+            Debug Info: mapId = "{mapId}" (type: {typeof mapId})
+          </div>
+          <Button
+            name="back-to-explore"
+            variant="secondary"
+            onClick={() => navigate('/explore')}
+          >
+            Return to Explore
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
   const [view, setView] = useState<'explore' | 'mapDetails'>('mapDetails');
   const [map, setMap] = useState<MapOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,13 +120,27 @@ export default function MapDetailPage() {
   ];
 
   const fetchMapData = useCallback(async (id: string) => {
+    console.log('fetchMapData called with id:', id);
+    console.log('fetchMapData id type:', typeof id);
+    
     // Validate the ID before making the request
     if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
+      console.log('fetchMapData: Invalid ID detected:', id);
       setError('Invalid Map ID');
       setLoading(false);
       return;
     }
 
+    // Additional UUID format validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      console.log('fetchMapData: Invalid UUID format:', id);
+      setError('Invalid Map ID format');
+      setLoading(false);
+      return;
+    }
+
+    console.log('fetchMapData: Making API call for id:', id);
     setIsNavigating(true);
     setLoading(true);
     
@@ -119,18 +162,41 @@ export default function MapDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (!mapId || mapId === 'undefined' || mapId === 'null') {
+    console.log('MapDetailsPage: mapId from useParams:', mapId);
+    console.log('MapDetailsPage: mapId type:', typeof mapId);
+    console.log('MapDetailsPage: mapId value:', mapId);
+    
+    if (!mapId || 
+        mapId === 'undefined' || 
+        mapId === 'null' || 
+        mapId.trim() === '' ||
+        mapId === undefined ||
+        mapId === null) {
+      console.log('MapDetailsPage: Invalid mapId, setting error');
       setError('Map ID is required');
       setLoading(false);
       return;
     }
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(mapId)) {
+      console.log('MapDetailsPage: Invalid UUID format:', mapId);
+      setError('Invalid Map ID format');
+      setLoading(false);
+      return;
+    }
+
+    console.log('MapDetailsPage: Fetching data for mapId:', mapId);
     fetchMapData(mapId);
   }, [mapId, fetchMapData]);
 
   // Auto-navigate to first matching item when filters change
   useEffect(() => {
     if (!map || loading || isDeleting) return;
+    
+    if (!mapId || mapId === 'undefined' || mapId === 'null' || mapId.trim() === '') {
+      return;
+    }
     
     const currentMapMatches = () => {
       const matchesSearch = !search || 
