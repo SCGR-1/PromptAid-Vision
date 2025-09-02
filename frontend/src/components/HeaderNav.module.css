@@ -1,0 +1,53 @@
+/* HeaderNav Dropdown Styles */
+.dropdownContainer {
+  position: relative;
+}
+
+
+
+.dropdownMenu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+  width: 180px;
+  background: var(--go-ui-color-white);
+  border-radius: var(--go-ui-border-radius-md);
+  box-shadow: var(--go-ui-box-shadow-lg);
+  border: 1px solid var(--go-ui-color-separator);
+  z-index: 50;
+  animation: dropdownSlideIn 0.15s ease-out;
+}
+
+.dropdownContent {
+  padding: var(--go-ui-spacing-xs) 0;
+}
+
+/* Animation keyframes */
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .dropdownMenu {
+    width: 160px;
+    right: -0.25rem;
+  }
+  
+  .dropdownItem {
+    padding: var(--go-ui-spacing-xs) var(--go-ui-spacing-sm);
+    font-size: var(--go-ui-font-size-xs);
+  }
+}
+
+
+
+

@@ -43,19 +43,7 @@ export default function FilterBar({
           />
         </Container>
 
-        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-          <Button
-            name="reference-examples"
-            variant={showReferenceExamples ? "primary" : "secondary"}
-            onClick={() => setShowReferenceExamples(!showReferenceExamples)}
-            className="whitespace-nowrap"
-          >
-            <span className="mr-2">
-              {showReferenceExamples ? "★" : "☆"}
-            </span>
-            Reference Examples
-          </Button>
-        </Container>
+
 
         <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
           <Button

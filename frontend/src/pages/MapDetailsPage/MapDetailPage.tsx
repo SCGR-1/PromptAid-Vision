@@ -975,29 +975,8 @@ export default function MapDetailPage() {
             labelSelector={(o) => o.label}
           />
           
-          {/* Export Dataset Button */}
-          <Button
-            name="export-dataset"
-            variant="secondary"
-            onClick={() => setShowExportModal(true)}
-          >
-            Export
-          </Button>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="mb-6 space-y-4">
-          {/* Layer 1: Search, Reference Examples, Clear Filters */}
-          <div className="flex flex-wrap items-center gap-4">
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
-              <TextInput
-                name="search"
-                placeholder="Search examples..."
-                value={search}
-                onChange={(v) => setSearch(v || '')}
-              />
-            </Container>
-
+          {/* Action Buttons - Right Aligned */}
+          <div className="flex items-center gap-2 ml-auto">
             {/* Reference Examples Filter - Available to all users */}
             <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
               <Button
@@ -1016,6 +995,32 @@ export default function MapDetailPage() {
                 Reference Examples
               </Button>
             </Container>
+
+            {/* Export Dataset Button */}
+            <Button
+              name="export-dataset"
+              variant="secondary"
+              onClick={() => setShowExportModal(true)}
+            >
+              Export
+            </Button>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="mb-6 space-y-4">
+          {/* Layer 1: Search, Reference Examples, Clear Filters */}
+          <div className="flex flex-wrap items-center gap-4">
+            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
+              <TextInput
+                name="search"
+                placeholder="Search examples..."
+                value={search}
+                onChange={(v) => setSearch(v || '')}
+              />
+            </Container>
+
+
 
             <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
               <Button

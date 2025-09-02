@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PageContainer, Container, SegmentInput, Spinner, Button } from '@ifrc-go/ui';
+import { DeleteBinLineIcon } from '@ifrc-go/icons';
 import { useFilterContext } from '../../hooks/useFilterContext';
+import { useAdmin } from '../../hooks/useAdmin';
 import FilterBar from '../../components/FilterBar';
 import styles from './ExplorePage.module.css';
 import ExportModal from '../../components/ExportModal';
@@ -33,6 +35,7 @@ interface ImageWithCaptionOut {
 export default function ExplorePage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated } = useAdmin();
   const [view, setView] = useState<'explore' | 'mapDetails'>('explore');
   const [captions, setCaptions] = useState<ImageWithCaptionOut[]>([]);
   
@@ -43,7 +46,8 @@ export default function ExplorePage() {
     regionFilter, 
     countryFilter, 
     imageTypeFilter, 
-    showReferenceExamples
+    showReferenceExamples,
+    setShowReferenceExamples
   } = useFilterContext();
   
   const [sources, setSources] = useState<{s_code: string, label: string}[]>([]);
@@ -56,6 +60,11 @@ export default function ExplorePage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  
+  // Delete state management
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'List' },
@@ -478,6 +487,39 @@ export default function ExplorePage() {
     }
   };
 
+  // Delete functions
+  const handleDelete = (imageId: string) => {
+    setImageToDelete(imageId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!imageToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      console.log('Deleting image with ID:', imageToDelete);
+      const response = await fetch(`/api/images/${imageToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Remove the deleted image from the captions list
+        setCaptions(prev => prev.filter(img => img.image_id !== imageToDelete));
+        setShowDeleteConfirm(false);
+        setImageToDelete('');
+      } else {
+        console.error('Delete failed');
+        alert('Failed to delete image. Please try again.');
+      }
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Failed to delete image. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <PageContainer>
       {isLoadingContent ? (
@@ -510,14 +552,36 @@ export default function ExplorePage() {
               labelSelector={(o) => o.label}
             />
             
-            {/* Export Dataset Button */}
-            <Button
-              name="export-dataset"
-              variant="secondary"
-              onClick={() => setShowExportModal(true)}
-            >
-              Export
-            </Button>
+            {/* Action Buttons - Right Aligned */}
+            <div className="flex items-center gap-2 ml-auto">
+              {/* Reference Examples Filter - Available to all users */}
+              <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                <Button
+                  name="reference-examples"
+                  variant={showReferenceExamples ? "primary" : "secondary"}
+                  onClick={() => setShowReferenceExamples(!showReferenceExamples)}
+                  className="whitespace-nowrap"
+                >
+                  <span className="mr-2">
+                    {showReferenceExamples ? (
+                      <span className="text-yellow-400">★</span>
+                    ) : (
+                      <span className="text-yellow-400">☆</span>
+                    )}
+                  </span>
+                  Reference Examples
+                </Button>
+              </Container>
+
+              {/* Export Dataset Button */}
+              <Button
+                name="export-dataset"
+                variant="secondary"
+                onClick={() => setShowExportModal(true)}
+              >
+                Export
+              </Button>
+            </div>
           </div>
 
           {view === 'explore' ? (
@@ -561,79 +625,99 @@ export default function ExplorePage() {
               {!isLoadingContent && (
                 <div className="space-y-4">
                   {filtered.map(c => (
-                    <div key={c.image_id} className={styles.mapItem} onClick={() => {
-                      console.log('ExplorePage: Clicking on image with ID:', c.image_id);
-                      console.log('ExplorePage: Image data:', c);
-                      
-                      if (c.image_id && c.image_id !== 'undefined' && c.image_id !== 'null') {
-                        console.log('ExplorePage: Navigating to:', `/map/${c.image_id}`);
-                        console.log('ExplorePage: Full navigation URL:', `/#/map/${c.image_id}`);
-                        navigate(`/map/${c.image_id}`);
-                      } else {
-                        console.error('Invalid image_id for navigation:', c.image_id);
-                        console.error('Full item data:', JSON.stringify(c, null, 2));
-                        // Show a visual error in production
-                        alert(`Cannot navigate: Invalid image ID (${c.image_id})`);
-                      }
-                    }}>
-                      <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
-                        {c.image_url ? (
-                          <>
-                            {console.log('ExplorePage: Rendering image with URL:', c.image_url)}
-                            <img 
-                              src={c.image_url} 
-                              alt={c.file_key}
-                              onError={(e) => {
-                                console.error('ExplorePage: Image failed to load:', c.image_url);
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.parentElement!.innerHTML = 'Img';
-                              }}
-                              onLoad={() => console.log('ExplorePage: Image loaded successfully:', c.image_url)}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            {console.log('ExplorePage: No image_url provided for item:', c)}
-                            'Img'
-                          </>
-                        )}
-                      </div>
-                      <div className={styles.mapItemContent}>
-                        <h3 className={styles.mapItemTitle}>
-                          <div className="flex items-center gap-2">
-                            <span>{c.title || 'Untitled'}</span>
-                            {c.starred && (
-                              <span className="text-red-500 text-lg" title="Starred image">★</span>
-                            )}
-                          </div>
-                        </h3>
-                        <div className={styles.mapItemMetadata}>
-                          <div className={styles.metadataTags}>
-                            {c.image_type !== 'drone_image' && (
-                              <span className={styles.metadataTagSource}>
-                                {sources.find(s => s.s_code === c.source)?.label || c.source}
+                    <div key={c.image_id} className="flex items-center gap-4">
+                      {/* Card Content */}
+                      <div className={`${styles.mapItem} flex-1`} onClick={() => {
+                        console.log('ExplorePage: Clicking on image with ID:', c.image_id);
+                        console.log('ExplorePage: Image data:', c);
+                        
+                        if (c.image_id && c.image_id !== 'undefined' && c.image_id !== 'null') {
+                          console.log('ExplorePage: Navigating to:', `/map/${c.image_id}`);
+                          console.log('ExplorePage: Full navigation URL:', `/#/map/${c.image_id}`);
+                          navigate(`/map/${c.image_id}`);
+                        } else {
+                          console.error('Invalid image_id for navigation:', c.image_id);
+                          console.error('Full item data:', JSON.stringify(c, null, 2));
+                          // Show a visual error in production
+                          alert(`Cannot navigate: Invalid image ID (${c.image_id})`);
+                        }
+                      }}>
+                        <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
+                          {c.image_url ? (
+                            <>
+                              {console.log('ExplorePage: Rendering image with URL:', c.image_url)}
+                              <img 
+                                src={c.image_url} 
+                                alt={c.file_key}
+                                onError={(e) => {
+                                  console.error('ExplorePage: Image failed to load:', c.image_url);
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.parentElement!.innerHTML = 'Img';
+                                }}
+                                onLoad={() => console.log('ExplorePage: Image loaded successfully:', c.image_url)}
+                              />
+                            </>
+                          ) : (
+                            <>
+                              {console.log('ExplorePage: No image_url provided for item:', c)}
+                              'Img'
+                            </>
+                          )}
+                        </div>
+                        <div className={styles.mapItemContent}>
+                          <h3 className={styles.mapItemTitle}>
+                            <div className="flex items-center gap-2">
+                              <span>{c.title || 'Untitled'}</span>
+                              {c.starred && (
+                                <span className="text-red-500 text-lg" title="Starred image">★</span>
+                              )}
+                            </div>
+                          </h3>
+                          <div className={styles.mapItemMetadata}>
+                            <div className={styles.metadataTags}>
+                              {c.image_type !== 'drone_image' && (
+                                <span className={styles.metadataTagSource}>
+                                  {sources.find(s => s.s_code === c.source)?.label || c.source}
+                                </span>
+                              )}
+                              <span className={styles.metadataTagType}>
+                                {types.find(t => t.t_code === c.event_type)?.label || c.event_type}
                               </span>
-                            )}
-                            <span className={styles.metadataTagType}>
-                              {types.find(t => t.t_code === c.event_type)?.label || c.event_type}
-                            </span>
-                            <span className={styles.metadataTag}>
-                              {imageTypes.find(it => it.image_type === c.image_type)?.label || c.image_type}
-                            </span>
-                            {c.countries && c.countries.length > 0 && (
-                              <>
-                                <span className={styles.metadataTag}>
-                                  {regions.find(r => r.r_code === c.countries[0].r_code)?.label || 'Unknown Region'}
-                                </span>
-                                <span className={styles.metadataTag}>
-                                  {c.countries.map(country => country.label).join(', ')}
-                                </span>
-                              </>
-                            )}
+                              <span className={styles.metadataTag}>
+                                {imageTypes.find(it => it.image_type === c.image_type)?.label || c.image_type}
+                              </span>
+                              {c.countries && c.countries.length > 0 && (
+                                <>
+                                  <span className={styles.metadataTag}>
+                                    {regions.find(r => r.r_code === c.countries[0].r_code)?.label || 'Unknown Region'}
+                                  </span>
+                                  <span className={styles.metadataTag}>
+                                    {c.countries.map(country => country.label).join(', ')}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Delete Button - Admin Only */}
+                      {isAuthenticated && (
+                        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+                          <Button
+                            name={`delete-${c.image_id}`}
+                            variant="tertiary"
+                            size={1}
+                            className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 hover:border-red-300"
+                            onClick={() => handleDelete(c.image_id)}
+                            title="Delete"
+                            aria-label="Delete saved image"
+                          >
+                            <DeleteBinLineIcon className="w-4 h-4" />
+                          </Button>
+                        </Container>
+                      )}
                     </div>
                   ))}
 
@@ -655,6 +739,38 @@ export default function ExplorePage() {
           </div>
         )}
       </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className={styles.fullSizeModalOverlay} onClick={() => setShowDeleteConfirm(false)}>
+          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.ratingWarningContent}>
+              <h3 className={styles.ratingWarningTitle}>Delete Image?</h3>
+              <p className={styles.ratingWarningText}>
+                This action cannot be undone. Are you sure you want to delete this saved image and all related data?
+              </p>
+              <div className={styles.ratingWarningButtons}>
+                <Button
+                  name="confirm-delete"
+                  variant="secondary"
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Button>
+                <Button
+                  name="cancel-delete"
+                  variant="tertiary"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Export Selection Modal */}

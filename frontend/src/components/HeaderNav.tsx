@@ -7,7 +7,11 @@ import {
   QuestionLineIcon,
   GoMainIcon,
   SettingsIcon,
+  ChevronDownLineIcon,
+  MenuLineIcon,
 } from "@ifrc-go/icons";
+import { useState, useEffect, useRef } from "react";
+import styles from './HeaderNav.module.css';
 
 
 declare global {
@@ -25,6 +29,22 @@ const navItems = [
 export default function HeaderNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <nav className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-white/95">
@@ -112,65 +132,77 @@ export default function HeaderNav() {
           })}
         </nav>
 
-        <div className="flex items-center space-x-2">
-          <Button
-            name="help"
-            variant={location.pathname === '/help' ? "primary" : "tertiary"}
-            size={1}
-            className={`transition-all duration-200 ${
-              location.pathname === '/help'
-                ? 'shadow-lg shadow-ifrcRed/20 transform scale-105' 
-                : 'hover:bg-blue-50 hover:text-blue-600 hover:shadow-md hover:scale-105'
-            }`}
-            onClick={() => {
-              if (location.pathname === "/upload") {
-                if (window.confirmNavigationIfNeeded) {
-                  window.confirmNavigationIfNeeded('/help');
-                  return;
-                }
-                if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
-                  return;
-                }
-              }
-              navigate('/help');
-            }}
-          >
-            <QuestionLineIcon className="w-4 h-4" />
-            <span className="inline ml-2 font-semibold">Help & Support</span>
-          </Button>
+        <div className={styles.dropdownContainer} ref={dropdownRef}>
+          <Container withInternalPadding className="p-2">
+            <Button
+              name="more-options"
+              variant={isDropdownOpen ? "primary" : "tertiary"}
+              size={1}
+              className="transition-all duration-200"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <MenuLineIcon className="w-4 h-4" />
+            </Button>
+          </Container>
+          
+          {/* Enhanced Dropdown Menu */}
+          {isDropdownOpen && (
+            <div className={styles.dropdownMenu}>
+              <div className={styles.dropdownContent}>
+                <Container withInternalPadding className="p-2">
+                  <Button
+                    name="help-support"
+                    variant="tertiary"
+                    size={1}
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      if (location.pathname === "/upload") {
+                        if (window.confirmNavigationIfNeeded) {
+                          window.confirmNavigationIfNeeded('/help');
+                          return;
+                        }
+                        if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                          return;
+                        }
+                      }
+                      navigate('/help');
+                    }}
+                  >
+                    <QuestionLineIcon className="w-4 h-4" />
+                    <span className="ml-2 font-semibold">Help & Support</span>
+                  </Button>
+                </Container>
+                
+                <Container withInternalPadding className="p-2">
+                  <Button
+                    name="dev"
+                    variant="tertiary"
+                    size={1}
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      if (location.pathname === "/upload") {
+                        if (window.confirmNavigationIfNeeded) {
+                          window.confirmNavigationIfNeeded('/admin');
+                          return;
+                        }
+                        if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                          return;
+                        }
+                      }
+                      navigate('/admin');
+                    }}
+                  >
+                    <SettingsIcon className="w-4 h-4" />
+                    <span className="ml-2 font-semibold">Dev</span>
+                  </Button>
+                </Container>
+              </div>
+            </div>
+          )}
+          
 
-          <div className="relative">
-            <Container withInternalPadding className="p-2">
-              <Button
-                name="dev"
-                variant={location.pathname === '/admin' ? "primary" : "tertiary"}
-                size={1}
-                className={`transition-all duration-200 ${
-                  location.pathname === '/admin'
-                    ? 'shadow-lg shadow-purple-500/20 transform scale-105'
-                    : 'hover:bg-purple-50 hover:text-purple-600 hover:shadow-md hover:scale-105'
-                }`}
-                onClick={() => {
-                  if (location.pathname === "/upload") {
-                    if (window.confirmNavigationIfNeeded) {
-                      window.confirmNavigationIfNeeded('/admin');
-                      return;
-                    }
-                    if (!confirm("You have unsaved changes. Are you sure you want to leave?")) {
-                      return;
-                    }
-                  }
-                  navigate('/admin');
-                }}
-              >
-                <SettingsIcon className="w-4 h-4" />
-                <span className="inline ml-2 font-semibold">Dev</span>
-              </Button>
-            </Container>
-            {location.pathname === '/admin' && (
-              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-purple-500 rounded-full animate-pulse"></div>
-            )}
-          </div>
         </div>
       </PageContainer>
     </nav>
