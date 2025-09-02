@@ -1675,13 +1675,24 @@ export default function UploadPage() {
       {step === 3 && (
         <div className={styles.successContainer}>
           <Heading level={2} className={styles.successHeading}>Saved!</Heading>
-          <p className={styles.successText}>Your caption has been successfully saved.</p>
+          <p className={styles.successText}>
+            {searchParams.get('isContribution') === 'true' 
+              ? 'Your contribution has been successfully saved.' 
+              : 'Your caption has been successfully saved.'
+            }
+          </p>
           <div className={styles.successButton}>
             <Button
-              name="upload-another"
-              onClick={resetToStep1}
+              name={searchParams.get('isContribution') === 'true' ? 'back-to-explore' : 'upload-another'}
+              onClick={() => {
+                if (searchParams.get('isContribution') === 'true') {
+                  navigate('/explore');
+                } else {
+                  resetToStep1();
+                }
+              }}
             >
-              Upload Another
+              {searchParams.get('isContribution') === 'true' ? 'Back to Explore' : 'Upload Another'}
             </Button>
           </div>
         </div>

@@ -107,6 +107,7 @@ export default function MapDetailPage() {
   const [droneImagesSelected, setDroneImagesSelected] = useState(true);
   
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showContributeConfirm, setShowContributeConfirm] = useState(false);
   
   const {
     search, setSearch,
@@ -607,7 +608,12 @@ export default function MapDetailPage() {
     return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples ? map : null;
   }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
 
-  const handleContribute = async () => {
+  const handleContribute = () => {
+    if (!map) return;
+    setShowContributeConfirm(true);
+  };
+
+  const handleContributeConfirm = async () => {
     if (!map) return;
     
     setIsGenerating(true);
@@ -655,8 +661,8 @@ export default function MapDetailPage() {
       console.log('Caption generation response:', captionData);
       
       // Now navigate to the upload page with the processed data
-              const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
-        navigate(url);
+      const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
+      navigate(url);
       
     } catch (error: unknown) {
       console.error('Contribution failed:', error);
@@ -664,6 +670,10 @@ export default function MapDetailPage() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleContributeCancel = () => {
+    setShowContributeConfirm(false);
   };
  
   const createImageData = (map: any, fileName: string) => ({
@@ -1369,6 +1379,44 @@ export default function MapDetailPage() {
                   Cancel
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contribute Confirmation Modal */}
+      {showContributeConfirm && (
+        <div className={styles.fullSizeModalOverlay} onClick={handleContributeCancel}>
+          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.ratingWarningContent}>
+              <p className={styles.ratingWarningText}>
+                This will start a new independent upload with just the image.
+              </p>
+              {!isGenerating && (
+                <div className={styles.ratingWarningButtons}>
+                  <Button
+                    name="confirm-contribute"
+                    variant="secondary"
+                    onClick={handleContributeConfirm}
+                  >
+                    Continue
+                  </Button>
+                  <Button
+                    name="cancel-contribute"
+                    variant="tertiary"
+                    onClick={handleContributeCancel}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+              {isGenerating && (
+                <div className="flex flex-col items-center gap-2 mt-4">
+                  <Spinner className="text-ifrcRed" />
+                  <div className="text-sm font-medium">Generating...</div>
+                  <div className="text-xs text-gray-600">This might take a few seconds</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
