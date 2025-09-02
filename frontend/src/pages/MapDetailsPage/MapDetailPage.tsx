@@ -1390,7 +1390,6 @@ export default function MapDetailPage() {
           droneImagesCount={map.image_type === 'drone_image' ? 1 : 0}
           isLoading={isExporting}
           exportSuccess={exportSuccess}
-          isPageLoading={loading}
           variant="single"
           onNavigateToList={() => {
             setShowExportModal(false);

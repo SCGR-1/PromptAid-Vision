@@ -480,39 +480,47 @@ export default function ExplorePage() {
 
   return (
     <PageContainer>
-      <div className="max-w-7xl mx-auto">
-        <div className={styles.tabSelector}>
-          <SegmentInput
-            name="explore-view"
-            value={view}
-            onChange={(value) => {
-              if (value === 'explore' || value === 'mapDetails') {
-                setView(value);
-                if (value === 'mapDetails' && captions.length > 0) {
-                  if (captions[0]?.image_id && captions[0].image_id !== 'undefined' && captions[0].image_id !== 'null') {
-                  navigate(`/map/${captions[0].image_id}`);
-                } else {
-                  console.error('Invalid image_id for navigation:', captions[0]?.image_id);
-                }
-                }
-              }
-            }}
-            options={viewOptions}
-            keySelector={(o) => o.key}
-            labelSelector={(o) => o.label}
-          />
-          
-          {/* Export Dataset Button */}
-          <Button
-            name="export-dataset"
-            variant="secondary"
-            onClick={() => setShowExportModal(true)}
-          >
-            Export
-          </Button>
+      {isLoadingContent ? (
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Spinner className="text-ifrcRed" />
+            <div>Loading examples...</div>
+          </div>
         </div>
+      ) : (
+        <div className="max-w-7xl mx-auto">
+          <div className={styles.tabSelector}>
+            <SegmentInput
+              name="explore-view"
+              value={view}
+              onChange={(value) => {
+                if (value === 'explore' || value === 'mapDetails') {
+                  setView(value);
+                  if (value === 'mapDetails' && captions.length > 0) {
+                    if (captions[0]?.image_id && captions[0].image_id !== 'undefined' && captions[0].image_id !== 'null') {
+                    navigate(`/map/${captions[0].image_id}`);
+                  } else {
+                    console.error('Invalid image_id for navigation:', captions[0]?.image_id);
+                  }
+                  }
+                }
+              }}
+              options={viewOptions}
+              keySelector={(o) => o.key}
+              labelSelector={(o) => o.label}
+            />
+            
+            {/* Export Dataset Button */}
+            <Button
+              name="export-dataset"
+              variant="secondary"
+              onClick={() => setShowExportModal(true)}
+            >
+              Export
+            </Button>
+          </div>
 
-        {view === 'explore' ? (
+          {view === 'explore' ? (
           <div className="space-y-6">
             {/* Search and Filters */}
             <div className="mb-6 space-y-4">
@@ -647,6 +655,7 @@ export default function ExplorePage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Export Selection Modal */}
       <ExportModal
@@ -667,7 +676,6 @@ export default function ExplorePage() {
         droneImagesCount={filtered.filter(img => img.image_type === 'drone_image').length}
         isLoading={isExporting}
         exportSuccess={exportSuccess}
-        isPageLoading={isLoadingContent}
       />
     </PageContainer>
   );

@@ -13,7 +13,6 @@ interface ExportModalProps {
   droneImagesCount: number;
   isLoading?: boolean;
   exportSuccess?: boolean;
-  isPageLoading?: boolean;
   variant?: 'bulk' | 'single';
   onNavigateToList?: () => void;
   onNavigateAndExport?: () => void;
@@ -27,7 +26,6 @@ export default function ExportModal({
   droneImagesCount,
   isLoading = false,
   exportSuccess = false,
-  isPageLoading = false,
   variant = 'bulk',
   onNavigateAndExport
 }: ExportModalProps) {
@@ -69,22 +67,6 @@ export default function ExportModal({
     return (
       <div className={styles.fullSizeModalOverlay} onClick={handleClose}>
         <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
-          {isPageLoading && (
-            <div className={styles.loadingOverlay}>
-              <div className="flex flex-col items-center gap-4">
-                <Spinner className="text-ifrcRed" />
-                <div className="flex flex-col items-center gap-4 mt-4">
-                  <Button
-                    name="cancel-page-loading"
-                    variant="tertiary"
-                    onClick={handleClose}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
           {isLoading && (
             <div className={styles.loadingOverlay}>
               <div className="flex flex-col items-center gap-4">
@@ -161,22 +143,6 @@ export default function ExportModal({
   return (
     <div className={styles.fullSizeModalOverlay} onClick={handleClose}>
       <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
-        {isPageLoading && (
-          <div className={styles.loadingOverlay}>
-            <div className="flex flex-col items-center gap-4">
-              <Spinner className="text-ifrcRed" />
-              <div className="flex flex-col items-center gap-4 mt-4">
-                <Button
-                  name="cancel-page-loading"
-                  variant="tertiary"
-                  onClick={handleClose}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
         {isLoading && (
           <div className={styles.loadingOverlay}>
             <div className="flex flex-col items-center gap-4">
