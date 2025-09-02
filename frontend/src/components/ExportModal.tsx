@@ -12,6 +12,8 @@ interface ExportModalProps {
   crisisMapsCount: number;
   droneImagesCount: number;
   isLoading?: boolean;
+  exportSuccess?: boolean;
+  isPageLoading?: boolean;
   variant?: 'bulk' | 'single';
   onNavigateToList?: () => void;
   onNavigateAndExport?: () => void;
@@ -24,6 +26,8 @@ export default function ExportModal({
   crisisMapsCount,
   droneImagesCount,
   isLoading = false,
+  exportSuccess = false,
+  isPageLoading = false,
   variant = 'bulk',
   onNavigateAndExport
 }: ExportModalProps) {
@@ -52,7 +56,6 @@ export default function ExportModal({
     if (droneImagesSelected) selectedTypes.push('drone_image');
     
     onExport(exportMode, selectedTypes);
-    onClose();
   };
 
   const handleClose = () => {
@@ -66,12 +69,43 @@ export default function ExportModal({
     return (
       <div className={styles.fullSizeModalOverlay} onClick={handleClose}>
         <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+          {isPageLoading && (
+            <div className={styles.loadingOverlay}>
+              <div className="flex flex-col items-center gap-4">
+                <Spinner className="text-ifrcRed" />
+                <div className="flex flex-col items-center gap-4 mt-4">
+                  <Button
+                    name="cancel-page-loading"
+                    variant="tertiary"
+                    onClick={handleClose}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           {isLoading && (
             <div className={styles.loadingOverlay}>
               <div className="flex flex-col items-center gap-4">
                 <Spinner className="text-ifrcRed" />
                 <div className="text-lg font-medium">Exporting...</div>
-                <div className="text-sm text-gray-600">Please wait while your data is being prepared</div>
+                <div className="text-sm text-gray-600">This might take a few seconds</div>
+              </div>
+            </div>
+          )}
+          {exportSuccess && (
+            <div className={styles.loadingOverlay}>
+              <div className="flex flex-col items-center gap-4">
+                <div className="text-lg font-medium">Export Successful!</div>
+                <div className="text-sm text-gray-600">Your dataset has been downloaded</div>
+                <Button
+                  name="close-export-success"
+                  onClick={handleClose}
+                  className="mt-4"
+                >
+                  Close
+                </Button>
               </div>
             </div>
           )}
@@ -127,12 +161,43 @@ export default function ExportModal({
   return (
     <div className={styles.fullSizeModalOverlay} onClick={handleClose}>
       <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
+        {isPageLoading && (
+          <div className={styles.loadingOverlay}>
+            <div className="flex flex-col items-center gap-4">
+              <Spinner className="text-ifrcRed" />
+              <div className="flex flex-col items-center gap-4 mt-4">
+                <Button
+                  name="cancel-page-loading"
+                  variant="tertiary"
+                  onClick={handleClose}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
         {isLoading && (
           <div className={styles.loadingOverlay}>
             <div className="flex flex-col items-center gap-4">
               <Spinner className="text-ifrcRed" />
               <div className="text-lg font-medium">Exporting...</div>
-              <div className="text-sm text-gray-600">Please wait while your data is being prepared</div>
+              <div className="text-sm text-gray-600">This might take a few seconds</div>
+            </div>
+          </div>
+        )}
+        {exportSuccess && (
+          <div className={styles.loadingOverlay}>
+            <div className="flex flex-col items-center gap-4">
+              <div className="text-lg font-medium">Export Successful!</div>
+              <div className="text-sm text-gray-600">Your dataset has been downloaded</div>
+              <Button
+                name="close-export-success"
+                onClick={handleClose}
+                className="mt-4"
+              >
+                Close
+              </Button>
             </div>
           </div>
         )}

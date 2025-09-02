@@ -97,6 +97,8 @@ export default function MapDetailPage() {
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
   const [exportMode, setExportMode] = useState<'standard' | 'fine-tuning'>('standard');
   const [trainSplit, setTrainSplit] = useState(80);
   const [testSplit, setTestSplit] = useState(10);
@@ -681,6 +683,9 @@ export default function MapDetailPage() {
   const exportDataset = async (mode: 'standard' | 'fine-tuning') => {
     if (!map) return;
     
+    setIsExporting(true);
+    setExportSuccess(false);
+    
     try {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
@@ -906,9 +911,13 @@ export default function MapDetailPage() {
       URL.revokeObjectURL(url);
 
       console.log(`Exported ${map.image_type} dataset with 1 image in ${mode} mode`);
+      
+      setExportSuccess(true);
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export dataset. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -1364,7 +1373,11 @@ export default function MapDetailPage() {
       {showExportModal && (
         <ExportModal
           isOpen={showExportModal}
-          onClose={() => setShowExportModal(false)}
+          onClose={() => {
+            setShowExportModal(false);
+            setExportSuccess(false);
+            setIsExporting(false);
+          }}
           onExport={(mode, selectedTypes) => {
             if (selectedTypes.includes(map.image_type)) {
               exportDataset(mode);
@@ -1375,7 +1388,9 @@ export default function MapDetailPage() {
           hasFilters={false}
           crisisMapsCount={map.image_type === 'crisis_map' ? 1 : 0}
           droneImagesCount={map.image_type === 'drone_image' ? 1 : 0}
-          isLoading={false}
+          isLoading={isExporting}
+          exportSuccess={exportSuccess}
+          isPageLoading={loading}
           variant="single"
           onNavigateToList={() => {
             setShowExportModal(false);

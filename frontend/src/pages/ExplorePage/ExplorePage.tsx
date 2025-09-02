@@ -54,6 +54,8 @@ export default function ExplorePage() {
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'List' },
@@ -202,6 +204,9 @@ export default function ExplorePage() {
       alert('No images to export');
       return;
     }
+
+    setIsExporting(true);
+    setExportSuccess(false);
 
     try {
       const JSZip = (await import('jszip')).default;
@@ -463,9 +468,13 @@ export default function ExplorePage() {
       console.log(`Exported ${mode} datasets with ${totalImages} total images:`);
       if (crisisMaps.length > 0) console.log(`- Crisis maps: ${crisisMaps.length} images`);
       if (droneImages.length > 0) console.log(`- Drone images: ${droneImages.length} images`);
+      
+      setExportSuccess(true);
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export dataset. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -642,7 +651,11 @@ export default function ExplorePage() {
       {/* Export Selection Modal */}
       <ExportModal
         isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
+        onClose={() => {
+          setShowExportModal(false);
+          setExportSuccess(false);
+          setIsExporting(false);
+        }}
         onExport={(mode, selectedTypes) => {
           const filteredByType = filtered.filter(img => selectedTypes.includes(img.image_type));
           exportDataset(filteredByType, mode);
@@ -652,7 +665,9 @@ export default function ExplorePage() {
         hasFilters={!!(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples)}
         crisisMapsCount={filtered.filter(img => img.image_type === 'crisis_map').length}
         droneImagesCount={filtered.filter(img => img.image_type === 'drone_image').length}
-        isLoading={isLoadingFilters}
+        isLoading={isExporting}
+        exportSuccess={exportSuccess}
+        isPageLoading={isLoadingContent}
       />
     </PageContainer>
   );
