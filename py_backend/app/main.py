@@ -148,6 +148,15 @@ else:
 
 print(f"Looking for static files in: {STATIC_DIR}")
 
+# Define SPA fallback route BEFORE mounting static files
+@app.get("/app/{full_path:path}", include_in_schema=False)
+def spa_fallback(full_path: str):
+    """Serve the main app for any /app/* route to support client-side routing"""
+    index = os.path.join(STATIC_DIR, "index.html")
+    if os.path.isfile(index):
+        return FileResponse(index, media_type="text/html")
+    raise HTTPException(status_code=404, detail="App not found")
+
 if os.path.isdir(STATIC_DIR):
     print(f"Static directory found: {STATIC_DIR}")
 
@@ -175,14 +184,6 @@ else:
             break
     else:
         print("Could not find static directory - static file serving disabled")
-
-
-@app.get("/app/{full_path:path}", include_in_schema=False)
-def spa_fallback(full_path: str):
-    index = os.path.join(STATIC_DIR, "index.html")
-    if os.path.isfile(index):
-        return FileResponse(index)
-    raise HTTPException(status_code=404, detail="Not Found")
 
 @app.get("/sw.js", include_in_schema=False)
 def service_worker():
