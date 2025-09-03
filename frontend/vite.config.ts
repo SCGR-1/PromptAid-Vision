@@ -1,58 +1,35 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'node:path'
 
 export default defineConfig({
   base: '/',
   plugins: [react()],
-  resolve: { 
-    dedupe: ['react', 'react-dom'] 
-  },
-  optimizeDeps: { 
-    include: ['react', 'react-dom'] 
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
+  resolve: {
+    // Make EVERY import of react/react-dom resolve to this one location
+    alias: {
+      react: path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime'], // add jsx-runtime
   },
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return
-
-          // Core framework
-          if (/[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/.test(id)) {
-            return 'vendor-react'
-          }
-          // UI libs (all @ifrc-go/* + lucide)
-          if (/[\\/]node_modules[\\/]@ifrc-go[\\/]/.test(id) || /[\\/]node_modules[\\/]lucide-react[\\/]/.test(id)) {
-            return 'vendor-ui'
-          }
-          // Utils
-          if (/[\\/]node_modules[\\/]jszip[\\/]/.test(id)) return 'vendor-utils'
-
-          // Fallback vendor bucket
-          return 'vendor'
-        },
-      },
-    },
-    chunkSizeWarningLimit: 1000
+    // ⛔ TEMP: comment out your manualChunks block while we test
+    // rollupOptions: { output: { manualChunks: { ... } } },
+    chunkSizeWarningLimit: 1000,
+  },
+  server: {
+    proxy: { '/api': { target: 'http://localhost:8000', changeOrigin: true, secure: false } },
   },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
-    deps: {
-      inline: ['@ifrc-go/ui']
-    }
+    deps: { inline: ['@ifrc-go/ui'] },
   },
 })
-
-
