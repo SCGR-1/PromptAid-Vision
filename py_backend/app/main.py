@@ -151,7 +151,7 @@ print(f"Looking for static files in: {STATIC_DIR}")
 if os.path.isdir(STATIC_DIR):
     print(f"Static directory found: {STATIC_DIR}")
 
-    app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    app.mount("/app", StaticFiles(directory=STATIC_DIR), name="static")
     print(f"Static files mounted at /app from {STATIC_DIR}")
 else:
     print(f"Static directory NOT found: {STATIC_DIR}")
@@ -170,7 +170,7 @@ else:
         if os.path.isdir(path):
             print(f"Found static directory at: {path}")
             STATIC_DIR = path
-            app.mount("/app", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+            app.mount("/app", StaticFiles(directory=STATIC_DIR), name="static")
             print(f"Static files mounted at /app from {STATIC_DIR}")
             break
     else:
