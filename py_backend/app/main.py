@@ -39,11 +39,11 @@ async def add_cache_headers(request: Request, call_next):
     response = await call_next(request)
     
     # Add aggressive caching for static assets
-    if request.url.path.startswith("/app/assets/"):
+    if request.url.path.startswith("/static/assets/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # 1 year
         response.headers["ETag"] = f'"{hash(request.url.path)}"'
         response.headers["Vary"] = "Accept-Encoding"
-    elif request.url.path.startswith("/app/"):
+    elif request.url.path.startswith("/static/"):
         response.headers["Cache-Control"] = "public, max-age=3600"  # 1 hour
         response.headers["Vary"] = "Accept-Encoding"
     elif request.url.path.startswith("/api/"):
@@ -133,13 +133,7 @@ async def performance():
         "cache_headers": True
     }
 
-@app.get("/", include_in_schema=False, response_class=HTMLResponse)
-def root():
-    return """<!doctype html>
-<title>PromptAid Vision</title>
-<h1>PromptAid Vision</h1>
-<p>OK</p>
-<p><a href="/app/">Open UI</a> • <a href="/docs">API Docs</a></p>"""
+
 
 if os.path.exists("/app"):
     STATIC_DIR = "/app/static"
@@ -161,7 +155,7 @@ def serve_app_root():
 def spa_fallback(full_path: str):
     """Serve the main app for any route to support client-side routing"""
     # Skip static assets and API routes - let StaticFiles handle them
-    if (full_path.startswith("assets/") or 
+    if (full_path.startswith("static/") or 
         full_path.startswith("api/") or
         full_path in ["index.html", "manifest.json", "sw.js", "vite.svg"]):
         raise HTTPException(status_code=404, detail="Static file not found")
@@ -200,7 +194,7 @@ else:
     else:
         print("Could not find static directory - static file serving disabled")
 
-@app.get("/sw.js", include_in_schema=False)
+@app.get("/static/sw.js", include_in_schema=False)
 def service_worker():
     """Serve the service worker file"""
     sw_path = os.path.join(STATIC_DIR, "sw.js")
@@ -208,7 +202,7 @@ def service_worker():
         return FileResponse(sw_path, media_type="application/javascript")
     raise HTTPException(status_code=404, detail="Service Worker not found")
 
-@app.get("/manifest.json", include_in_schema=False)
+@app.get("/static/manifest.json", include_in_schema=False)
 def manifest():
     """Serve the PWA manifest file"""
     manifest_path = os.path.join(STATIC_DIR, "manifest.json")

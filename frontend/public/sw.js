@@ -4,9 +4,9 @@ const DYNAMIC_CACHE = 'dynamic-v1';
 
 // Files to cache immediately - will be populated dynamically
 const STATIC_FILES = [
-  '/app/',
-  '/app/index.html',
-  '/app/vite.svg'
+  '/',
+  '/static/index.html',
+  '/static/vite.svg'
 ];
 
 // Install event - cache static files
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Handle static assets - cache first, network fallback
-  if (url.pathname.startsWith('/app/assets/') || url.pathname.startsWith('/app/')) {
+  if (url.pathname.startsWith('/static/assets/') || url.pathname.startsWith('/static/')) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
@@ -125,8 +125,8 @@ async function doBackgroundSync() {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'New update available',
-    icon: '/app/vite.svg',
-    badge: '/app/vite.svg',
+    icon: '/static/vite.svg',
+    badge: '/static/vite.svg',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
