@@ -39,11 +39,11 @@ async def add_cache_headers(request: Request, call_next):
     response = await call_next(request)
     
     # Add aggressive caching for static assets
-    if request.url.path.startswith("/static/assets/"):
+    if request.url.path.startswith("/assets/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # 1 year
         response.headers["ETag"] = f'"{hash(request.url.path)}"'
         response.headers["Vary"] = "Accept-Encoding"
-    elif request.url.path.startswith("/static/"):
+    elif request.url.path in ["/sw.js", "/manifest.json", "/vite.svg"]:
         response.headers["Cache-Control"] = "public, max-age=3600"  # 1 hour
         response.headers["Vary"] = "Accept-Encoding"
     elif request.url.path.startswith("/api/"):
@@ -142,13 +142,13 @@ else:
 
 print(f"Looking for static files in: {STATIC_DIR}")
 
-# Mount static files FIRST (before SPA routes)
+# Mount static files at root (including sw.js, manifest.json, assets, etc.)
 if os.path.isdir(STATIC_DIR):
     print(f"Static directory found: {STATIC_DIR}")
 
-    # Mount static files at /static
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-    print(f"Static files mounted at /static from {STATIC_DIR}")
+    # Mount static files at root with html=True for SPA fallback
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
+    print(f"Static files mounted at root from {STATIC_DIR}")
 else:
     print(f"Static directory NOT found: {STATIC_DIR}")
     print(f"Current directory contents: {os.listdir(os.path.dirname(__file__))}")
@@ -166,29 +166,19 @@ else:
         if os.path.isdir(path):
             print(f"Found static directory at: {path}")
             STATIC_DIR = path
-            app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-            print(f"Static files mounted at /static from {STATIC_DIR}")
+            app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
+            print(f"Static files mounted at root from {STATIC_DIR}")
             break
     else:
         print("Could not find static directory - static file serving disabled")
 
-# Define SPA routes for root (AFTER static files)
-@app.get("/", include_in_schema=False)
-def serve_app_root():
-    """Serve the main app for root path"""
-    index = os.path.join(STATIC_DIR, "index.html")
-    if os.path.isfile(index):
-        return FileResponse(index, media_type="text/html")
-    raise HTTPException(status_code=404, detail="App not found")
-
+# History fallback for client routes (do NOT catch /api/*)
 @app.get("/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
     """Serve the main app for any route to support client-side routing"""
-    # Skip static assets and API routes - let StaticFiles handle them
-    if (full_path.startswith("static/") or 
-        full_path.startswith("api/") or
-        full_path in ["index.html", "manifest.json", "sw.js", "vite.svg"]):
-        raise HTTPException(status_code=404, detail="Static file not found")
+    # Skip API routes - let API routers handle them
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API route not found")
     
     index = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(index):
