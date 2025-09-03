@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { PageContainer, Heading, Button, Spinner, IconButton } from '@ifrc-go/ui';
-import { DeleteBinLineIcon, ChevronLeftLineIcon, ChevronRightLineIcon } from '@ifrc-go/icons';
+import { DeleteBinLineIcon} from '@ifrc-go/icons';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import styles from './UploadPage.module.css';
 import {

@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+orjson
 sqlalchemy
 alembic
 psycopg2-binary
@@ -27,3 +28,4 @@ aiohttp>=3.9
 PyMuPDF>=1.23.0
 Pillow-Heif>=1.0.0
 imageio>=2.31.0
+psutil

@@ -1,17 +1,52 @@
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AlertContext, type AlertContextProps, type AlertParams, LanguageContext, type LanguageContextProps } from '@ifrc-go/ui/contexts';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, lazy, Suspense, useEffect } from 'react';
 import { unique } from '@togglecorp/fujs';
 import RootLayout from './layouts/RootLayout';
 import UploadPage from './pages/UploadPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import ExplorePage from './pages/ExplorePage';
 import HelpPage from './pages/HelpPage';
-import MapDetailPage from './pages/MapDetailsPage';
 
-import AdminPage from './pages/AdminPage/AdminPage';
+// Lazy load heavy pages with prefetching
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+const ExplorePage = lazy(() => import('./pages/ExplorePage'));
+const AdminPage = lazy(() => import('./pages/AdminPage/AdminPage'));
+const MapDetailPage = lazy(() => import('./pages/MapDetailsPage'));
+
 import { FilterProvider } from './contexts/FilterContext';
 import { AdminProvider } from './contexts/AdminContext';
+
+// Prefetch function for better performance
+const prefetchPage = (importFn: () => Promise<any>) => {
+  // Start prefetching immediately
+  const prefetchPromise = importFn();
+  
+  // Store the promise so we can reuse it
+  prefetchPromise.catch(() => {
+    // Silently handle prefetch errors
+  });
+  
+  return prefetchPromise;
+};
+
+// Prefetch all pages on idle
+const prefetchAllPages = () => {
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      prefetchPage(() => import('./pages/AnalyticsPage'));
+      prefetchPage(() => import('./pages/ExplorePage'));
+      prefetchPage(() => import('./pages/AdminPage/AdminPage'));
+      prefetchPage(() => import('./pages/MapDetailsPage'));
+    });
+  } else {
+    // Fallback for browsers without requestIdleCallback
+    setTimeout(() => {
+      prefetchPage(() => import('./pages/AnalyticsPage'));
+      prefetchPage(() => import('./pages/ExplorePage'));
+      prefetchPage(() => import('./pages/AdminPage/AdminPage'));
+      prefetchPage(() => import('./pages/MapDetailsPage'));
+    }, 1000);
+  }
+};
 
 const router = createHashRouter([
   {
@@ -19,18 +54,51 @@ const router = createHashRouter([
     children: [
       { path: '/',          element: <UploadPage /> },
       { path: '/upload',    element: <UploadPage /> },
-      { path: '/analytics', element: <AnalyticsPage /> },
-      { path: '/explore',   element: <ExplorePage /> },
+      { 
+        path: '/analytics', 
+        element: (
+          <Suspense fallback={<div>Loading Analytics...</div>}>
+            <AnalyticsPage />
+          </Suspense>
+        ) 
+      },
+      { 
+        path: '/explore', 
+        element: (
+          <Suspense fallback={<div>Loading Explore...</div>}>
+            <ExplorePage />
+          </Suspense>
+        ) 
+      },
       { path: '/help',      element: <HelpPage /> },
       
-      { path: '/admin',     element: <AdminPage /> },
-      { path: '/map/:mapId', element: <MapDetailPage /> },
+      { 
+        path: '/admin', 
+        element: (
+          <Suspense fallback={<div>Loading Admin...</div>}>
+            <AdminPage />
+          </Suspense>
+        ) 
+      },
+      { 
+        path: '/map/:mapId', 
+        element: (
+          <Suspense fallback={<div>Loading Map Details...</div>}>
+            <MapDetailPage />
+          </Suspense>
+        ) 
+      },
     ],
   },
 ]);
 
 function Application() {
   const [alerts, setAlerts] = useState<AlertParams[]>([]);
+
+  // Prefetch pages on mount
+  useEffect(() => {
+    prefetchAllPages();
+  }, []);
 
   const addAlert = useCallback((alert: AlertParams) => {
     setAlerts((prevAlerts) => unique(

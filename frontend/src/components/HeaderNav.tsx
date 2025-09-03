@@ -50,7 +50,7 @@ export default function HeaderNav() {
     <nav className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-white/95">
       <PageContainer
         className="border-b-2 border-ifrcRed"
-        contentClassName="flex items-center justify-between py-6"
+        contentClassName="grid grid-cols-3 items-center py-6"
       >
         <div 
           className="flex items-center gap-4 min-w-0 cursor-pointer group transition-all duration-200 hover:scale-105" 
@@ -80,7 +80,8 @@ export default function HeaderNav() {
           </div>
         </div>
 
-        <nav className="flex items-center space-x-4 bg-gray-50/80 rounded-xl p-2 backdrop-blur-sm">
+        <div className="flex justify-center">
+          <nav className="flex items-center space-x-4 bg-gray-50/80 rounded-xl p-2 backdrop-blur-sm">
           {navItems.map(({ to, label, Icon }) => {
             const isActive = location.pathname === to || 
               (to === '/upload' && location.pathname === '/') ||
@@ -131,8 +132,10 @@ export default function HeaderNav() {
             );
           })}
         </nav>
+        </div>
 
-        <div className={styles.dropdownContainer} ref={dropdownRef}>
+        <div className="flex justify-end">
+          <div className={styles.dropdownContainer} ref={dropdownRef}>
           <Container withInternalPadding className="p-2">
             <Button
               name="more-options"
@@ -203,6 +206,7 @@ export default function HeaderNav() {
           )}
           
 
+        </div>
         </div>
       </PageContainer>
     </nav>

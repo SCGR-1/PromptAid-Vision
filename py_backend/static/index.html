@@ -4,9 +4,46 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/app/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
-    <script type="module" crossorigin src="/app/assets/index-UhwP7SYq.js"></script>
-    <link rel="stylesheet" crossorigin href="/app/assets/index-CnrYqrbA.css">
+    <title>PromptAid Vision</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="A comprehensive vision analysis platform for crisis mapping and drone image processing" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="PromptAid" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/app/manifest.json" />
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/app/assets/vendor-react-*.js" as="script" />
+    <link rel="preload" href="/app/assets/vendor-ui-*.js" as="script" />
+    <link rel="preload" href="/app/assets/index-*.css" as="style" />
+    
+    <!-- DNS Prefetch for external resources -->
+    <link rel="dns-prefetch" href="//huggingface.co" />
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="/app/assets/index-BRyvKFWv.js"></script>
+    <link rel="modulepreload" crossorigin href="/app/assets/vendor-DyNqUykN.js">
+    <link rel="modulepreload" crossorigin href="/app/assets/vendor-react-DAdyb5sm.js">
+    <link rel="modulepreload" crossorigin href="/app/assets/vendor-ui-D6Mv63JJ.js">
+    <link rel="stylesheet" crossorigin href="/app/assets/vendor-ui-DpEM1HT6.css">
+    <link rel="stylesheet" crossorigin href="/app/assets/index-om3EFqpn.css">
   </head>
   <body>
     <div id="root"></div>

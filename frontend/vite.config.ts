@@ -14,6 +14,30 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          // Core framework
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/.test(id)) {
+            return 'vendor-react'
+          }
+          // UI libs (all @ifrc-go/* + lucide)
+          if (/[\\/]node_modules[\\/]@ifrc-go[\\/]/.test(id) || /[\\/]node_modules[\\/]lucide-react[\\/]/.test(id)) {
+            return 'vendor-ui'
+          }
+          // Utils
+          if (/[\\/]node_modules[\\/]jszip[\\/]/.test(id)) return 'vendor-utils'
+
+          // Fallback vendor bucket
+          return 'vendor'
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000
+  },
   test: {
     globals: true,
     environment: 'jsdom',

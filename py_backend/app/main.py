@@ -1,11 +1,12 @@
 
 import os
 import subprocess
-from datetime import datetime
-from fastapi import FastAPI, HTTPException
+from datetime import datetime, timedelta
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, ORJSONResponse
+from fastapi.middleware.gzip import GZipMiddleware
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -17,13 +18,41 @@ from app.routers.prompts import router as prompts_router
 from app.routers.admin import router as admin_router
 from app.routers.schemas import router as schemas_router
 
-app = FastAPI(title="PromptAid Vision")
+app = FastAPI(
+    title="PromptAid Vision",
+    default_response_class=ORJSONResponse
+)
+
+# Add GZip compression - optimized for smaller minimum size
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 @app.middleware("http")
 async def log_requests(request, call_next):
     print(f"DEBUG: {request.method} {request.url.path}")
     response = await call_next(request)
     print(f"DEBUG: {request.method} {request.url.path} -> {response.status_code}")
+    return response
+
+# Custom static file handler with caching and compression
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Add aggressive caching for static assets
+    if request.url.path.startswith("/app/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # 1 year
+        response.headers["ETag"] = f'"{hash(request.url.path)}"'
+        response.headers["Vary"] = "Accept-Encoding"
+    elif request.url.path.startswith("/app/"):
+        response.headers["Cache-Control"] = "public, max-age=3600"  # 1 hour
+        response.headers["Vary"] = "Accept-Encoding"
+    elif request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        # Add compression headers for API responses
+        response.headers["Content-Type"] = "application/json"
+    
     return response
 
 app.add_middleware(
@@ -88,6 +117,21 @@ async def create_prompt_no_slash(prompt_data: dict):
 @app.get("/health", include_in_schema=False, response_class=JSONResponse)
 async def health():
     return {"status": "ok"}
+
+@app.get("/performance", include_in_schema=False, response_class=ORJSONResponse)
+async def performance():
+    """Performance monitoring endpoint"""
+    import psutil
+    import time
+    
+    return {
+        "timestamp": time.time(),
+        "memory_usage": psutil.virtual_memory().percent,
+        "cpu_usage": psutil.cpu_percent(),
+        "compression_enabled": True,
+        "orjson_enabled": True,
+        "cache_headers": True
+    }
 
 @app.get("/", include_in_schema=False, response_class=HTMLResponse)
 def root():
