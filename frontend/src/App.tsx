@@ -1,4 +1,4 @@
-import { createHashRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AlertContext, type AlertContextProps, type AlertParams, LanguageContext, type LanguageContextProps } from '@ifrc-go/ui/contexts';
 import { useCallback, useMemo, useState, lazy, Suspense, useEffect } from 'react';
 import { unique } from '@togglecorp/fujs';
@@ -48,7 +48,7 @@ const prefetchAllPages = () => {
   }
 };
 
-const router = createHashRouter([
+const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
@@ -90,7 +90,9 @@ const router = createHashRouter([
       },
     ],
   },
-]);
+], {
+  basename: import.meta.env.BASE_URL, // This will be '/app/' from Vite
+});
 
 function Application() {
   const [alerts, setAlerts] = useState<AlertParams[]>([]);
