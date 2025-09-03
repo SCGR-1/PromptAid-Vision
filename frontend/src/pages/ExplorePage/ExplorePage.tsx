@@ -5,6 +5,7 @@ import { DeleteBinLineIcon } from '@ifrc-go/icons';
 import { useFilterContext } from '../../hooks/useFilterContext';
 import { useAdmin } from '../../hooks/useAdmin';
 import FilterBar from '../../components/FilterBar';
+import Paginator from '../../components/Paginator';
 import styles from './ExplorePage.module.css';
 import ExportModal from '../../components/ExportModal';
 
@@ -25,6 +26,8 @@ interface ImageWithCaptionOut {
   updated_at?: string;
   file_key: string;
   image_url: string;
+  thumbnail_url?: string;  // URL to smallest version (300x200px)
+  detail_url?: string;    // URL to medium quality version (800x600px)
   source: string;
   event_type: string;
   epsg: string;
@@ -69,6 +72,10 @@ export default function ExplorePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [imageToDelete, setImageToDelete] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'List' },
@@ -223,6 +230,17 @@ export default function ExplorePage() {
       return matchesSearch && sourceMatches && categoryMatches && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
     });
   }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedResults = filtered.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
 
   const exportDataset = async (images: ImageWithCaptionOut[], mode: 'standard' | 'fine-tuning' = 'fine-tuning') => {
     if (images.length === 0) {
@@ -649,7 +667,7 @@ export default function ExplorePage() {
               {/* Content */}
               {!isLoadingContent && (
                 <div className="space-y-4">
-                  {filtered.map(c => (
+                  {paginatedResults.map(c => (
                     <div key={c.image_id} className="flex items-center gap-4">
                       {/* Card Content */}
                       <div className={`${styles.mapItem} flex-1`} onClick={() => {
@@ -668,24 +686,45 @@ export default function ExplorePage() {
                         }
                       }}>
                         <div className={styles.mapItemImage} style={{ width: '120px', height: '80px' }}>
-                          {c.image_url ? (
+                          {/* Explore Page: Prioritize thumbnails for faster loading */}
+                          {c.thumbnail_url ? (
                             <>
-                              {console.log('ExplorePage: Rendering image with URL:', c.image_url)}
+                              {console.log('ExplorePage: Using thumbnail for fast loading:', c.thumbnail_url)}
+                              <img 
+                                src={c.thumbnail_url} 
+                                alt={c.file_key}
+                                onError={(e) => {
+                                  console.error('ExplorePage: Thumbnail failed to load, falling back to original:', c.thumbnail_url);
+                                  // Fallback to original image
+                                  const target = e.target as HTMLImageElement;
+                                  if (c.image_url) {
+                                    target.src = c.image_url;
+                                  } else {
+                                    target.style.display = 'none';
+                                    target.parentElement!.innerHTML = 'Img';
+                                  }
+                                }}
+                                onLoad={() => console.log('ExplorePage: Thumbnail loaded successfully:', c.thumbnail_url)}
+                              />
+                            </>
+                          ) : c.image_url ? (
+                            <>
+                              {console.log('ExplorePage: No thumbnail available, using original image:', c.image_url)}
                               <img 
                                 src={c.image_url} 
                                 alt={c.file_key}
                                 onError={(e) => {
-                                  console.error('ExplorePage: Image failed to load:', c.image_url);
+                                  console.error('ExplorePage: Original image failed to load:', c.image_url);
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
                                   target.parentElement!.innerHTML = 'Img';
                                 }}
-                                onLoad={() => console.log('ExplorePage: Image loaded successfully:', c.image_url)}
+                                onLoad={() => console.log('ExplorePage: Original image loaded successfully:', c.image_url)}
                               />
                             </>
                           ) : (
                             <>
-                              {console.log('ExplorePage: No image_url provided for item:', c)}
+                              {console.log('ExplorePage: No image_url or thumbnail provided for item:', c)}
                               'Img'
                             </>
                           )}
@@ -766,6 +805,17 @@ export default function ExplorePage() {
                     <div className="text-center py-12">
                       <p className="text-gray-500">No examples found.</p>
                     </div>
+                  )}
+                  
+                  {/* Enhanced Paginator Component */}
+                  {!isLoadingContent && filtered.length > 0 && (
+                    <Paginator
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={filtered.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setCurrentPage}
+                    />
                   )}
                 </div>
               )}

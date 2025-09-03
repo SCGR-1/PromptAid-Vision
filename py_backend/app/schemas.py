@@ -68,6 +68,12 @@ class ImageOut(BaseModel):
     image_id: UUID
     file_key: str
     sha256: str
+    thumbnail_key: Optional[str] = None
+    thumbnail_sha256: Optional[str] = None
+    thumbnail_url: Optional[str] = None  # Generated URL for frontend
+    detail_key: Optional[str] = None
+    detail_sha256: Optional[str] = None
+    detail_url: Optional[str] = None  # Generated URL for frontend
     source: Optional[str] = None
     event_type: str
     epsg: Optional[str] = None

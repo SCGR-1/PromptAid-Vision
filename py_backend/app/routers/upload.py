@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from .. import crud, schemas, storage, database
 from ..config import settings
 from ..services.image_preprocessor import ImagePreprocessor
+from ..services.thumbnail_service import ImageProcessingService
 from typing import List, Optional
 import boto3
 import time
@@ -107,10 +108,32 @@ def convert_image_to_dict(img, image_url):
         created_at = first_caption.get("created_at")
         updated_at = first_caption.get("updated_at")
     
+    # Generate URLs for all image versions
+    thumbnail_url = None
+    detail_url = None
+    
+    if hasattr(img, 'thumbnail_key') and img.thumbnail_key:
+        try:
+            thumbnail_url = storage.get_object_url(img.thumbnail_key)
+        except Exception as e:
+            print(f"Warning: Error generating thumbnail URL for image {img.image_id}: {e}")
+    
+    if hasattr(img, 'detail_key') and img.detail_key:
+        try:
+            detail_url = storage.get_object_url(img.detail_key)
+        except Exception as e:
+            print(f"Warning: Error generating detail URL for image {img.image_id}: {e}")
+    
     img_dict = {
         "image_id": img.image_id,
         "file_key": img.file_key,
         "sha256": img.sha256,
+        "thumbnail_key": getattr(img, 'thumbnail_key', None),
+        "thumbnail_sha256": getattr(img, 'thumbnail_sha256', None),
+        "thumbnail_url": thumbnail_url,
+        "detail_key": getattr(img, 'detail_key', None),
+        "detail_sha256": getattr(img, 'detail_sha256', None),
+        "detail_url": detail_url,
         "source": img.source,
         "event_type": img.event_type,
         "epsg": img.epsg,
@@ -414,11 +437,38 @@ async def upload_image(
 
     key = storage.upload_fileobj(io.BytesIO(processed_content), processed_filename)
 
+    # Generate and upload all image resolutions
+    thumbnail_key = None
+    thumbnail_sha256 = None
+    detail_key = None
+    detail_sha256 = None
+    
+    try:
+        # Process both thumbnail and detail versions
+        thumbnail_result, detail_result = ImageProcessingService.process_all_resolutions(
+            processed_content, 
+            processed_filename
+        )
+        
+        if thumbnail_result:
+            thumbnail_key, thumbnail_sha256 = thumbnail_result
+            print(f"Thumbnail generated and uploaded: key={thumbnail_key}, sha256={thumbnail_sha256}")
+        
+        if detail_result:
+            detail_key, detail_sha256 = detail_result
+            print(f"Detail version generated and uploaded: key={detail_key}, sha256={detail_sha256}")
+            
+    except Exception as e:
+        print(f"Image resolution processing failed: {str(e)}")
+        # Continue without processed versions if generation fails
+
     try:
         img = crud.create_image(
             db, source, event_type, key, sha, countries_list, epsg, image_type,
             center_lon, center_lat, amsl_m, agl_m, heading_deg, yaw_deg, pitch_deg, roll_deg,
-            rtk_fix, std_h_m, std_v_m
+            rtk_fix, std_h_m, std_v_m, 
+            thumbnail_key=thumbnail_key, thumbnail_sha256=thumbnail_sha256,
+            detail_key=detail_key, detail_sha256=detail_sha256
         )
     except Exception as e:
         raise HTTPException(500, f"Failed to save image to database: {str(e)}")

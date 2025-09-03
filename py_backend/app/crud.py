@@ -13,7 +13,9 @@ def create_image(db: Session, src, type_code, key, sha, countries: list[str], ep
                 amsl_m: Optional[float] = None, agl_m: Optional[float] = None,
                 heading_deg: Optional[float] = None, yaw_deg: Optional[float] = None,
                 pitch_deg: Optional[float] = None, roll_deg: Optional[float] = None,
-                rtk_fix: Optional[bool] = None, std_h_m: Optional[float] = None, std_v_m: Optional[float] = None):
+                rtk_fix: Optional[bool] = None, std_h_m: Optional[float] = None, std_v_m: Optional[float] = None,
+                thumbnail_key: Optional[str] = None, thumbnail_sha256: Optional[str] = None,
+                detail_key: Optional[str] = None, detail_sha256: Optional[str] = None):
     """Insert into images and image_countries."""
     
     if image_type == "drone_image":
@@ -44,7 +46,8 @@ def create_image(db: Session, src, type_code, key, sha, countries: list[str], ep
     
     img = models.Images(
         source=src, event_type=type_code,
-        file_key=key, sha256=sha, epsg=epsg, image_type=image_type,
+        file_key=key, sha256=sha, thumbnail_key=thumbnail_key, thumbnail_sha256=thumbnail_sha256,
+        detail_key=detail_key, detail_sha256=detail_sha256, epsg=epsg, image_type=image_type,
         center_lon=center_lon, center_lat=center_lat, amsl_m=amsl_m, agl_m=agl_m,
         heading_deg=heading_deg, yaw_deg=yaw_deg, pitch_deg=pitch_deg, roll_deg=roll_deg,
         rtk_fix=rtk_fix, std_h_m=std_h_m, std_v_m=std_v_m

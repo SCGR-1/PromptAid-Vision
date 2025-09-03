@@ -1,0 +1,27 @@
+.paginatorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--go-ui-spacing-lg) 0;
+  border-top: var(--go-ui-width-separator-thin) solid var(--go-ui-color-separator);
+  margin-top: var(--go-ui-spacing-lg);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--go-ui-spacing-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .paginatorContainer {
+    padding: var(--go-ui-spacing-md) 0;
+  }
+
+  .paginationControls {
+    gap: var(--go-ui-spacing-xs);
+  }
+}

@@ -18,6 +18,7 @@ interface MapOut {
   epsg: string;
   image_type: string;
   image_url: string;
+  detail_url?: string;  // URL to medium quality version (800x600px)
   countries: Array<{
     c_code: string;
     label: string;
@@ -1228,11 +1229,27 @@ export default function MapDetailPage() {
                                 <Spinner className="text-ifrcRed" />
                                 <div>Loading images...</div>
                               </div>
+                            ) : allImages[currentImageIndex]?.detail_url ? (
+                              <img
+                                src={allImages[currentImageIndex].detail_url}
+                                alt={allImages[currentImageIndex].file_key}
+                                className={styles.carouselImage}
+                                onError={(e) => {
+                                  console.log('MapDetailsPage: Detail image failed to load, falling back to original:', allImages[currentImageIndex].detail_url);
+                                  // Fallback to original image
+                                  const target = e.target as HTMLImageElement;
+                                  if (allImages[currentImageIndex].image_url) {
+                                    target.src = allImages[currentImageIndex].image_url;
+                                  }
+                                }}
+                                onLoad={() => console.log('MapDetailsPage: Detail image loaded successfully:', allImages[currentImageIndex].detail_url)}
+                              />
                             ) : allImages[currentImageIndex]?.image_url ? (
                               <img
                                 src={allImages[currentImageIndex].image_url}
                                 alt={allImages[currentImageIndex].file_key}
                                 className={styles.carouselImage}
+                                onLoad={() => console.log('MapDetailsPage: Original image loaded successfully:', allImages[currentImageIndex].image_url)}
                               />
                             ) : (
                               <div className={styles.imagePlaceholder}>
@@ -1299,10 +1316,26 @@ export default function MapDetailPage() {
                       ) : (
                         // Single image display
                         <div className={styles.singleImageContainer}>
-                          {filteredMap.image_url ? (
+                          {/* Map Details Page: Prioritize detail versions for better quality */}
+                          {filteredMap.detail_url ? (
+                            <img
+                              src={filteredMap.detail_url}
+                              alt={filteredMap.file_key}
+                              onError={(e) => {
+                                console.log('MapDetailsPage: Detail image failed to load, falling back to original:', filteredMap.detail_url);
+                                // Fallback to original image
+                                const target = e.target as HTMLImageElement;
+                                if (filteredMap.image_url) {
+                                  target.src = filteredMap.image_url;
+                                }
+                              }}
+                              onLoad={() => console.log('MapDetailsPage: Detail image loaded successfully:', filteredMap.detail_url)}
+                            />
+                          ) : filteredMap.image_url ? (
                             <img
                               src={filteredMap.image_url}
                               alt={filteredMap.file_key}
+                              onLoad={() => console.log('MapDetailsPage: Original image loaded successfully:', filteredMap.image_url)}
                             />
                           ) : (
                             <div className={styles.imagePlaceholder}>
