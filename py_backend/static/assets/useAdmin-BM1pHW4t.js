@@ -1,1 +1,0 @@
-import{r}from"./vendor-react-DAdyb5sm.js";import{A as o}from"./index-BRyvKFWv.js";const i=()=>{const t=r.useContext(o);if(t===void 0)throw new Error("useAdmin must be used within an AdminProvider");return t};export{i as u};
