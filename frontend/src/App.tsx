@@ -91,7 +91,7 @@ const router = createBrowserRouter([
     ],
   },
 ], {
-  basename: import.meta.env.BASE_URL, // This will be '/app/' from Vite
+  basename: import.meta.env.BASE_URL, // This will be '/' from Vite
 });
 
 function Application() {

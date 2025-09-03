@@ -148,20 +148,22 @@ else:
 
 print(f"Looking for static files in: {STATIC_DIR}")
 
-# Define specific routes for SPA
-@app.get("/app/", include_in_schema=False)
+# Define SPA routes for root
+@app.get("/", include_in_schema=False)
 def serve_app_root():
-    """Serve the main app for /app/ root path"""
+    """Serve the main app for root path"""
     index = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(index):
         return FileResponse(index, media_type="text/html")
     raise HTTPException(status_code=404, detail="App not found")
 
-@app.get("/app/{full_path:path}", include_in_schema=False)
+@app.get("/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
-    """Serve the main app for any /app/* route to support client-side routing"""
-    # Skip static assets - let StaticFiles handle them
-    if full_path.startswith("assets/") or full_path in ["index.html", "manifest.json", "sw.js", "vite.svg"]:
+    """Serve the main app for any route to support client-side routing"""
+    # Skip static assets and API routes - let StaticFiles handle them
+    if (full_path.startswith("assets/") or 
+        full_path.startswith("api/") or
+        full_path in ["index.html", "manifest.json", "sw.js", "vite.svg"]):
         raise HTTPException(status_code=404, detail="Static file not found")
     
     index = os.path.join(STATIC_DIR, "index.html")
@@ -172,8 +174,9 @@ def spa_fallback(full_path: str):
 if os.path.isdir(STATIC_DIR):
     print(f"Static directory found: {STATIC_DIR}")
 
-    app.mount("/app", StaticFiles(directory=STATIC_DIR), name="static")
-    print(f"Static files mounted at /app from {STATIC_DIR}")
+    # Mount static files at /static
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    print(f"Static files mounted at /static from {STATIC_DIR}")
 else:
     print(f"Static directory NOT found: {STATIC_DIR}")
     print(f"Current directory contents: {os.listdir(os.path.dirname(__file__))}")
@@ -191,8 +194,8 @@ else:
         if os.path.isdir(path):
             print(f"Found static directory at: {path}")
             STATIC_DIR = path
-            app.mount("/app", StaticFiles(directory=STATIC_DIR), name="static")
-            print(f"Static files mounted at /app from {STATIC_DIR}")
+            app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+            print(f"Static files mounted at /static from {STATIC_DIR}")
             break
     else:
         print("Could not find static directory - static file serving disabled")
