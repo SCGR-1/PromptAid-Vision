@@ -148,10 +148,22 @@ else:
 
 print(f"Looking for static files in: {STATIC_DIR}")
 
-# Define SPA fallback route BEFORE mounting static files
+# Define specific routes for SPA
+@app.get("/app/", include_in_schema=False)
+def serve_app_root():
+    """Serve the main app for /app/ root path"""
+    index = os.path.join(STATIC_DIR, "index.html")
+    if os.path.isfile(index):
+        return FileResponse(index, media_type="text/html")
+    raise HTTPException(status_code=404, detail="App not found")
+
 @app.get("/app/{full_path:path}", include_in_schema=False)
 def spa_fallback(full_path: str):
     """Serve the main app for any /app/* route to support client-side routing"""
+    # Skip static assets - let StaticFiles handle them
+    if full_path.startswith("assets/") or full_path in ["index.html", "manifest.json", "sw.js", "vite.svg"]:
+        raise HTTPException(status_code=404, detail="Static file not found")
+    
     index = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(index):
         return FileResponse(index, media_type="text/html")
