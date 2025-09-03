@@ -40,8 +40,8 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
+  // Skip non-GET requests and non-HTTP(S) requests
+  if (request.method !== 'GET' || (url.protocol !== 'http:' && url.protocol !== 'https:')) {
     return;
   }
 

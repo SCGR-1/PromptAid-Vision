@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AlertContext, type AlertContextProps, type AlertParams, LanguageContext, type LanguageContextProps } from '@ifrc-go/ui/contexts';
-import { useCallback, useMemo, useState, lazy, Suspense, useEffect } from 'react';
+import { useCallback, useMemo, useState, lazy, Suspense, useEffect, Component } from 'react';
+import type { ReactNode } from 'react';
 import { unique } from '@togglecorp/fujs';
 import RootLayout from './layouts/RootLayout';
 import UploadPage from './pages/UploadPage';
@@ -14,6 +15,38 @@ const MapDetailPage = lazy(() => import('./pages/MapDetailsPage'));
 
 import { FilterProvider } from './contexts/FilterContext';
 import { AdminProvider } from './contexts/AdminContext';
+
+// Simple Error Boundary Component
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <h2>Something went wrong</h2>
+          <p>Please refresh the page to try again.</p>
+          <button onClick={() => window.location.reload()}>
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Prefetch function for better performance
 const prefetchPage = (importFn: () => Promise<any>) => {
@@ -164,15 +197,17 @@ function Application() {
   );
 
   return (
-    <AlertContext.Provider value={alertContextValue}>
-      <LanguageContext.Provider value={languageContextValue}>
-        <AdminProvider>
-          <FilterProvider>
-            <RouterProvider router={router} />
-          </FilterProvider>
-        </AdminProvider>
-      </LanguageContext.Provider>
-    </AlertContext.Provider>
+    <ErrorBoundary>
+      <AlertContext.Provider value={alertContextValue}>
+        <LanguageContext.Provider value={languageContextValue}>
+          <AdminProvider>
+            <FilterProvider>
+              <RouterProvider router={router} />
+            </FilterProvider>
+          </AdminProvider>
+        </LanguageContext.Provider>
+      </AlertContext.Provider>
+    </ErrorBoundary>
   );
 }
 
