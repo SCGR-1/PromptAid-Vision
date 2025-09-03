@@ -142,29 +142,7 @@ else:
 
 print(f"Looking for static files in: {STATIC_DIR}")
 
-# Define SPA routes for root
-@app.get("/", include_in_schema=False)
-def serve_app_root():
-    """Serve the main app for root path"""
-    index = os.path.join(STATIC_DIR, "index.html")
-    if os.path.isfile(index):
-        return FileResponse(index, media_type="text/html")
-    raise HTTPException(status_code=404, detail="App not found")
-
-@app.get("/{full_path:path}", include_in_schema=False)
-def spa_fallback(full_path: str):
-    """Serve the main app for any route to support client-side routing"""
-    # Skip static assets and API routes - let StaticFiles handle them
-    if (full_path.startswith("static/") or 
-        full_path.startswith("api/") or
-        full_path in ["index.html", "manifest.json", "sw.js", "vite.svg"]):
-        raise HTTPException(status_code=404, detail="Static file not found")
-    
-    index = os.path.join(STATIC_DIR, "index.html")
-    if os.path.isfile(index):
-        return FileResponse(index, media_type="text/html")
-    raise HTTPException(status_code=404, detail="App not found")
-
+# Mount static files FIRST (before SPA routes)
 if os.path.isdir(STATIC_DIR):
     print(f"Static directory found: {STATIC_DIR}")
 
@@ -193,6 +171,29 @@ else:
             break
     else:
         print("Could not find static directory - static file serving disabled")
+
+# Define SPA routes for root (AFTER static files)
+@app.get("/", include_in_schema=False)
+def serve_app_root():
+    """Serve the main app for root path"""
+    index = os.path.join(STATIC_DIR, "index.html")
+    if os.path.isfile(index):
+        return FileResponse(index, media_type="text/html")
+    raise HTTPException(status_code=404, detail="App not found")
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def spa_fallback(full_path: str):
+    """Serve the main app for any route to support client-side routing"""
+    # Skip static assets and API routes - let StaticFiles handle them
+    if (full_path.startswith("static/") or 
+        full_path.startswith("api/") or
+        full_path in ["index.html", "manifest.json", "sw.js", "vite.svg"]):
+        raise HTTPException(status_code=404, detail="Static file not found")
+    
+    index = os.path.join(STATIC_DIR, "index.html")
+    if os.path.isfile(index):
+        return FileResponse(index, media_type="text/html")
+    raise HTTPException(status_code=404, detail="App not found")
 
 
 
@@ -227,8 +228,19 @@ async def debug_static():
         "is_dir": os.path.isdir(STATIC_DIR) if os.path.exists(STATIC_DIR) else False,
         "current_dir": os.getcwd(),
         "app_dir": os.path.dirname(__file__),
-        "parent_dir": os.path.dirname(os.path.dirname(__file__))
+        "parent_dir": os.path.dirname(os.path.dirname(__file__)),
+        "sw_exists": os.path.exists(os.path.join(STATIC_DIR, "sw.js")),
+        "sw_path": os.path.join(STATIC_DIR, "sw.js"),
+        "static_files": os.listdir(STATIC_DIR) if os.path.exists(STATIC_DIR) else []
     }
+
+@app.get("/test-sw", include_in_schema=False)
+def test_service_worker():
+    """Test route to serve service worker directly"""
+    sw_path = os.path.join(STATIC_DIR, "sw.js")
+    if os.path.isfile(sw_path):
+        return FileResponse(sw_path, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="Service Worker not found")
 
 @app.get("/debug-storage")
 async def debug_storage():
