@@ -1,7 +1,7 @@
 const STATIC_CACHE = 'static-v2';
 const DYNAMIC_CACHE = 'dynamic-v2';
 
-// Precache minimal shell
+// Precache minimal shell (optional — you can skip if serving hashed assets)
 const PRECACHE = ['/', '/index.html', '/vite.svg'];
 
 const isHttpGet = (req) => {
