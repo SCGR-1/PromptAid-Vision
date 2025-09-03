@@ -184,6 +184,22 @@ def spa_fallback(full_path: str):
         return FileResponse(index)
     raise HTTPException(status_code=404, detail="Not Found")
 
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    """Serve the service worker file"""
+    sw_path = os.path.join(STATIC_DIR, "sw.js")
+    if os.path.isfile(sw_path):
+        return FileResponse(sw_path, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="Service Worker not found")
+
+@app.get("/manifest.json", include_in_schema=False)
+def manifest():
+    """Serve the PWA manifest file"""
+    manifest_path = os.path.join(STATIC_DIR, "manifest.json")
+    if os.path.isfile(manifest_path):
+        return FileResponse(manifest_path, media_type="application/json")
+    raise HTTPException(status_code=404, detail="Manifest not found")
+
 
 @app.get("/debug-routes", include_in_schema=False)
 async def debug_routes():
