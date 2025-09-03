@@ -6,10 +6,10 @@ const DYNAMIC_CACHE = 'dynamic-v1';
 const STATIC_FILES = [
   '/app/',
   '/app/index.html',
-  '/app/assets/vendor-react-*.js',
-  '/app/assets/vendor-ui-*.js',
-  '/app/assets/vendor-utils-*.js',
-  '/app/assets/index-*.css',
+  '/app/assets/vendor-react-DAdyb5sm.js',
+  '/app/assets/vendor-ui-D6Mv63JJ.js',
+  '/app/assets/vendor-utils-CBDdKc9K.js',
+  '/app/assets/index-om3EFqpn.css',
   '/app/vite.svg'
 ];
 
