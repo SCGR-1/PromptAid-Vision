@@ -2,14 +2,10 @@ const CACHE_NAME = 'promptaid-vision-v1';
 const STATIC_CACHE = 'static-v1';
 const DYNAMIC_CACHE = 'dynamic-v1';
 
-// Files to cache immediately
+// Files to cache immediately - will be populated dynamically
 const STATIC_FILES = [
   '/app/',
   '/app/index.html',
-  '/app/assets/vendor-react-DAdyb5sm.js',
-  '/app/assets/vendor-ui-D6Mv63JJ.js',
-  '/app/assets/vendor-utils-CBDdKc9K.js',
-  '/app/assets/index-om3EFqpn.css',
   '/app/vite.svg'
 ];
 
