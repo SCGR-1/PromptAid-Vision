@@ -163,6 +163,101 @@ def list_images(db: Session = Depends(get_db)):
     
     return result
 
+@router.get("/grouped", response_model=List[schemas.ImageOut])
+def list_images_grouped(db: Session = Depends(get_db)):
+    """Get images grouped by shared captions for multi-upload items"""
+    # Get all captions with their associated images
+    captions = crud.get_all_captions_with_images(db)
+    result = []
+    
+    for caption in captions:
+        if not caption.images:
+            continue
+            
+        # Determine the effective image count for this caption
+        # Use caption.image_count if available and valid, otherwise infer from linked images
+        effective_image_count = caption.image_count if caption.image_count is not None and caption.image_count > 0 else len(caption.images)
+        
+        if effective_image_count > 1:
+            # This is a multi-upload item, group them together
+            first_img = caption.images[0]
+            
+            # Combine metadata from all images
+            combined_source = set()
+            combined_event_type = set()
+            combined_epsg = set()
+            
+            for img in caption.images:
+                if img.source:
+                    combined_source.add(img.source)
+                if img.event_type:
+                    combined_event_type.add(img.event_type)
+                if img.epsg:
+                    combined_epsg.add(img.epsg)
+            
+            # Create a combined image dict using the first image as a template
+            img_dict = convert_image_to_dict(first_img, f"/api/images/{first_img.image_id}/file")
+            
+            # Override with combined metadata
+            img_dict["source"] = ", ".join(sorted(list(combined_source))) if combined_source else "OTHER"
+            img_dict["event_type"] = ", ".join(sorted(list(combined_event_type))) if combined_event_type else "OTHER"
+            img_dict["epsg"] = ", ".join(sorted(list(combined_epsg))) if combined_epsg else "OTHER"
+            
+            # Update countries to include all unique countries
+            all_countries = []
+            for img in caption.images:
+                for country in img.countries:
+                    if not any(c["c_code"] == country.c_code for c in all_countries):
+                        all_countries.append({"c_code": country.c_code, "label": country.label, "r_code": country.r_code})
+            img_dict["countries"] = all_countries
+            
+            # Add all image IDs for reference
+            img_dict["all_image_ids"] = [str(img.image_id) for img in caption.images]
+            img_dict["image_count"] = effective_image_count # Use the effective count here
+            
+            # Also ensure the caption-level fields are correctly set from the main caption
+            img_dict["title"] = caption.title
+            img_dict["prompt"] = caption.prompt
+            img_dict["model"] = caption.model
+            img_dict["schema_id"] = caption.schema_id
+            img_dict["raw_json"] = caption.raw_json
+            img_dict["generated"] = caption.generated
+            img_dict["edited"] = caption.edited
+            img_dict["accuracy"] = caption.accuracy
+            img_dict["context"] = caption.context
+            img_dict["usability"] = caption.usability
+            img_dict["starred"] = caption.starred
+            img_dict["created_at"] = caption.created_at
+            img_dict["updated_at"] = caption.updated_at
+
+            result.append(schemas.ImageOut(**img_dict))
+        else:
+            # For single images, add them as usual
+            # Ensure image_count is explicitly 1 for single uploads
+            for img in caption.images: # Even for single, caption.images will be a list of 1
+                img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+                img_dict["all_image_ids"] = [str(img.image_id)]
+                img_dict["image_count"] = 1 # Explicitly set to 1
+                
+                # Also ensure the caption-level fields are correctly set from the main caption
+                img_dict["title"] = caption.title
+                img_dict["prompt"] = caption.prompt
+                img_dict["model"] = caption.model
+                img_dict["schema_id"] = caption.schema_id
+                img_dict["raw_json"] = caption.raw_json
+                img_dict["generated"] = caption.generated
+                img_dict["edited"] = caption.edited
+                img_dict["accuracy"] = caption.accuracy
+                img_dict["context"] = caption.context
+                img_dict["usability"] = caption.usability
+                img_dict["starred"] = caption.starred
+                img_dict["created_at"] = caption.created_at
+                img_dict["updated_at"] = caption.updated_at
+
+                result.append(schemas.ImageOut(**img_dict))
+    
+    return result
+
 @router.get("/{image_id}", response_model=schemas.ImageOut)
 def get_image(image_id: str, db: Session = Depends(get_db)):
     """Get a single image by ID"""
@@ -176,11 +271,41 @@ def get_image(image_id: str, db: Session = Depends(get_db)):
     if not uuid_pattern.match(image_id):
         raise HTTPException(400, "Invalid image ID format")
     
-    img = crud.get_image(db, image_id)
+    img = crud.get_image(db, image_id) # This loads captions
     if not img:
         raise HTTPException(404, "Image not found")
     
     img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+
+    # Enhance img_dict with multi-upload specific fields if applicable
+    if img.captions:
+        # Assuming an image is primarily associated with one "grouping" caption for multi-uploads
+        # We take the first caption and check its linked images
+        main_caption = img.captions[0] 
+        
+        # Refresh the caption to ensure its images relationship is loaded if not already
+        db.refresh(main_caption) 
+        
+        if main_caption.images:
+            all_linked_image_ids = [str(linked_img.image_id) for linked_img in main_caption.images]
+            effective_image_count = main_caption.image_count if main_caption.image_count is not None and main_caption.image_count > 0 else len(main_caption.images)
+            
+            if effective_image_count > 1:
+                img_dict["all_image_ids"] = all_linked_image_ids
+                img_dict["image_count"] = effective_image_count
+            else:
+                # Even for single images, explicitly set image_count to 1
+                img_dict["image_count"] = 1
+                img_dict["all_image_ids"] = [str(img.image_id)] # Ensure it's an array for consistency
+        else:
+            # If caption has no linked images (shouldn't happen for valid data, but for robustness)
+            img_dict["image_count"] = 1
+            img_dict["all_image_ids"] = [str(img.image_id)]
+    else:
+        # If image has no captions, it's a single image by default
+        img_dict["image_count"] = 1
+        img_dict["all_image_ids"] = [str(img.image_id)]
+
     return schemas.ImageOut(**img_dict)
 
 
@@ -192,6 +317,8 @@ async def upload_image(
     epsg: str          = Form(default=""),
     image_type: str    = Form(default="crisis_map"),
     file: UploadFile   = Form(...),
+    title: str = Form(default=""),
+    model_name: Optional[str] = Form(default=None),
     # Drone-specific fields (optional)
     center_lon: Optional[float]  = Form(default=None),
     center_lat: Optional[float]  = Form(default=None),
@@ -301,9 +428,259 @@ async def upload_image(
     except Exception as e:
         url = f"/api/images/{img.image_id}/file"
 
+    # Create caption using VLM
+    prompt_obj = crud.get_active_prompt_by_image_type(db, image_type)
+    
+    if not prompt_obj:
+        raise HTTPException(400, f"No active prompt found for image type '{image_type}'")
+    
+    prompt_text = prompt_obj.label
+    metadata_instructions = prompt_obj.metadata_instructions or ""
+    
+    try:
+        from ..services.vlm_service import vlm_manager
+        result = await vlm_manager.generate_caption(
+            image_bytes=processed_content,
+            prompt=prompt_text,
+            metadata_instructions=metadata_instructions,
+            model_name=model_name,
+            db_session=db,
+        )
+        
+        raw = result.get("raw_response", {})
+        text = result.get("caption", "")
+        metadata = result.get("metadata", {})
+        
+        # Use the actual model that was used by the VLM service
+        actual_model = result.get("model", model_name)
+        
+        # Ensure we never use 'random' as the model name in the database
+        final_model_name = actual_model if actual_model != "random" else "STUB_MODEL"
+        
+        # Create caption linked to the image
+        caption = crud.create_caption(
+            db,
+            image_id=img.image_id,
+            title=title,
+            prompt=prompt_obj.p_code,
+            model_code=final_model_name,
+            raw_json=raw,
+            text=text,
+            metadata=metadata,
+            image_count=1
+        )
+        
+    except Exception as e:
+        print(f"VLM caption generation failed: {str(e)}")
+        # Continue without caption if VLM fails
+    
     img_dict = convert_image_to_dict(img, url)
     # Add preprocessing info to the response
     img_dict['preprocessing_info'] = preprocessing_info
+    result = schemas.ImageOut(**img_dict)
+    return result
+
+@router.post("/multi", response_model=schemas.ImageOut)
+async def upload_multiple_images(
+    files: List[UploadFile] = Form(...),
+    source: Optional[str] = Form(default=None),
+    event_type: str = Form(default="OTHER"),
+    countries: str = Form(default=""),
+    epsg: str = Form(default=""),
+    image_type: str = Form(default="crisis_map"),
+    title: str = Form(...),
+    model_name: Optional[str] = Form(default=None),
+    # Drone-specific fields (optional)
+    center_lon: Optional[float] = Form(default=None),
+    center_lat: Optional[float] = Form(default=None),
+    amsl_m: Optional[float] = Form(default=None),
+    agl_m: Optional[float] = Form(default=None),
+    heading_deg: Optional[float] = Form(default=None),
+    yaw_deg: Optional[float] = Form(default=None),
+    pitch_deg: Optional[float] = Form(default=None),
+    roll_deg: Optional[float] = Form(default=None),
+    rtk_fix: Optional[bool] = Form(default=None),
+    std_h_m: Optional[float] = Form(default=None),
+    std_v_m: Optional[float] = Form(default=None),
+    db: Session = Depends(get_db)
+):
+    """Upload multiple images and create a single caption for all of them"""
+    
+    if len(files) > 5:
+        raise HTTPException(400, "Maximum 5 images allowed")
+    
+    if len(files) < 1:
+        raise HTTPException(400, "At least one image required")
+    
+    countries_list = [c.strip() for c in countries.split(',') if c.strip()] if countries else []
+    
+    if image_type == "drone_image":
+        if not event_type or event_type.strip() == "":
+            event_type = "OTHER"
+        if not epsg or epsg.strip() == "":
+            epsg = "OTHER"
+    else:
+        if not source or source.strip() == "":
+            source = "OTHER"
+        if not event_type or event_type.strip() == "":
+            event_type = "OTHER"
+        if not epsg or epsg.strip() == "":
+            epsg = "OTHER"
+    
+    if not image_type or image_type.strip() == "":
+        image_type = "crisis_map"
+    
+    if image_type != "drone_image":
+        center_lon = None
+        center_lat = None
+        amsl_m = None
+        agl_m = None
+        heading_deg = None
+        yaw_deg = None
+        pitch_deg = None
+        roll_deg = None
+        rtk_fix = None
+        std_h_m = None
+        std_v_m = None
+    
+    uploaded_images = []
+    image_bytes_list = []
+    
+    # Process each file
+    for file in files:
+        content = await file.read()
+        
+        # Preprocess image if needed
+        try:
+            processed_content, processed_filename, mime_type = ImagePreprocessor.preprocess_image(
+                content, 
+                file.filename,
+                target_format='PNG',
+                quality=95
+            )
+        except Exception as e:
+            print(f"Image preprocessing failed: {str(e)}")
+            processed_content = content
+            processed_filename = file.filename
+            mime_type = 'image/png'
+        
+        sha = crud.hash_bytes(processed_content)
+        key = storage.upload_fileobj(io.BytesIO(processed_content), processed_filename)
+        
+        # Create image record
+        img = crud.create_image(
+            db, source, event_type, key, sha, countries_list, epsg, image_type,
+            center_lon, center_lat, amsl_m, agl_m, heading_deg, yaw_deg, pitch_deg, roll_deg,
+            rtk_fix, std_h_m, std_v_m
+        )
+        
+        uploaded_images.append(img)
+        image_bytes_list.append(processed_content)
+    
+    # Get the first image for URL generation (they all share the same metadata)
+    first_img = uploaded_images[0]
+    
+    try:
+        url = storage.get_object_url(first_img.file_key)
+    except Exception as e:
+        url = f"/api/images/{first_img.image_id}/file"
+    
+    # Create caption for all images
+    # Use the model_name parameter from the request, or let VLM manager choose the best available model
+    prompt_obj = crud.get_active_prompt_by_image_type(db, image_type)
+    
+    if not prompt_obj:
+        raise HTTPException(400, f"No active prompt found for image type '{image_type}'")
+    
+    prompt_text = prompt_obj.label
+    metadata_instructions = prompt_obj.metadata_instructions or ""
+    
+    # Add system instruction for multiple images
+    multi_image_instruction = f"\n\nIMPORTANT: You are analyzing {len(image_bytes_list)} images. Please provide a combined analysis that covers all images together. In your metadata section, provide separate metadata for each image:\n- 'title': ONE shared title for all images\n- 'metadata_images': an object containing individual metadata for each image:\n  - 'image1': {{ 'source': 'data source', 'type': 'event type', 'countries': ['country codes'], 'epsg': 'spatial reference' }}\n  - 'image2': {{ 'source': 'data source', 'type': 'event type', 'countries': ['country codes'], 'epsg': 'spatial reference' }}\n  - etc. for each image\n\nEach image should have its own source, type, countries, and epsg values based on what that specific image shows."
+    metadata_instructions += multi_image_instruction
+    
+    try:
+        from ..services.vlm_service import vlm_manager
+        result = await vlm_manager.generate_multi_image_caption(
+            image_bytes_list=image_bytes_list,
+            prompt=prompt_text,
+            metadata_instructions=metadata_instructions,
+            model_name=model_name,
+            db_session=db,
+        )
+        
+        raw = result.get("raw_response", {})
+        text = result.get("caption", "")
+        metadata = result.get("metadata", {})
+        
+        # Use the actual model that was used by the VLM service
+        actual_model = result.get("model", model_name)
+        
+        # Update individual image metadata if VLM provided it
+        metadata_images = metadata.get("metadata_images", {})
+        if metadata_images and isinstance(metadata_images, dict):
+            for i, img in enumerate(uploaded_images):
+                image_key = f"image{i+1}"
+                if image_key in metadata_images:
+                    img_metadata = metadata_images[image_key]
+                    if isinstance(img_metadata, dict):
+                        # Update image with individual metadata
+                        img.source = img_metadata.get("source", img.source)
+                        img.event_type = img_metadata.get("type", img.event_type)
+                        img.epsg = img_metadata.get("epsg", img.epsg)
+                        img.countries = img_metadata.get("countries", img.countries)
+        
+        # Ensure we never use 'random' as the model name in the database
+        final_model_name = actual_model if actual_model != "random" else "STUB_MODEL"
+        
+        # Create caption linked to the first image
+        caption = crud.create_caption(
+            db,
+            image_id=first_img.image_id,
+            title=title,
+            prompt=prompt_obj.p_code,
+            model_code=final_model_name,
+            raw_json=raw,
+            text=text,
+            metadata=metadata,
+            image_count=len(image_bytes_list)
+        )
+        
+        # Link caption to all images
+        for img in uploaded_images[1:]:
+            img.captions.append(caption)
+        
+        db.commit()
+        
+    except Exception as e:
+        print(f"VLM error: {e}")
+        # Create fallback caption
+        fallback_text = f"Analysis of {len(image_bytes_list)} images"
+        caption = crud.create_caption(
+            db,
+            image_id=first_img.image_id,
+            title=title,
+            prompt=prompt_obj.p_code,
+            model_code="FALLBACK",
+            raw_json={"error": str(e), "fallback": True},
+            text=fallback_text,
+            metadata={},
+            image_count=len(image_bytes_list)
+        )
+        
+        # Link caption to all images
+        for img in uploaded_images[1:]:
+            img.captions.append(caption)
+        
+        db.commit()
+    
+    img_dict = convert_image_to_dict(first_img, url)
+    
+    # Add all image IDs to the response for multi-image uploads
+    if len(uploaded_images) > 1:
+        img_dict["all_image_ids"] = [str(img.image_id) for img in uploaded_images]
+        img_dict["image_count"] = len(uploaded_images)
+    
     result = schemas.ImageOut(**img_dict)
     return result
 

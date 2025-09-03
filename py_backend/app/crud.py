@@ -67,7 +67,7 @@ def get_images(db: Session):
         db.query(models.Images)
         .options(
             joinedload(models.Images.countries),
-            joinedload(models.Images.captions),
+            joinedload(models.Images.captions).joinedload(models.Captions.images),
         )
         .all()
     )
@@ -78,13 +78,13 @@ def get_image(db: Session, image_id: str):
         db.query(models.Images)
         .options(
             joinedload(models.Images.countries),
-            joinedload(models.Images.captions),
+            joinedload(models.Images.captions).joinedload(models.Captions.images),
         )
         .filter(models.Images.image_id == image_id)
         .first()
     )
 
-def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None):
+def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None, image_count=None):
     print(f"Creating caption for image_id: {image_id}")
     print(f"Caption data: title={title}, prompt={prompt}, model={model_code}")
     print(f"Database session ID: {id(db)}")
@@ -109,7 +109,8 @@ def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, t
         schema_id=schema_id,
         raw_json=raw_json,
         generated=text,
-        edited=text
+        edited=text,
+        image_count=image_count
     )
     
     db.add(caption)

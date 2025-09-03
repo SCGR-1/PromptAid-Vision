@@ -9,6 +9,7 @@ interface FilterContextType {
   regionFilter: string;
   countryFilter: string;
   imageTypeFilter: string;
+  uploadTypeFilter: string;
   showReferenceExamples: boolean;
   
   // Setter functions
@@ -18,6 +19,7 @@ interface FilterContextType {
   setRegionFilter: (value: string) => void;
   setCountryFilter: (value: string) => void;
   setImageTypeFilter: (value: string) => void;
+  setUploadTypeFilter: (value: string) => void;
   setShowReferenceExamples: (value: boolean) => void;
   
   // Utility function to clear all filters
@@ -37,6 +39,7 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
   const [regionFilter, setRegionFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [imageTypeFilter, setImageTypeFilter] = useState('');
+  const [uploadTypeFilter, setUploadTypeFilter] = useState('');
   const [showReferenceExamples, setShowReferenceExamples] = useState(false);
 
   const clearAllFilters = () => {
@@ -46,6 +49,7 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     setRegionFilter('');
     setCountryFilter('');
     setImageTypeFilter('');
+    setUploadTypeFilter('');
     setShowReferenceExamples(false);
   };
 
@@ -56,6 +60,7 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     regionFilter,
     countryFilter,
     imageTypeFilter,
+    uploadTypeFilter,
     showReferenceExamples,
     setSearch,
     setSrcFilter,
@@ -63,6 +68,7 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
     setRegionFilter,
     setCountryFilter,
     setImageTypeFilter,
+    setUploadTypeFilter,
     setShowReferenceExamples,
     clearAllFilters,
   };

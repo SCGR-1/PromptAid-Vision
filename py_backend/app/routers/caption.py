@@ -124,6 +124,7 @@ async def create_caption(
     print(f"Using metadata instructions: '{metadata_instructions[:100]}...'")
 
     try:
+        print(f"DEBUG: About to call VLM service with model_name: {model_name}")
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
             response = storage.s3.get_object(
                 Bucket=settings.S3_BUCKET,
@@ -159,6 +160,9 @@ async def create_caption(
             db_session=db,
         )
         
+        print(f"DEBUG: VLM service result: {result}")
+        print(f"DEBUG: Result model field: {result.get('model', 'NOT_FOUND')}")
+        
         # Get the raw response for validation
         raw = result.get("raw_response", {})
         
@@ -183,6 +187,13 @@ async def create_caption(
         
         # Use the actual model that was used, not the requested model_name
         used_model = result.get("model", model_name) or "STUB_MODEL"
+        
+        # Ensure we never use 'random' as the model name in the database
+        if used_model == "random":
+            print(f"WARNING: VLM service returned 'random' as model name, using STUB_MODEL fallback")
+            used_model = "STUB_MODEL"
+        
+        print(f"DEBUG: Final used_model for database: {used_model}")
         
         # Check if fallback was used
         fallback_used = result.get("fallback_used", False)

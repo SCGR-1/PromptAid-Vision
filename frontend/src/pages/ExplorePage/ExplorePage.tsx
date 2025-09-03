@@ -30,6 +30,9 @@ interface ImageWithCaptionOut {
   epsg: string;
   image_type: string;
   countries: {c_code: string, label: string, r_code: string}[];
+  // Multi-upload fields
+  all_image_ids?: string[];
+  image_count?: number;
 }
 
 export default function ExplorePage() {
@@ -46,6 +49,7 @@ export default function ExplorePage() {
     regionFilter, 
     countryFilter, 
     imageTypeFilter, 
+    uploadTypeFilter,
     showReferenceExamples,
     setShowReferenceExamples
   } = useFilterContext();
@@ -73,14 +77,20 @@ export default function ExplorePage() {
 
   const fetchCaptions = () => {
     setIsLoadingContent(true);
-    fetch('/api/captions/legacy')
+    fetch('/api/images/grouped')
       .then(r => {
         if (!r.ok) {
-          console.error('ExplorePage: Legacy endpoint failed, trying regular images endpoint');
-          // Fallback to regular images endpoint
-          return fetch('/api/images').then(r2 => {
+          console.error('ExplorePage: Grouped endpoint failed, trying legacy endpoint');
+          // Fallback to legacy endpoint for backward compatibility
+          return fetch('/api/captions/legacy').then(r2 => {
             if (!r2.ok) {
-              throw new Error(`HTTP ${r2.status}: ${r2.statusText}`);
+              console.error('ExplorePage: Legacy endpoint failed, trying regular images endpoint');
+              return fetch('/api/images').then(r3 => {
+                if (!r3.ok) {
+                  throw new Error(`HTTP ${r3.status}: ${r3.statusText}`);
+                }
+                return r3.json();
+              });
             }
             return r2.json();
           });
@@ -195,18 +205,24 @@ export default function ExplorePage() {
         c.source?.toLowerCase().includes(search.toLowerCase()) ||
         c.event_type?.toLowerCase().includes(search.toLowerCase());
       
-      const matchesSource = !srcFilter || c.source === srcFilter;
-      const matchesCategory = !catFilter || c.event_type === catFilter;
+      // Handle combined metadata from multi-upload items
+      const sourceMatches = !srcFilter || 
+        (c.source && c.source.split(', ').some(s => s.trim() === srcFilter));
+      const categoryMatches = !catFilter || 
+        (c.event_type && c.event_type.split(', ').some(e => e.trim() === catFilter));
       const matchesRegion = !regionFilter || 
         c.countries.some(country => country.r_code === regionFilter);
       const matchesCountry = !countryFilter || 
         c.countries.some(country => country.c_code === countryFilter);
       const matchesImageType = !imageTypeFilter || c.image_type === imageTypeFilter;
+      const matchesUploadType = !uploadTypeFilter || 
+        (uploadTypeFilter === 'single' && (!c.image_count || c.image_count <= 1)) ||
+        (uploadTypeFilter === 'multiple' && c.image_count && c.image_count > 1);
       const matchesReferenceExamples = !showReferenceExamples || c.starred === true;
       
-      return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+      return matchesSearch && sourceMatches && categoryMatches && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
     });
-  }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
+  }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
 
   const exportDataset = async (images: ImageWithCaptionOut[], mode: 'standard' | 'fine-tuning' = 'fine-tuning') => {
     if (images.length === 0) {
@@ -230,116 +246,120 @@ export default function ExplorePage() {
         const crisisImagesFolder = crisisFolder?.folder('images');
         
         if (crisisImagesFolder) {
-          const crisisImagePromises = crisisMaps.map(async (image, index) => {
+          // Process each caption (which may contain multiple images)
+          let jsonIndex = 1;
+          
+          for (const caption of crisisMaps) {
             try {
-              const response = await fetch(`/api/images/${image.image_id}/file`);
-              if (!response.ok) throw new Error(`Failed to fetch image ${image.image_id}`);
+              // Get all image IDs for this caption
+              const imageIds = caption.image_count && caption.image_count > 1 
+                ? caption.all_image_ids || [caption.image_id]
+                : [caption.image_id];
+              
+              // Fetch all images for this caption
+              const imagePromises = imageIds.map(async (imageId, imgIndex) => {
+                try {
+                  const response = await fetch(`/api/images/${imageId}/file`);
+                  if (!response.ok) throw new Error(`Failed to fetch image ${imageId}`);
               
               const blob = await response.blob();
-              const fileExtension = image.file_key.split('.').pop() || 'jpg';
-              const fileName = `${String(index + 1).padStart(4, '0')}.${fileExtension}`;
+                  const fileExtension = caption.file_key.split('.').pop() || 'jpg';
+                  const fileName = `${String(jsonIndex).padStart(4, '0')}_${String(imgIndex + 1).padStart(2, '0')}.${fileExtension}`;
               
               crisisImagesFolder.file(fileName, blob);
-              return { success: true, fileName, image };
+                  return { success: true, fileName, imageId };
             } catch (error) {
-              console.error(`Failed to process image ${image.image_id}:`, error);
-              return { success: false, fileName: '', image };
+                  console.error(`Failed to process image ${imageId}:`, error);
+                  return { success: false, fileName: '', imageId };
             }
           });
 
-          const crisisImageResults = await Promise.all(crisisImagePromises);
-          const successfulCrisisImages = crisisImageResults.filter(result => result.success);
+              const imageResults = await Promise.all(imagePromises);
+              const successfulImages = imageResults.filter(result => result.success);
 
+                             if (successfulImages.length > 0) {
           if (mode === 'fine-tuning') {
-            const crisisTrainData: any[] = [];
-            const crisisTestData: any[] = [];
-            const crisisValData: any[] = [];
+                   // For fine-tuning, create one entry per caption with all images
+                   const imageFiles = successfulImages.map(result => `images/${result.fileName}`);
+                   
+                   const random = Math.random();
+                   const entry = {
+                     image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
+                     caption: caption.edited || caption.generated || '',
+                     metadata: {
+                       image_id: imageIds,
+                       title: caption.title,
+                       source: caption.source,
+                       event_type: caption.event_type,
+                       image_type: caption.image_type,
+                       countries: caption.countries,
+                       starred: caption.starred,
+                       image_count: caption.image_count || 1
+                     }
+                   };
 
-            const crisisImagesBySource = new Map<string, any[]>();
-            successfulCrisisImages.forEach(result => {
-              const source = result.image.source || 'unknown';
-              if (!crisisImagesBySource.has(source)) {
-                crisisImagesBySource.set(source, []);
-              }
-              crisisImagesBySource.get(source)!.push(result);
-            });
-
-            crisisImagesBySource.forEach((images, _source) => {
-              const totalImages = images.length;
-              const trainCount = Math.floor(totalImages * (80 / 100));
-              const testCount = Math.floor(totalImages * (10 / 100));
-
-              const shuffledImages = [...images].sort(() => Math.random() - 0.5);
-
-              crisisTrainData.push(...shuffledImages.slice(0, trainCount).map(result => ({
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
-                metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
-                }
-              })));
-
-              crisisTestData.push(...shuffledImages.slice(trainCount, trainCount + testCount).map(result => ({
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
-                metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
-                }
-              })));
-
-              crisisValData.push(...shuffledImages.slice(trainCount + testCount).map(result => ({
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
-                metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
-                }
-              })));
-            });
-
-            // Add JSONL files to crisis folder
-            if (crisisFolder) {
-              crisisFolder.file('train.jsonl', JSON.stringify(crisisTrainData, null, 2));
-              crisisFolder.file('test.jsonl', JSON.stringify(crisisTestData, null, 2));
-              crisisFolder.file('val.jsonl', JSON.stringify(crisisValData, null, 2));
+                   // Store the entry for later processing
+                   if (!crisisFolder) continue;
+                   
+                   if (random < 0.8) {
+                     // Add to train data
+                     const trainFile = crisisFolder.file('train.jsonl');
+                     if (trainFile) {
+                       const existingData = await trainFile.async('string').then(data => JSON.parse(data || '[]')).catch(() => []);
+                       existingData.push(entry);
+                       crisisFolder.file('train.jsonl', JSON.stringify(existingData, null, 2));
+                     } else {
+                       crisisFolder.file('train.jsonl', JSON.stringify([entry], null, 2));
+                     }
+                   } else if (random < 0.9) {
+                     // Add to test data
+                     const testFile = crisisFolder.file('test.jsonl');
+                     if (testFile) {
+                       const existingData = await testFile.async('string').then(data => JSON.parse(data || '[]')).catch(() => []);
+                       existingData.push(entry);
+                       crisisFolder.file('test.jsonl', JSON.stringify(existingData, null, 2));
+                     } else {
+                       crisisFolder.file('test.jsonl', JSON.stringify([entry], null, 2));
+                     }
+                   } else {
+                     // Add to validation data
+                     const valFile = crisisFolder.file('val.jsonl');
+                     if (valFile) {
+                       const existingData = await valFile.async('string').then(data => JSON.parse(data || '[]')).catch(() => []);
+                       existingData.push(entry);
+                       crisisFolder.file('val.jsonl', JSON.stringify(existingData, null, 2));
+                     } else {
+                       crisisFolder.file('val.jsonl', JSON.stringify([entry], null, 2));
+                     }
             }
           } else {
-            successfulCrisisImages.forEach((result, index) => {
+                  // For standard mode, create one JSON file per caption
+                  const imageFiles = successfulImages.map(result => `images/${result.fileName}`);
               const jsonData = {
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
+                    image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
+                    caption: caption.edited || caption.generated || '',
                 metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
+                      image_id: imageIds,
+                      title: caption.title,
+                      source: caption.source,
+                      event_type: caption.event_type,
+                      image_type: caption.image_type,
+                      countries: caption.countries,
+                      starred: caption.starred,
+                      image_count: caption.image_count || 1
                 }
               };
               
               if (crisisFolder) {
-                crisisFolder.file(`${String(index + 1).padStart(4, '0')}.json`, JSON.stringify(jsonData, null, 2));
+                    crisisFolder.file(`${String(jsonIndex).padStart(4, '0')}.json`, JSON.stringify(jsonData, null, 2));
+                  }
+                }
+                
+                jsonIndex++;
               }
-            });
+            } catch (error) {
+              console.error(`Failed to process caption ${caption.image_id}:`, error);
+            }
           }
         }
       }
@@ -350,115 +370,120 @@ export default function ExplorePage() {
         const droneImagesFolder = droneFolder?.folder('images');
         
         if (droneImagesFolder) {
-          const droneImagePromises = droneImages.map(async (image, index) => {
+          // Process each caption (which may contain multiple images)
+          let jsonIndex = 1;
+          
+          for (const caption of droneImages) {
             try {
-              const response = await fetch(`/api/images/${image.image_id}/file`);
-              if (!response.ok) throw new Error(`Failed to fetch image ${image.image_id}`);
+              // Get all image IDs for this caption
+              const imageIds = caption.image_count && caption.image_count > 1 
+                ? caption.all_image_ids || [caption.image_id]
+                : [caption.image_id];
+              
+              // Fetch all images for this caption
+              const imagePromises = imageIds.map(async (imageId, imgIndex) => {
+                try {
+                  const response = await fetch(`/api/images/${imageId}/file`);
+                  if (!response.ok) throw new Error(`Failed to fetch image ${imageId}`);
               
               const blob = await response.blob();
-              const fileExtension = image.file_key.split('.').pop() || 'jpg';
-              const fileName = `${String(index + 1).padStart(4, '0')}.${fileExtension}`;
+                  const fileExtension = caption.file_key.split('.').pop() || 'jpg';
+                  const fileName = `${String(jsonIndex).padStart(4, '0')}_${String(imgIndex + 1).padStart(2, '0')}.${fileExtension}`;
               
               droneImagesFolder.file(fileName, blob);
-              return { success: true, fileName, image };
+                  return { success: true, fileName, imageId };
             } catch (error) {
-              console.error(`Failed to process image ${image.image_id}:`, error);
-              return { success: false, fileName: '', image };
+                  console.error(`Failed to process image ${imageId}:`, error);
+                  return { success: false, fileName: '', imageId };
             }
           });
 
-          const droneImageResults = await Promise.all(droneImagePromises);
-          const successfulDroneImages = droneImageResults.filter(result => result.success);
+              const imageResults = await Promise.all(imagePromises);
+              const successfulImages = imageResults.filter(result => result.success);
 
+              if (successfulImages.length > 0) {
           if (mode === 'fine-tuning') {
-            const droneTrainData: any[] = [];
-            const droneTestData: any[] = [];
-            const droneValData: any[] = [];
+                  // For fine-tuning, create one entry per caption with all images
+                  const imageFiles = successfulImages.map(result => `images/${result.fileName}`);
+                  
+                  const random = Math.random();
+                  const entry = {
+                    image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
+                    caption: caption.edited || caption.generated || '',
+                    metadata: {
+                      image_id: imageIds,
+                      title: caption.title,
+                      source: caption.source,
+                      event_type: caption.event_type,
+                      image_type: caption.image_type,
+                      countries: caption.countries,
+                      starred: caption.starred,
+                      image_count: caption.image_count || 1
+                    }
+                  };
 
-            const droneImagesByEventType = new Map<string, any[]>();
-            successfulDroneImages.forEach(result => {
-              const eventType = result.image.event_type || 'unknown';
-              if (!droneImagesByEventType.has(eventType)) {
-                droneImagesByEventType.set(eventType, []);
-              }
-              droneImagesByEventType.get(eventType)!.push(result);
-            });
-
-            droneImagesByEventType.forEach((images, _eventType) => {
-              const totalImages = images.length;
-              const trainCount = Math.floor(totalImages * (80 / 100));
-              const testCount = Math.floor(totalImages * (10 / 100));
-
-              const shuffledImages = [...images].sort(() => Math.random() - 0.5);
-
-              droneTrainData.push(...shuffledImages.slice(0, trainCount).map(result => ({
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
-                metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
-                }
-              })));
-
-              droneTestData.push(...shuffledImages.slice(trainCount, trainCount + testCount).map(result => ({
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
-                metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
-                }
-              })));
-
-              droneValData.push(...shuffledImages.slice(trainCount + testCount).map(result => ({
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
-                metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
-                }
-              })));
-            });
-
-            if (droneFolder) {
-              droneFolder.file('train.jsonl', JSON.stringify(droneTrainData, null, 2));
-              droneFolder.file('test.jsonl', JSON.stringify(droneTestData, null, 2));
-              droneFolder.file('val.jsonl', JSON.stringify(droneValData, null, 2));
+                  // Store the entry for later processing
+                  if (!droneFolder) continue;
+                  
+                  if (random < 0.8) {
+                    // Add to train data
+                    const trainFile = droneFolder.file('train.jsonl');
+                    if (trainFile) {
+                      const existingData = await trainFile.async('string').then(data => JSON.parse(data || '[]')).catch(() => []);
+                      existingData.push(entry);
+                      droneFolder.file('train.jsonl', JSON.stringify(existingData, null, 2));
+                    } else {
+                      droneFolder.file('train.jsonl', JSON.stringify([entry], null, 2));
+                    }
+                  } else if (random < 0.9) {
+                    // Add to test data
+                    const testFile = droneFolder.file('test.jsonl');
+                    if (testFile) {
+                      const existingData = await testFile.async('string').then(data => JSON.parse(data || '[]')).catch(() => []);
+                      existingData.push(entry);
+                      droneFolder.file('test.jsonl', JSON.stringify(existingData, null, 2));
+                    } else {
+                      droneFolder.file('test.jsonl', JSON.stringify([entry], null, 2));
+                    }
+                  } else {
+                    // Add to validation data
+                    const valFile = droneFolder.file('val.jsonl');
+                    if (valFile) {
+                      const existingData = await valFile.async('string').then(data => JSON.parse(data || '[]')).catch(() => []);
+                      existingData.push(entry);
+                      droneFolder.file('val.jsonl', JSON.stringify(existingData, null, 2));
+                    } else {
+                      droneFolder.file('val.jsonl', JSON.stringify([entry], null, 2));
+                    }
             }
           } else {
-            successfulDroneImages.forEach((result, index) => {
+                  // For standard mode, create one JSON file per caption
+                  const imageFiles = successfulImages.map(result => `images/${result.fileName}`);
               const jsonData = {
-                image: `images/${result.fileName}`,
-                caption: result.image.edited || result.image.generated || '',
+                    image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
+                    caption: caption.edited || caption.generated || '',
                 metadata: {
-                  image_id: result.image.image_id,
-                  title: result.image.title,
-                  source: result.image.source,
-                  event_type: result.image.event_type,
-                  image_type: result.image.image_type,
-                  countries: result.image.countries,
-                  starred: result.image.starred
+                      image_id: imageIds,
+                      title: caption.title,
+                      source: caption.source,
+                      event_type: caption.event_type,
+                      image_type: caption.image_type,
+                      countries: caption.countries,
+                      starred: caption.starred,
+                      image_count: caption.image_count || 1
                 }
               };
               
               if (droneFolder) {
-                droneFolder.file(`${String(index + 1).padStart(4, '0')}.json`, JSON.stringify(jsonData, null, 2));
+                    droneFolder.file(`${String(jsonIndex).padStart(4, '0')}.json`, JSON.stringify(jsonData, null, 2));
+                  }
+                }
+                
+                jsonIndex++;
               }
-            });
+            } catch (error) {
+              console.error(`Failed to process caption ${caption.image_id}:`, error);
+            }
           }
         }
       }
@@ -678,15 +703,31 @@ export default function ExplorePage() {
                             <div className={styles.metadataTags}>
                               {c.image_type !== 'drone_image' && (
                                 <span className={styles.metadataTagSource}>
-                                  {sources.find(s => s.s_code === c.source)?.label || c.source}
+                                  {c.source && c.source.includes(', ') 
+                                    ? c.source.split(', ').map(s => sources.find(src => src.s_code === s.trim())?.label || s.trim()).join(', ')
+                                    : sources.find(s => s.s_code === c.source)?.label || c.source
+                                  }
                                 </span>
                               )}
                               <span className={styles.metadataTagType}>
-                                {types.find(t => t.t_code === c.event_type)?.label || c.event_type}
+                                {c.event_type && c.event_type.includes(', ')
+                                  ? c.event_type.split(', ').map(e => types.find(t => t.t_code === e.trim())?.label || e.trim()).join(', ')
+                                  : types.find(t => t.t_code === c.event_type)?.label || c.event_type
+                                }
                               </span>
                               <span className={styles.metadataTag}>
                                 {imageTypes.find(it => it.image_type === c.image_type)?.label || c.image_type}
                               </span>
+                              {c.image_count && c.image_count > 1 && (
+                                <span className={styles.metadataTag} title={`Multi-upload with ${c.image_count} images`}>
+                                  📷 {c.image_count}
+                                </span>
+                              )}
+                              {(!c.image_count || c.image_count <= 1) && (
+                                <span className={styles.metadataTag} title="Single Upload">
+                                  Single
+                                </span>
+                              )}
                               {c.countries && c.countries.length > 0 && (
                                 <>
                                   <span className={styles.metadataTag}>
@@ -787,7 +828,7 @@ export default function ExplorePage() {
         }}
         filteredCount={filtered.length}
         totalCount={captions.length}
-        hasFilters={!!(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples)}
+        hasFilters={!!(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || uploadTypeFilter || showReferenceExamples)}
         crisisMapsCount={filtered.filter(img => img.image_type === 'crisis_map').length}
         droneImagesCount={filtered.filter(img => img.image_type === 'drone_image').length}
         isLoading={isExporting}

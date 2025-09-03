@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@types/react-simple-maps": "^3.0.6",
+    "react-image-crop": "^11.0.10",
+    "react-simple-crop": "^1.0.2",
     "react-simple-maps": "^3.0.0"
   }
 }

@@ -6,6 +6,8 @@ import styles from './MapDetailPage.module.css';
 import { useFilterContext } from '../../hooks/useFilterContext';
 import { useAdmin } from '../../hooks/useAdmin';
 import ExportModal from '../../components/ExportModal';
+import { FullSizeImageModal } from '../../components/upload/ModalComponents';
+import FilterBar from '../../components/FilterBar';
 
 interface MapOut {
   image_id: string;
@@ -43,6 +45,9 @@ interface MapOut {
   starred?: boolean;
   created_at?: string;
   updated_at?: string;
+  // Multi-upload fields
+  all_image_ids?: string[];
+  image_count?: number;
 }
 
 export default function MapDetailPage() {
@@ -107,7 +112,16 @@ export default function MapDetailPage() {
   const [droneImagesSelected, setDroneImagesSelected] = useState(true);
   
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showContributeConfirm, setShowContributeConfirm] = useState(false);
+
+  
+  // Full-size image modal state
+  const [showFullSizeModal, setShowFullSizeModal] = useState(false);
+  const [selectedImageForModal, setSelectedImageForModal] = useState<MapOut | null>(null);
+  
+  // Carousel state for multi-upload
+  const [allImages, setAllImages] = useState<MapOut[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
   
   const {
     search, setSearch,
@@ -116,6 +130,7 @@ export default function MapDetailPage() {
     regionFilter, setRegionFilter,
     countryFilter, setCountryFilter,
     imageTypeFilter, setImageTypeFilter,
+    uploadTypeFilter, setUploadTypeFilter,
     showReferenceExamples, setShowReferenceExamples,
     clearAllFilters
   } = useFilterContext();
@@ -158,6 +173,39 @@ export default function MapDetailPage() {
       const data = await response.json();
       setMap(data);
       
+      // If this is a multi-upload item, fetch all images
+      if (data.all_image_ids && data.all_image_ids.length > 1) {
+        await fetchAllImages(data.all_image_ids);
+      } else if (data.image_count && data.image_count > 1) {
+        // Multi-upload but no all_image_ids, try to fetch from grouped endpoint
+        console.log('Multi-upload detected but no all_image_ids, trying grouped endpoint');
+        try {
+          const groupedResponse = await fetch('/api/images/grouped');
+          if (groupedResponse.ok) {
+            const groupedData = await groupedResponse.json();
+            const matchingItem = groupedData.find((item: any) => 
+              item.all_image_ids && item.all_image_ids.includes(data.image_id)
+            );
+            if (matchingItem && matchingItem.all_image_ids) {
+              await fetchAllImages(matchingItem.all_image_ids);
+            } else {
+              setAllImages([data]);
+              setCurrentImageIndex(0);
+            }
+          } else {
+            setAllImages([data]);
+            setCurrentImageIndex(0);
+          }
+        } catch (err) {
+          console.error('Failed to fetch from grouped endpoint:', err);
+          setAllImages([data]);
+          setCurrentImageIndex(0);
+        }
+      } else {
+        setAllImages([data]);
+        setCurrentImageIndex(0);
+      }
+      
       await checkNavigationAvailability(id);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -165,6 +213,64 @@ export default function MapDetailPage() {
       setLoading(false);
       setIsNavigating(false);
     }
+  }, []);
+
+  const fetchAllImages = useCallback(async (imageIds: string[]) => {
+    console.log('fetchAllImages called with imageIds:', imageIds);
+    setIsLoadingImages(true);
+    
+    try {
+      const imagePromises = imageIds.map(async (imageId) => {
+        const response = await fetch(`/api/images/${imageId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image ${imageId}`);
+        }
+        return response.json();
+      });
+      
+      const images = await Promise.all(imagePromises);
+      setAllImages(images);
+      setCurrentImageIndex(0);
+      console.log('fetchAllImages: Loaded', images.length, 'images');
+    } catch (err: unknown) {
+      console.error('fetchAllImages error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load all images');
+    } finally {
+      setIsLoadingImages(false);
+    }
+  }, []);
+
+  // Carousel navigation functions
+  const goToPrevious = useCallback(() => {
+    if (allImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : allImages.length - 1));
+    }
+  }, [allImages.length]);
+
+  const goToNext = useCallback(() => {
+    if (allImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev < allImages.length - 1 ? prev + 1 : 0));
+    }
+  }, [allImages.length]);
+
+  const goToImage = useCallback((index: number) => {
+    if (index >= 0 && index < allImages.length) {
+      setCurrentImageIndex(index);
+    }
+  }, [allImages.length]);
+
+  // Full-size image modal functions
+  const handleViewFullSize = useCallback((image?: MapOut) => {
+    const imageToShow = image || (allImages.length > 0 ? allImages[currentImageIndex] : map);
+    if (imageToShow) {
+      setSelectedImageForModal(imageToShow);
+      setShowFullSizeModal(true);
+    }
+  }, [allImages, currentImageIndex, map]);
+
+  const handleCloseFullSizeModal = useCallback(() => {
+    setShowFullSizeModal(false);
+    setSelectedImageForModal(null);
   }, []);
 
   useEffect(() => {
@@ -313,7 +419,7 @@ export default function MapDetailPage() {
     }
 
     try {
-      const response = await fetch('/api/images');
+      const response = await fetch('/api/images/grouped');
       if (response.ok) {
         const images = await response.json();
         
@@ -331,9 +437,12 @@ export default function MapDetailPage() {
           const matchesCountry = !countryFilter || 
             img.countries?.some((country: any) => country.c_code === countryFilter);
           const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+          const matchesUploadType = !uploadTypeFilter || 
+            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1)) ||
+            (uploadTypeFilter === 'multiple' && img.image_count && img.image_count > 1);
           const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
           
-          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
         });
         
         const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
@@ -351,7 +460,7 @@ export default function MapDetailPage() {
     
     setIsNavigating(true);
     try {
-      const response = await fetch('/api/images');
+      const response = await fetch('/api/images/grouped');
       if (response.ok) {
         const images = await response.json();
         
@@ -369,9 +478,12 @@ export default function MapDetailPage() {
           const matchesCountry = !countryFilter || 
             img.countries?.some((country: any) => country.c_code === countryFilter);
           const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+          const matchesUploadType = !uploadTypeFilter || 
+            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1)) ||
+            (uploadTypeFilter === 'multiple' && img.image_count && img.image_count > 1);
           const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
           
-          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
         });
         
         const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
@@ -421,6 +533,13 @@ export default function MapDetailPage() {
     }
   };
 
+  // Check navigation availability when filters change
+  useEffect(() => {
+    if (map && mapId && !loading && !isDeleting) {
+      checkNavigationAvailability(mapId);
+    }
+  }, [map, mapId, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, loading, isDeleting, checkNavigationAvailability]);
+
   useEffect(() => {
     Promise.all([
       fetch('/api/sources').then(r => r.json()),
@@ -437,7 +556,7 @@ export default function MapDetailPage() {
     }).catch(console.error);
   }, []);
 
-  const [isGenerating, setIsGenerating] = useState(false);
+
   
   // delete function
   const handleDelete = async () => {
@@ -485,7 +604,7 @@ export default function MapDetailPage() {
         setShowDeleteConfirm(false);
         
         try {
-          const response = await fetch('/api/images');
+          const response = await fetch('/api/images/grouped');
           if (response.ok) {
             const images = await response.json();
             
@@ -503,9 +622,12 @@ export default function MapDetailPage() {
               const matchesCountry = !countryFilter || 
                 img.countries?.some((country: any) => country.c_code === countryFilter);
               const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+              const matchesUploadType = !uploadTypeFilter || 
+                (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1)) ||
+                (uploadTypeFilter === 'multiple' && img.image_count && img.image_count > 1);
               const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
               
-              return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples;
+              return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
             });
             
             const remainingImages = filteredImages.filter((img: any) => img.image_id !== map.image_id);
@@ -586,7 +708,7 @@ export default function MapDetailPage() {
   const filteredMap = useMemo(() => {
     if (!map) return null;
     
-    if (!search && !srcFilter && !catFilter && !regionFilter && !countryFilter && !imageTypeFilter && !showReferenceExamples) {
+    if (!search && !srcFilter && !catFilter && !regionFilter && !countryFilter && !imageTypeFilter && !uploadTypeFilter && !showReferenceExamples) {
       return map;
     }
     
@@ -603,90 +725,104 @@ export default function MapDetailPage() {
     const matchesCountry = !countryFilter || 
       map.countries.some(country => country.c_code === countryFilter);
     const matchesImageType = !imageTypeFilter || map.image_type === imageTypeFilter;
+    const matchesUploadType = !uploadTypeFilter || 
+      (uploadTypeFilter === 'single' && (!map.image_count || map.image_count <= 1)) ||
+      (uploadTypeFilter === 'multiple' && map.image_count && map.image_count > 1);
     const matchesReferenceExamples = !showReferenceExamples || map.starred === true;
     
-    return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesReferenceExamples ? map : null;
-  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
+    const matches = matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
+    
+    // If current map doesn't match filters, navigate to a matching image
+    if (!matches && (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || uploadTypeFilter || showReferenceExamples)) {
+      // Navigate to a matching image after a short delay to avoid infinite loops
+      setTimeout(() => {
+        navigateToMatchingImage();
+      }, 100);
+      // Return the current map while loading to show loading state instead of "no match found"
+      return map;
+    }
+    
+    return matches ? map : null;
+  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+
+  const navigateToMatchingImage = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/images/grouped');
+      if (response.ok) {
+        const images = await response.json();
+        
+        const filteredImages = images.filter((img: any) => {
+          const matchesSearch = !search || 
+            img.title?.toLowerCase().includes(search.toLowerCase()) ||
+            img.generated?.toLowerCase().includes(search.toLowerCase()) ||
+            img.source?.toLowerCase().includes(search.toLowerCase()) ||
+            img.event_type?.toLowerCase().includes(search.toLowerCase());
+          
+          const matchesSource = !srcFilter || img.source === srcFilter;
+          const matchesCategory = !catFilter || img.event_type === catFilter;
+          const matchesRegion = !regionFilter || 
+            img.countries?.some((country: any) => country.r_code === regionFilter);
+          const matchesCountry = !countryFilter || 
+            img.countries?.some((country: any) => country.c_code === countryFilter);
+          const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
+          const matchesUploadType = !uploadTypeFilter || 
+            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1)) ||
+            (uploadTypeFilter === 'multiple' && img.image_count && img.image_count > 1);
+          const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
+          
+          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
+        });
+        
+        if (filteredImages.length > 0) {
+          const firstMatchingImage = filteredImages[0];
+          if (firstMatchingImage && firstMatchingImage.image_id) {
+            navigate(`/map/${firstMatchingImage.image_id}`);
+          }
+        } else {
+          // No matching images, go back to explore
+          navigate('/explore');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to navigate to matching image:', error);
+      navigate('/explore');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, navigate]);
 
   const handleContribute = () => {
     if (!map) return;
-    setShowContributeConfirm(true);
-  };
-
-  const handleContributeConfirm = async () => {
-    if (!map) return;
     
-    setIsGenerating(true);
-    
-    try {
-      const res = await fetch('/api/contribute/from-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: map.image_url,
-          source: map.source,
-          event_type: map.event_type,
-          epsg: map.epsg,
-          image_type: map.image_type,
-          countries: map.countries.map(c => c.c_code),
-        }),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create contribution');
-      }
-      
-      const json = await res.json();
-      const newId = json.image_id as string;
-      
-      const modelName = localStorage.getItem('selectedVlmModel');
-      const capRes = await fetch(`/api/images/${newId}/caption`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          title: 'Generated Caption',
-          prompt: 'DEFAULT_CRISIS_MAP',
-          ...(modelName && { model_name: modelName }),
-        }),
-      });
-      
-      if (!capRes.ok) {
-        const errorData = await capRes.json();
-        throw new Error(errorData.error || 'Failed to generate caption');
-      }
-      
-      // Wait for the VLM response to be processed
-      const captionData = await capRes.json();
-      console.log('Caption generation response:', captionData);
-      
-      // Now navigate to the upload page with the processed data
-      const url = `/upload?imageUrl=${encodeURIComponent(json.image_url)}&isContribution=true&step=2a&imageId=${newId}&imageType=${map.image_type}`;
+    // For single image contribution
+    if (!map.all_image_ids || map.all_image_ids.length <= 1) {
+      const imageIds = [map.image_id];
+      const url = `/upload?step=1&contribute=true&imageIds=${imageIds.join(',')}`;
       navigate(url);
-      
-    } catch (error: unknown) {
-      console.error('Contribution failed:', error);
-      alert(`Contribution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsGenerating(false);
+      return;
     }
-  };
-
-  const handleContributeCancel = () => {
-    setShowContributeConfirm(false);
+    
+    // For multi-upload contribution
+    const imageIds = map.all_image_ids;
+    const url = `/upload?step=1&contribute=true&imageIds=${imageIds.join(',')}`;
+    navigate(url);
   };
  
   const createImageData = (map: any, fileName: string) => ({
     image: `images/${fileName}`,
     caption: map.edited || map.generated || '',
     metadata: {
-      image_id: map.image_id,
+      image_id: map.image_count && map.image_count > 1 
+        ? map.all_image_ids || [map.image_id]
+        : map.image_id,
       title: map.title,
       source: map.source,
       event_type: map.event_type,
       image_type: map.image_type,
       countries: map.countries,
-      starred: map.starred
+      starred: map.starred,
+      image_count: map.image_count || 1
     }
   });
 
@@ -706,38 +842,65 @@ export default function MapDetailPage() {
         
         if (crisisImagesFolder) {
           try {
-            const response = await fetch(`/api/images/${map.image_id}/file`);
-            if (!response.ok) throw new Error(`Failed to fetch image ${map.image_id}`);
+            // Get all image IDs for this map
+            const imageIds = map.image_count && map.image_count > 1 
+              ? map.all_image_ids || [map.image_id]
+              : [map.image_id];
             
-            const blob = await response.blob();
-            const fileExtension = map.file_key.split('.').pop() || 'jpg';
-            const fileName = `0001.${fileExtension}`;
+            // Fetch all images for this map
+            const imagePromises = imageIds.map(async (imageId, imgIndex) => {
+              try {
+                const response = await fetch(`/api/images/${imageId}/file`);
+                if (!response.ok) throw new Error(`Failed to fetch image ${imageId}`);
+                
+                const blob = await response.blob();
+                const fileExtension = map.file_key.split('.').pop() || 'jpg';
+                const fileName = `0001_${String(imgIndex + 1).padStart(2, '0')}.${fileExtension}`;
+                
+                crisisImagesFolder.file(fileName, blob);
+                return { success: true, fileName, imageId };
+              } catch (error) {
+                console.error(`Failed to process image ${imageId}:`, error);
+                return { success: false, fileName: '', imageId };
+              }
+            });
+
+            const imageResults = await Promise.all(imagePromises);
+            const successfulImages = imageResults.filter(result => result.success);
             
-            crisisImagesFolder.file(fileName, blob);
+            if (successfulImages.length === 0) {
+              throw new Error('No images could be processed');
+            }
             
             if (mode === 'fine-tuning') {
               const trainData: any[] = [];
               const testData: any[] = [];
               const valData: any[] = [];
 
-              if (String(map?.image_type) === 'crisis_map') {
-                const random = Math.random();
-                if (random < trainSplit / 100) {
-                  trainData.push(createImageData(map, '0001'));
-                } else if (random < (trainSplit + testSplit) / 100) {
-                  testData.push(createImageData(map, '0001'));
-                } else {
-                  valData.push(createImageData(map, '0001'));
+              const imageFiles = successfulImages.map(result => `images/${result.fileName}`);
+              const random = Math.random();
+              
+              const entry = {
+                image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
+                caption: map.edited || map.generated || '',
+                metadata: {
+                  image_id: imageIds,
+                  title: map.title,
+                  source: map.source,
+                  event_type: map.event_type,
+                  image_type: map.image_type,
+                  countries: map.countries,
+                  starred: map.starred,
+                  image_count: map.image_count || 1
                 }
-              } else if (String(map?.image_type) === 'drone_image') {
-                const random = Math.random();
-                if (random < trainSplit / 100) {
-                  trainData.push(createImageData(map, '0001'));
-                } else if (random < (trainSplit + testSplit) / 100) {
-                  testData.push(createImageData(map, '0001'));
-                } else {
-                  valData.push(createImageData(map, '0001'));
-                }
+              };
+
+              if (random < trainSplit / 100) {
+                trainData.push(entry);
+              } else if (random < (trainSplit + testSplit) / 100) {
+                testData.push(entry);
+              } else {
+                valData.push(entry);
               }
 
               if (crisisFolder) {
@@ -746,17 +909,19 @@ export default function MapDetailPage() {
                 crisisFolder.file('val.jsonl', JSON.stringify(valData, null, 2));
               }
             } else {
+              const imageFiles = successfulImages.map(result => `images/${result.fileName}`);
               const jsonData = {
-                image: `images/${fileName}`,
+                image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
                 caption: map.edited || map.generated || '',
                 metadata: {
-                  image_id: map.image_id,
+                  image_id: imageIds,
                   title: map.title,
                   source: map.source,
                   event_type: map.event_type,
                   image_type: map.image_type,
                   countries: map.countries,
-                  starred: map.starred
+                  starred: map.starred,
+                  image_count: map.image_count || 1
                 }
               };
               
@@ -819,13 +984,16 @@ export default function MapDetailPage() {
                 image: `images/${fileName}`,
                 caption: map.edited || map.generated || '',
                 metadata: {
-                  image_id: map.image_id,
+                  image_id: map.image_count && map.image_count > 1 
+                    ? map.all_image_ids || [map.image_id]
+                    : map.image_id,
                   title: map.title,
                   source: map.source,
                   event_type: map.event_type,
                   image_type: map.image_type,
                   countries: map.countries,
-                  starred: map.starred
+                  starred: map.starred,
+                  image_count: map.image_count || 1
                 }
               };
               
@@ -888,13 +1056,16 @@ export default function MapDetailPage() {
                 image: `images/${fileName}`,
                 caption: map.edited || map.generated || '',
                 metadata: {
-                  image_id: map.image_id,
+                  image_id: map.image_count && map.image_count > 1 
+                    ? map.all_image_ids || [map.image_id]
+                    : map.image_id,
                   title: map.title,
                   source: map.source,
                   event_type: map.event_type,
                   image_type: map.image_type,
                   countries: map.countries,
-                  starred: map.starred
+                  starred: map.starred,
+                  image_count: map.image_count || 1
                 }
               };
               
@@ -1017,99 +1188,15 @@ export default function MapDetailPage() {
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-6 space-y-4">
-          {/* Layer 1: Search, Reference Examples, Clear Filters */}
-          <div className="flex flex-wrap items-center gap-4">
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
-              <TextInput
-                name="search"
-                placeholder="Search examples..."
-                value={search}
-                onChange={(v) => setSearch(v || '')}
-              />
-            </Container>
-
-
-
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-              <Button
-                name="clear-filters"
-                variant="secondary"
-                onClick={clearAllFilters}
-              >
-                Clear Filters
-              </Button>
-            </Container>
-          </div>
-
-          {/* Layer 2: 5 Filter Bars */}
-          <div className="flex flex-wrap items-center gap-4">
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-              <SelectInput
-                name="source"
-                placeholder="All Sources"
-                options={sources}
-                value={srcFilter || null}
-                onChange={(v) => setSrcFilter(v as string || '')}
-                keySelector={(o) => o.s_code}
-                labelSelector={(o) => o.label}
-                required={false}
-              />
-            </Container>
-
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-              <SelectInput
-                name="category"
-                placeholder="All Categories"
-                options={types}
-                value={catFilter || null}
-                onChange={(v) => setCatFilter(v as string || '')}
-                keySelector={(o) => o.t_code}
-                labelSelector={(o) => o.label}
-                required={false}
-              />
-            </Container>
-
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-              <SelectInput
-                name="region"
-                placeholder="All Regions"
-                options={regions}
-                value={regionFilter || null}
-                onChange={(v) => setRegionFilter(v as string || '')}
-                keySelector={(o) => o.r_code}
-                labelSelector={(o) => o.label}
-                required={false}
-              />
-            </Container>
-
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-              <MultiSelectInput
-                name="country"
-                placeholder="All Countries"
-                options={countries}
-                value={countryFilter ? [countryFilter] : []}
-                onChange={(v) => setCountryFilter((v as string[])[0] || '')}
-                keySelector={(o) => o.c_code}
-                labelSelector={(o) => o.label}
-              />
-            </Container>
-
-            <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
-              <SelectInput
-                name="imageType"
-                placeholder="All Image Types"
-                options={imageTypes}
-                value={imageTypeFilter || null}
-                onChange={(v) => setImageTypeFilter(v as string || '')}
-                keySelector={(o) => o.image_type}
-                labelSelector={(o) => o.label}
-                required={false}
-              />
-            </Container>
-          </div>
-        </div>
+        {/* Filter Bar */}
+        <FilterBar
+          sources={sources}
+          types={types}
+          regions={regions}
+          countries={countries}
+          imageTypes={imageTypes}
+          isLoadingFilters={false}
+        />
 
         {view === 'mapDetails' ? (
           <div className="relative">
@@ -1132,28 +1219,115 @@ export default function MapDetailPage() {
                     spacing="comfortable"
                   >
                     <div className={styles.imageContainer}>
-                      {filteredMap.image_url ? (
-                        <img
-                          src={filteredMap.image_url}
-                          alt={filteredMap.file_key}
-                        />
+                      {(map?.image_count && map.image_count > 1) || allImages.length > 1 ? (
+                        // Multi-upload carousel
+                        <div className={styles.carouselContainer}>
+                          <div className={styles.carouselImageWrapper}>
+                            {isLoadingImages ? (
+                              <div className={styles.imagePlaceholder}>
+                                <Spinner className="text-ifrcRed" />
+                                <div>Loading images...</div>
+                              </div>
+                            ) : allImages[currentImageIndex]?.image_url ? (
+                              <img
+                                src={allImages[currentImageIndex].image_url}
+                                alt={allImages[currentImageIndex].file_key}
+                                className={styles.carouselImage}
+                              />
+                            ) : (
+                              <div className={styles.imagePlaceholder}>
+                                No image available
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Carousel Navigation */}
+                          <div className={styles.carouselNavigation}>
+                            <Button
+                              name="previous-image"
+                              variant="tertiary"
+                              size={1}
+                              onClick={goToPrevious}
+                              disabled={isLoadingImages}
+                              className={styles.carouselButton}
+                            >
+                              <ChevronLeftLineIcon className="w-4 h-4" />
+                            </Button>
+                            
+                            <div className={styles.carouselIndicators}>
+                              {allImages.map((_, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => goToImage(index)}
+                                  className={`${styles.carouselIndicator} ${
+                                    index === currentImageIndex ? styles.carouselIndicatorActive : ''
+                                  }`}
+                                  disabled={isLoadingImages}
+                                >
+                                  {index + 1}
+                                </button>
+                              ))}
+                            </div>
+                            
+                            <Button
+                              name="next-image"
+                              variant="tertiary"
+                              size={1}
+                              onClick={goToNext}
+                              disabled={isLoadingImages}
+                              className={styles.carouselButton}
+                            >
+                              <ChevronRightLineIcon className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          
+
+                          
+                          {/* View Image Button for Carousel */}
+                          <div className={styles.viewImageButtonContainer}>
+                            <Button
+                              name="view-full-size-carousel"
+                              variant="secondary"
+                              size={1}
+                              onClick={() => handleViewFullSize(allImages[currentImageIndex])}
+                              disabled={isLoadingImages || !allImages[currentImageIndex]?.image_url}
+                            >
+                              View Image
+                            </Button>
+                          </div>
+                        </div>
                       ) : (
-                        <div className={styles.imagePlaceholder}>
-                          No image available
+                        // Single image display
+                        <div className={styles.singleImageContainer}>
+                          {filteredMap.image_url ? (
+                            <img
+                              src={filteredMap.image_url}
+                              alt={filteredMap.file_key}
+                            />
+                          ) : (
+                            <div className={styles.imagePlaceholder}>
+                              No image available
+                            </div>
+                          )}
+                          
+                          {/* View Image Button for Single Image */}
+                          <div className={styles.viewImageButtonContainer}>
+                            <Button
+                              name="view-full-size-single"
+                              variant="secondary"
+                              size={1}
+                              onClick={() => handleViewFullSize(filteredMap)}
+                              disabled={!filteredMap.image_url}
+                            >
+                              View Image
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
-                  </Container>
-
-                  {/* Details Section */}
-                  <div className={styles.detailsSection}>
-                    <Container
-                      heading="Tags"
-                      headingLevel={3}
-                      withHeaderBorder
-                      withInternalPadding
-                      spacing="comfortable"
-                    >
+                    
+                    {/* Tags Section - Inside Image Container */}
+                    <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
                       <div className={styles.metadataTags}>
                         {filteredMap.image_type !== 'drone_image' && (
                           <span className={styles.metadataTag}>
@@ -1176,8 +1350,22 @@ export default function MapDetailPage() {
                             </span>
                           </>
                         )}
+                        {filteredMap.image_count && filteredMap.image_count > 1 && (
+                          <span className={styles.metadataTag} title={`Multi-upload with ${filteredMap.image_count} images`}>
+                            📷 {filteredMap.image_count}
+                          </span>
+                        )}
+                        {(!filteredMap.image_count || filteredMap.image_count <= 1) && (
+                          <span className={styles.metadataTag} title="Single Upload">
+                            Single
+                          </span>
+                        )}
                       </div>
                     </Container>
+                  </Container>
+
+                  {/* Details Section */}
+                  <div className={styles.detailsSection}>
 
                     {/* Combined Analysis Structure */}
                     {(filteredMap.edited && filteredMap.edited.includes('Description:')) || 
@@ -1275,13 +1463,8 @@ export default function MapDetailPage() {
                         <Button
                           name="contribute"
                           onClick={handleContribute}
-                          disabled={isGenerating}
                         >
-                          {isGenerating ? (
-                            <span>Generating...</span>
-                          ) : (
-                            'Contribute'
-                          )}
+                          Contribute
                         </Button>
                       </Container>
                       
@@ -1384,43 +1567,7 @@ export default function MapDetailPage() {
         </div>
       )}
 
-      {/* Contribute Confirmation Modal */}
-      {showContributeConfirm && (
-        <div className={styles.fullSizeModalOverlay} onClick={handleContributeCancel}>
-          <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.ratingWarningContent}>
-              <p className={styles.ratingWarningText}>
-                This will start a new independent upload with just the image.
-              </p>
-              {!isGenerating && (
-                <div className={styles.ratingWarningButtons}>
-                  <Button
-                    name="confirm-contribute"
-                    variant="secondary"
-                    onClick={handleContributeConfirm}
-                  >
-                    Continue
-                  </Button>
-                  <Button
-                    name="cancel-contribute"
-                    variant="tertiary"
-                    onClick={handleContributeCancel}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
-              {isGenerating && (
-                <div className="flex flex-col items-center gap-2 mt-4">
-                  <Spinner className="text-ifrcRed" />
-                  <div className="text-sm font-medium">Generating...</div>
-                  <div className="text-xs text-gray-600">This might take a few seconds</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Export Selection Modal */}
       {showExportModal && (
@@ -1454,6 +1601,15 @@ export default function MapDetailPage() {
           }}
         />
       )}
+
+      {/* Full Size Image Modal */}
+      <FullSizeImageModal
+        isOpen={showFullSizeModal}
+        imageUrl={selectedImageForModal?.image_url || null}
+        preview={null}
+        selectedImageData={null}
+        onClose={handleCloseFullSizeModal}
+      />
     </PageContainer>
   );
 } 

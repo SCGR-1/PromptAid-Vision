@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, String, DateTime, SmallInteger, Table, ForeignKey, Boolean,
-    CheckConstraint, UniqueConstraint, Text
+    CheckConstraint, UniqueConstraint, Text, Integer
 )
 from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP, CHAR, JSONB
 from sqlalchemy.orm import relationship
@@ -160,6 +160,7 @@ class Captions(Base):
     context     = Column(SmallInteger)
     usability   = Column(SmallInteger)
     starred     = Column(Boolean, default=False)
+    image_count = Column(Integer, nullable=True)
     created_at  = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
     updated_at  = Column(TIMESTAMP(timezone=True), onupdate=datetime.datetime.utcnow)
 

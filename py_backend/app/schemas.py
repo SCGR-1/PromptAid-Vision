@@ -57,6 +57,7 @@ class CaptionOut(BaseModel):
     context: Optional[int] = None
     usability: Optional[int] = None
     starred: bool = False
+    image_count: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -106,6 +107,10 @@ class ImageOut(BaseModel):
     rtk_fix: Optional[bool] = None
     std_h_m: Optional[float] = None
     std_v_m: Optional[float] = None
+    
+    # Multi-upload fields
+    all_image_ids: Optional[List[str]] = None
+    image_count: Optional[int] = None
 
     class Config:
         from_attributes = True

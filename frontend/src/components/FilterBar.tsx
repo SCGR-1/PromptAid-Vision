@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, TextInput, SelectInput, MultiSelectInput, Button } from '@ifrc-go/ui';
+import { FilterLineIcon } from '@ifrc-go/icons';
 import { useFilterContext } from '../hooks/useFilterContext';
 
 interface FilterBarProps {
@@ -19,6 +20,8 @@ export default function FilterBar({
   imageTypes, 
   isLoadingFilters = false 
 }: FilterBarProps) {
+  const [showFilters, setShowFilters] = useState(false);
+  
   const {
     search, setSearch,
     srcFilter, setSrcFilter,
@@ -26,14 +29,27 @@ export default function FilterBar({
     regionFilter, setRegionFilter,
     countryFilter, setCountryFilter,
     imageTypeFilter, setImageTypeFilter,
+    uploadTypeFilter, setUploadTypeFilter,
     showReferenceExamples, setShowReferenceExamples,
     clearAllFilters
   } = useFilterContext();
 
   return (
     <div className="mb-6 space-y-4">
-      {/* Layer 1: Search, Reference Examples, Clear Filters */}
+      {/* Layer 1: Search, Filter Button, Clear Filters */}
       <div className="flex flex-wrap items-center gap-4">
+        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+          <Button
+            name="toggle-filters"
+            variant="secondary"
+            onClick={() => setShowFilters(!showFilters)}
+            className="whitespace-nowrap"
+            title={showFilters ? 'Hide Filters' : 'Show Filters'}
+          >
+            <FilterLineIcon className="w-4 h-4" />
+          </Button>
+        </Container>
+
         <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
           <TextInput
             name="search"
@@ -42,8 +58,6 @@ export default function FilterBar({
             onChange={(v) => setSearch(v || '')}
           />
         </Container>
-
-
 
         <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
           <Button
@@ -56,9 +70,11 @@ export default function FilterBar({
         </Container>
       </div>
 
-      {/* Layer 2: 5 Filter Bars */}
-      <div className="flex flex-wrap items-center gap-4">
-        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+      {/* Layer 2: Filter Dropdown */}
+      {showFilters && (
+        <div className="bg-white/20 backdrop-blur-sm rounded-md p-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Container withInternalPadding className="p-2">
           <SelectInput
             name="source"
             placeholder={isLoadingFilters ? "Loading..." : "All Sources"}
@@ -72,7 +88,7 @@ export default function FilterBar({
           />
         </Container>
 
-        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+        <Container withInternalPadding className="p-2">
           <SelectInput
             name="category"
             placeholder={isLoadingFilters ? "Loading..." : "All Categories"}
@@ -86,7 +102,7 @@ export default function FilterBar({
           />
         </Container>
 
-        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+        <Container withInternalPadding className="p-2">
           <SelectInput
             name="region"
             placeholder={isLoadingFilters ? "Loading..." : "All Regions"}
@@ -100,7 +116,7 @@ export default function FilterBar({
           />
         </Container>
 
-        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+        <Container withInternalPadding className="p-2">
           <MultiSelectInput
             name="country"
             placeholder={isLoadingFilters ? "Loading..." : "All Countries"}
@@ -113,7 +129,7 @@ export default function FilterBar({
           />
         </Container>
 
-        <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2">
+        <Container withInternalPadding className="p-2">
           <SelectInput
             name="imageType"
             placeholder={isLoadingFilters ? "Loading..." : "All Image Types"}
@@ -126,7 +142,26 @@ export default function FilterBar({
             disabled={isLoadingFilters}
           />
         </Container>
-      </div>
+
+        <Container withInternalPadding className="p-2">
+          <SelectInput
+            name="uploadType"
+            placeholder="All Upload Types"
+            options={[
+              { key: 'single', label: 'Single Upload' },
+              { key: 'multiple', label: 'Multiple Upload' }
+            ]}
+            value={uploadTypeFilter || null}
+            onChange={(v) => setUploadTypeFilter(v as string || '')}
+            keySelector={(o) => o.key}
+            labelSelector={(o) => o.label}
+            required={false}
+            disabled={false}
+          />
+        </Container>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
