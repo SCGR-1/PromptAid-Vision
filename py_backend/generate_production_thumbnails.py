@@ -23,14 +23,25 @@ from app import storage
 from app.config import settings
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('thumbnail_conversion.log')
-    ]
-)
+try:
+    # Try to write to /tmp which should be writable in Docker
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler('/tmp/thumbnail_conversion.log')
+        ]
+    )
+except PermissionError:
+    # Fallback to console-only logging if file writing fails
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
 logger = logging.getLogger(__name__)
 
 class ThumbnailConverter:
