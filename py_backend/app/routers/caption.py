@@ -43,6 +43,9 @@ if settings.HF_API_KEY:
         db = SessionLocal()
         try:
             models = crud.get_models(db)
+            registered_count = 0
+            failed_count = 0
+            
             for model in models:
                 if (model.provider == "huggingface" and 
                     model.model_id and 
@@ -56,9 +59,20 @@ if settings.HF_API_KEY:
                         )
                         vlm_manager.register_service(service)
                         print(f"✓ Registered HF model: {model.m_code} -> {model.model_id}")
+                        registered_count += 1
+                    except ValueError as e:
+                        print(f"✗ Failed to register {model.m_code}: Configuration error - {e}")
+                        failed_count += 1
                     except Exception as e:
                         print(f"✗ Failed to register {model.m_code}: {e}")
-            print(f"✓ Hugging Face services registered dynamically from database")
+                        failed_count += 1
+            
+            if registered_count > 0:
+                print(f"✓ Hugging Face services registered: {registered_count} models successfully")
+            if failed_count > 0:
+                print(f"⚠️ Hugging Face services: {failed_count} models failed to register")
+            if registered_count == 0 and failed_count == 0:
+                print("○ No Hugging Face models found in database")
         finally:
             db.close()
     except Exception as e:
@@ -66,7 +80,7 @@ if settings.HF_API_KEY:
         import traceback
         traceback.print_exc()
 else:
-    print("○ Hugging Face services not configured")
+    print("○ Hugging Face services not configured (HF_API_KEY not set)")
 
 print(f"✓ Available models: {', '.join(vlm_manager.get_available_models())}")
 print(f"✓ Total services: {len(vlm_manager.services)}")

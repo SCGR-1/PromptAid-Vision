@@ -286,6 +286,11 @@ class ProvidersGenericVLMService(HuggingFaceService):
       ProvidersGenericVLMService(HF_TOKEN, "Qwen/Qwen2.5-VL-32B-Instruct", "QWEN2_5_VL_32B")
     """
     def __init__(self, api_key: str, model_id: str, public_name: str | None = None):
+        if not api_key:
+            raise ValueError("HF_API_KEY is required for Hugging Face models")
+        if not model_id:
+            raise ValueError("model_id is required for Hugging Face models")
+            
         # Use the default HuggingFace providers URL
         providers_url = "https://api-inference.huggingface.co/providers/openai"
         super().__init__(api_key, model_id, providers_url)
