@@ -18,6 +18,8 @@ from app.routers.prompts import router as prompts_router
 from app.routers.admin import router as admin_router
 from app.routers.schemas import router as schemas_router
 
+from pathlib import Path
+
 app = FastAPI(
     title="PromptAid Vision",
     default_response_class=ORJSONResponse
@@ -133,6 +135,16 @@ async def performance():
         "cache_headers": True
     }
 
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+@app.get("/manifest.webmanifest")
+def manifest():
+    return FileResponse(
+        STATIC_DIR / "manifest.webmanifest",
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 if os.path.exists("/app"):

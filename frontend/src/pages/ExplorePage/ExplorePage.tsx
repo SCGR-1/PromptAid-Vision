@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PageContainer, Container, SegmentInput, Spinner, Button } from '@ifrc-go/ui';
 import { DeleteBinLineIcon } from '@ifrc-go/icons';

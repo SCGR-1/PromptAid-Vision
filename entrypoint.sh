@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 set -eu
 
-# expand PORT in the shell (default 7860), then pass a pure number to uvicorn
 PORT="${PORT:-7860}"
 
 cd /app
