@@ -7,9 +7,10 @@ interface FullSizeImageModalProps {
   preview: string | null;
   selectedImageData?: { file: File; index: number } | null;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
-export function FullSizeImageModal({ isOpen, imageUrl, preview, selectedImageData, onClose }: FullSizeImageModalProps) {
+export function FullSizeImageModal({ isOpen, imageUrl, preview, selectedImageData, onClose, isLoading = false }: FullSizeImageModalProps) {
   if (!isOpen) return null;
 
   // Determine which image to show
@@ -40,10 +41,19 @@ export function FullSizeImageModal({ isOpen, imageUrl, preview, selectedImageDat
           </Button>
         </div>
         <div className={styles.fullSizeModalImage}>
-          <img
-            src={imageSrc}
-            alt={imageAlt}
-          />
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center gap-2">
+                <Spinner className="w-6 h-6" />
+                <span>Loading image...</span>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={imageSrc}
+              alt={imageAlt}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1325,16 +1325,9 @@ export default function MapDetailPage() {
                               variant="secondary"
                               size={1}
                               onClick={() => handleViewFullSize(allImages[currentImageIndex])}
-                              disabled={isLoadingImages || !allImages[currentImageIndex]?.image_url || isLoadingFullSizeImage}
+                              disabled={isLoadingImages || !allImages[currentImageIndex]?.image_url}
                             >
-                              {isLoadingFullSizeImage ? (
-                                <div className="flex items-center gap-2">
-                                  <Spinner className="w-4 h-4" />
-                                  <span>Loading...</span>
-                                </div>
-                              ) : (
-                                "View Image"
-                              )}
+                              View Image
                             </Button>
                           </div>
                         </div>
@@ -1375,16 +1368,9 @@ export default function MapDetailPage() {
                               variant="secondary"
                               size={1}
                               onClick={() => handleViewFullSize(filteredMap)}
-                              disabled={!filteredMap.image_url || isLoadingFullSizeImage}
+                              disabled={!filteredMap.image_url}
                             >
-                              {isLoadingFullSizeImage ? (
-                                <div className="flex items-center gap-2">
-                                  <Spinner className="w-4 h-4" />
-                                  <span>Loading...</span>
-                                </div>
-                              ) : (
-                                "View Image"
-                              )}
+                              View Image
                             </Button>
                           </div>
                         </div>
@@ -1674,6 +1660,7 @@ export default function MapDetailPage() {
         preview={null}
         selectedImageData={null}
         onClose={handleCloseFullSizeModal}
+        isLoading={isLoadingFullSizeImage}
       />
     </PageContainer>
   );

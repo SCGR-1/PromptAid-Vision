@@ -25,9 +25,6 @@
     # Copy backend code
     COPY py_backend/ /app/
     
-    # Make the thumbnail conversion script executable
-    RUN chmod +x /app/generate_production_thumbnails.py
-    
     # Copy built frontend into the image (served by FastAPI)
     COPY --from=fe /fe/dist /app/static
     
@@ -45,9 +42,6 @@ echo "Starting PromptAid Vision..."\n\
 echo "Running database migrations..."\n\
 alembic upgrade head\n\
 echo "Database migrations completed"\n\
-echo "Generating thumbnails for existing images..."\n\
-python generate_production_thumbnails.py\n\
-echo "Thumbnail generation completed"\n\
 echo "Starting FastAPI server..."\n\
 exec uvicorn app.main:app --host 0.0.0.0 --port $PORT\n\
 ' > /app/start.sh && chmod +x /app/start.sh
