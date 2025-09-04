@@ -29,6 +29,7 @@ export default function UploadPage() {
   const [step, setStep] = useState<1 | '2a' | '2b' | 3>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingContribution, setIsLoadingContribution] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const stepRef = useRef(step);
   const uploadedImageIdRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -633,6 +634,8 @@ export default function UploadPage() {
       return;
     }
     
+    setIsSubmitting(true);
+    
     try {
         // Use stored image IDs for multi-image uploads
         const imageIds = uploadedImageIds.length > 0 ? uploadedImageIds : [uploadedImageId!];
@@ -691,6 +694,8 @@ export default function UploadPage() {
       handleStepChange(3);
     } catch (err) {
       handleApiError(err, 'Submit');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -1251,6 +1256,7 @@ export default function UploadPage() {
                     onSubmit={handleSubmit}
                     onEditRatings={() => setIsPerformanceConfirmed(false)}
                     isPerformanceConfirmed={isPerformanceConfirmed}
+                    isSubmitting={isSubmitting}
                   />
             </div>
           </div>

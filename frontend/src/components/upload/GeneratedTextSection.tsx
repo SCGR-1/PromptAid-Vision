@@ -14,6 +14,7 @@ interface GeneratedTextSectionProps {
   onSubmit: () => void;
   onEditRatings?: () => void;
   isPerformanceConfirmed?: boolean;
+  isSubmitting?: boolean;
 }
 
 export default function GeneratedTextSection({
@@ -28,6 +29,7 @@ export default function GeneratedTextSection({
   onSubmit,
   onEditRatings,
   isPerformanceConfirmed = false,
+  isSubmitting = false,
 }: GeneratedTextSectionProps) {
   const handleTextChange = (value: string | undefined) => {
     if (value) {
@@ -93,8 +95,16 @@ export default function GeneratedTextSection({
         <Button
           name="submit"
           onClick={onSubmit}
+          disabled={isSubmitting}
         >
-          Submit
+          {isSubmitting ? (
+            <div className="flex items-center gap-2">
+              <Spinner className="w-4 h-4" />
+              <span>Submitting...</span>
+            </div>
+          ) : (
+            "Submit"
+          )}
         </Button>
       </div>
     </Container>
