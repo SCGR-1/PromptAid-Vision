@@ -118,6 +118,7 @@ export default function MapDetailPage() {
   // Full-size image modal state
   const [showFullSizeModal, setShowFullSizeModal] = useState(false);
   const [selectedImageForModal, setSelectedImageForModal] = useState<MapOut | null>(null);
+  const [isLoadingFullSizeImage, setIsLoadingFullSizeImage] = useState(false);
   
   // Carousel state for multi-upload
   const [allImages, setAllImages] = useState<MapOut[]>([]);
@@ -261,17 +262,34 @@ export default function MapDetailPage() {
   }, [allImages.length]);
 
   // Full-size image modal functions
-  const handleViewFullSize = useCallback((image?: MapOut) => {
+  const handleViewFullSize = useCallback(async (image?: MapOut) => {
     const imageToShow = image || (allImages.length > 0 ? allImages[currentImageIndex] : map);
     if (imageToShow) {
+      setIsLoadingFullSizeImage(true);
       setSelectedImageForModal(imageToShow);
       setShowFullSizeModal(true);
+      
+      // Preload the full-size image
+      try {
+        const img = new Image();
+        img.onload = () => {
+          setIsLoadingFullSizeImage(false);
+        };
+        img.onerror = () => {
+          setIsLoadingFullSizeImage(false);
+        };
+        img.src = imageToShow.image_url;
+      } catch (error) {
+        console.error('Error preloading full-size image:', error);
+        setIsLoadingFullSizeImage(false);
+      }
     }
   }, [allImages, currentImageIndex, map]);
 
   const handleCloseFullSizeModal = useCallback(() => {
     setShowFullSizeModal(false);
     setSelectedImageForModal(null);
+    setIsLoadingFullSizeImage(false);
   }, []);
 
   useEffect(() => {
@@ -1307,9 +1325,16 @@ export default function MapDetailPage() {
                               variant="secondary"
                               size={1}
                               onClick={() => handleViewFullSize(allImages[currentImageIndex])}
-                              disabled={isLoadingImages || !allImages[currentImageIndex]?.image_url}
+                              disabled={isLoadingImages || !allImages[currentImageIndex]?.image_url || isLoadingFullSizeImage}
                             >
-                              View Image
+                              {isLoadingFullSizeImage ? (
+                                <div className="flex items-center gap-2">
+                                  <Spinner className="w-4 h-4" />
+                                  <span>Loading...</span>
+                                </div>
+                              ) : (
+                                "View Image"
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1350,9 +1375,16 @@ export default function MapDetailPage() {
                               variant="secondary"
                               size={1}
                               onClick={() => handleViewFullSize(filteredMap)}
-                              disabled={!filteredMap.image_url}
+                              disabled={!filteredMap.image_url || isLoadingFullSizeImage}
                             >
-                              View Image
+                              {isLoadingFullSizeImage ? (
+                                <div className="flex items-center gap-2">
+                                  <Spinner className="w-4 h-4" />
+                                  <span>Loading...</span>
+                                </div>
+                              ) : (
+                                "View Image"
+                              )}
                             </Button>
                           </div>
                         </div>
