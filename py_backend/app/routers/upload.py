@@ -187,8 +187,27 @@ def list_images(db: Session = Depends(get_db)):
     return result
 
 @router.get("/grouped", response_model=List[schemas.ImageOut])
-def list_images_grouped(db: Session = Depends(get_db)):
-    """Get images grouped by shared captions for multi-upload items"""
+def list_images_grouped(
+    page: int = 1, 
+    limit: int = 10, 
+    search: str = None,
+    source: str = None,
+    event_type: str = None,
+    region: str = None,
+    country: str = None,
+    image_type: str = None,
+    upload_type: str = None,
+    starred_only: bool = False,
+    db: Session = Depends(get_db)
+):
+    """Get images grouped by shared captions for multi-upload items with pagination and filtering"""
+    
+    # Validate pagination parameters
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 100:
+        limit = 10
+    
     # Get all captions with their associated images
     captions = crud.get_all_captions_with_images(db)
     result = []
@@ -198,12 +217,59 @@ def list_images_grouped(db: Session = Depends(get_db)):
             continue
             
         # Determine the effective image count for this caption
-        # Use caption.image_count if available and valid, otherwise infer from linked images
         effective_image_count = caption.image_count if caption.image_count is not None and caption.image_count > 0 else len(caption.images)
         
+        # Apply filters
+        if search:
+            search_lower = search.lower()
+            if not (caption.title and search_lower in caption.title.lower()) and \
+               not (caption.generated and search_lower in caption.generated.lower()):
+                continue
+        
+        if starred_only and not caption.starred:
+            continue
+            
         if effective_image_count > 1:
             # This is a multi-upload item, group them together
             first_img = caption.images[0]
+            
+            # Apply source filter
+            if source:
+                if not any(source in img.source for img in caption.images if img.source):
+                    continue
+            
+            # Apply event_type filter
+            if event_type:
+                if not any(event_type in img.event_type for img in caption.images if img.event_type):
+                    continue
+            
+            # Apply image_type filter
+            if image_type:
+                if not any(img.image_type == image_type for img in caption.images):
+                    continue
+            
+            # Apply upload_type filter
+            if upload_type:
+                if upload_type == 'single' and effective_image_count > 1:
+                    continue
+                if upload_type == 'multiple' and effective_image_count <= 1:
+                    continue
+            
+            # Apply region/country filter
+            if region or country:
+                has_matching_country = False
+                for img in caption.images:
+                    for img_country in img.countries:
+                        if region and img_country.r_code == region:
+                            has_matching_country = True
+                            break
+                        if country and img_country.c_code == country:
+                            has_matching_country = True
+                            break
+                    if has_matching_country:
+                        break
+                if not has_matching_country:
+                    continue
             
             # Combine metadata from all images
             combined_source = set()
@@ -229,16 +295,16 @@ def list_images_grouped(db: Session = Depends(get_db)):
             # Update countries to include all unique countries
             all_countries = []
             for img in caption.images:
-                for country in img.countries:
-                    if not any(c["c_code"] == country.c_code for c in all_countries):
-                        all_countries.append({"c_code": country.c_code, "label": country.label, "r_code": country.r_code})
+                for country_obj in img.countries:
+                    if not any(c["c_code"] == country_obj.c_code for c in all_countries):
+                        all_countries.append({"c_code": country_obj.c_code, "label": country_obj.label, "r_code": country_obj.r_code})
             img_dict["countries"] = all_countries
             
             # Add all image IDs for reference
             img_dict["all_image_ids"] = [str(img.image_id) for img in caption.images]
-            img_dict["image_count"] = effective_image_count # Use the effective count here
+            img_dict["image_count"] = effective_image_count
             
-            # Also ensure the caption-level fields are correctly set from the main caption
+            # Set caption-level fields
             img_dict["title"] = caption.title
             img_dict["prompt"] = caption.prompt
             img_dict["model"] = caption.model
@@ -255,31 +321,162 @@ def list_images_grouped(db: Session = Depends(get_db)):
 
             result.append(schemas.ImageOut(**img_dict))
         else:
-            # For single images, add them as usual
-            # Ensure image_count is explicitly 1 for single uploads
-            for img in caption.images: # Even for single, caption.images will be a list of 1
-                img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
-                img_dict["all_image_ids"] = [str(img.image_id)]
-                img_dict["image_count"] = 1 # Explicitly set to 1
-                
-                # Also ensure the caption-level fields are correctly set from the main caption
-                img_dict["title"] = caption.title
-                img_dict["prompt"] = caption.prompt
-                img_dict["model"] = caption.model
-                img_dict["schema_id"] = caption.schema_id
-                img_dict["raw_json"] = caption.raw_json
-                img_dict["generated"] = caption.generated
-                img_dict["edited"] = caption.edited
-                img_dict["accuracy"] = caption.accuracy
-                img_dict["context"] = caption.context
-                img_dict["usability"] = caption.usability
-                img_dict["starred"] = caption.starred
-                img_dict["created_at"] = caption.created_at
-                img_dict["updated_at"] = caption.updated_at
+            # For single images, apply filters
+            img = caption.images[0]
+            
+            if source and img.source != source:
+                continue
+            if event_type and img.event_type != event_type:
+                continue
+            if image_type and img.image_type != image_type:
+                continue
+            if upload_type == 'multiple':
+                continue
+            
+            # Apply region/country filter
+            if region or country:
+                has_matching_country = False
+                for img_country in img.countries:
+                    if region and img_country.r_code == region:
+                        has_matching_country = True
+                        break
+                    if country and img_country.c_code == country:
+                        has_matching_country = True
+                        break
+                if not has_matching_country:
+                    continue
+            
+            img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+            img_dict["all_image_ids"] = [str(img.image_id)]
+            img_dict["image_count"] = 1
+            
+            # Set caption-level fields
+            img_dict["title"] = caption.title
+            img_dict["prompt"] = caption.prompt
+            img_dict["model"] = caption.model
+            img_dict["schema_id"] = caption.schema_id
+            img_dict["raw_json"] = caption.raw_json
+            img_dict["generated"] = caption.generated
+            img_dict["edited"] = caption.edited
+            img_dict["accuracy"] = caption.accuracy
+            img_dict["context"] = caption.context
+            img_dict["usability"] = caption.usability
+            img_dict["starred"] = caption.starred
+            img_dict["created_at"] = caption.created_at
+            img_dict["updated_at"] = caption.updated_at
 
-                result.append(schemas.ImageOut(**img_dict))
+            result.append(schemas.ImageOut(**img_dict))
     
-    return result
+    # Apply pagination
+    total_count = len(result)
+    start_index = (page - 1) * limit
+    end_index = start_index + limit
+    paginated_result = result[start_index:end_index]
+    
+    return paginated_result
+
+@router.get("/grouped/count")
+def get_images_grouped_count(
+    search: str = None,
+    source: str = None,
+    event_type: str = None,
+    region: str = None,
+    country: str = None,
+    image_type: str = None,
+    upload_type: str = None,
+    starred_only: bool = False,
+    db: Session = Depends(get_db)
+):
+    """Get total count of images for pagination"""
+    
+    # Get all captions with their associated images
+    captions = crud.get_all_captions_with_images(db)
+    count = 0
+    
+    for caption in captions:
+        if not caption.images:
+            continue
+            
+        # Determine the effective image count for this caption
+        effective_image_count = caption.image_count if caption.image_count is not None and caption.image_count > 0 else len(caption.images)
+        
+        # Apply filters (same logic as above)
+        if search:
+            search_lower = search.lower()
+            if not (caption.title and search_lower in caption.title.lower()) and \
+               not (caption.generated and search_lower in caption.generated.lower()):
+                continue
+        
+        if starred_only and not caption.starred:
+            continue
+            
+        if effective_image_count > 1:
+            # Multi-upload item
+            first_img = caption.images[0]
+            
+            # Apply filters
+            if source:
+                if not any(source in img.source for img in caption.images if img.source):
+                    continue
+            
+            if event_type:
+                if not any(event_type in img.event_type for img in caption.images if img.event_type):
+                    continue
+            
+            if image_type:
+                if not any(img.image_type == image_type for img in caption.images):
+                    continue
+            
+            if upload_type:
+                if upload_type == 'single' and effective_image_count > 1:
+                    continue
+                if upload_type == 'multiple' and effective_image_count <= 1:
+                    continue
+            
+            if region or country:
+                has_matching_country = False
+                for img in caption.images:
+                    for img_country in img.countries:
+                        if region and img_country.r_code == region:
+                            has_matching_country = True
+                            break
+                        if country and img_country.c_code == country:
+                            has_matching_country = True
+                            break
+                    if has_matching_country:
+                        break
+                if not has_matching_country:
+                    continue
+            
+            count += 1
+        else:
+            # Single image
+            img = caption.images[0]
+            
+            if source and img.source != source:
+                continue
+            if event_type and img.event_type != event_type:
+                continue
+            if image_type and img.image_type != image_type:
+                continue
+            if upload_type == 'multiple':
+                continue
+            
+            if region or country:
+                has_matching_country = False
+                for img_country in img.countries:
+                    if region and img_country.r_code == region:
+                        has_matching_country = True
+                        break
+                    if country and img_country.c_code == country:
+                        has_matching_country = True
+                        break
+                if not has_matching_country:
+                    continue
+            
+            count += 1
+    
+    return {"total_count": count}
 
 @router.get("/{image_id}", response_model=schemas.ImageOut)
 def get_image(image_id: str, db: Session = Depends(get_db)):

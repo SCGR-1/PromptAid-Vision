@@ -286,18 +286,9 @@ class ProvidersGenericVLMService(HuggingFaceService):
       ProvidersGenericVLMService(HF_TOKEN, "Qwen/Qwen2.5-VL-32B-Instruct", "QWEN2_5_VL_32B")
     """
     def __init__(self, api_key: str, model_id: str, public_name: str | None = None):
-        super().__init__(api_key, model_id)
-        # Use a human-friendly stable name that your UI/DB will reference
-        self.model_name = public_name or model_id.replace("/", "_").upper()
-        self.model_type = ModelType.CUSTOM
-class ProvidersGenericVLMService(HuggingFaceService):
-    """
-    Generic wrapper so you can register ANY Providers VLM by model_id from config.
-    Example:
-      ProvidersGenericVLMService(HF_TOKEN, "Qwen/Qwen2.5-VL-32B-Instruct", "QWEN2_5_VL_32B")
-    """
-    def __init__(self, api_key: str, model_id: str, public_name: str | None = None):
-        super().__init__(api_key, model_id)
+        # Use the default HuggingFace providers URL
+        providers_url = "https://api-inference.huggingface.co/providers/openai"
+        super().__init__(api_key, model_id, providers_url)
         # Use a human-friendly stable name that your UI/DB will reference
         self.model_name = public_name or model_id.replace("/", "_").upper()
         self.model_type = ModelType.CUSTOM

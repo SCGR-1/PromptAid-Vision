@@ -76,6 +76,8 @@ export default function ExplorePage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const viewOptions = [
     { key: 'explore' as const, label: 'List' },
@@ -84,7 +86,23 @@ export default function ExplorePage() {
 
   const fetchCaptions = () => {
     setIsLoadingContent(true);
-    fetch('/api/images/grouped')
+    
+    // Build query parameters for server-side filtering and pagination
+    const params = new URLSearchParams({
+      page: currentPage.toString(),
+      limit: itemsPerPage.toString()
+    });
+    
+    if (search) params.append('search', search);
+    if (srcFilter) params.append('source', srcFilter);
+    if (catFilter) params.append('event_type', catFilter);
+    if (regionFilter) params.append('region', regionFilter);
+    if (countryFilter) params.append('country', countryFilter);
+    if (imageTypeFilter) params.append('image_type', imageTypeFilter);
+    if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
+    if (showReferenceExamples) params.append('starred_only', 'true');
+    
+    fetch(`/api/images/grouped?${params.toString()}`)
       .then(r => {
         if (!r.ok) {
           console.error('ExplorePage: Grouped endpoint failed, trying legacy endpoint');
@@ -105,28 +123,11 @@ export default function ExplorePage() {
         return r.json();
       })
       .then(data => {
-        console.log('ExplorePage: API response data:', data);
-        
-        if (Array.isArray(data)) {
-          const imagesWithCaptions = data.filter((item: { title?: string; generated?: string; model?: string; image_id?: string }) => {
-            const hasCaption = item.generated && item.model;
-            const hasImageId = item.image_id && item.image_id !== 'undefined' && item.image_id !== 'null';
-            
-            if (!hasImageId) {
-              console.error('ExplorePage: Item missing valid image_id:', item);
-            }
-            
-            return hasCaption && hasImageId;
-          });
-          
-          console.log('ExplorePage: Filtered images with captions:', imagesWithCaptions.length);
-          setCaptions(imagesWithCaptions);
-        } else {
-          console.error('ExplorePage: API response is not an array:', data);
-          setCaptions([]);
-        }
+        console.log('ExplorePage: Fetched captions:', data);
+        setCaptions(data);
       })
-      .catch(() => {
+      .catch(error => {
+        console.error('ExplorePage: Error fetching captions:', error);
         setCaptions([]);
       })
       .finally(() => {
@@ -134,9 +135,51 @@ export default function ExplorePage() {
       });
   };
 
+  const fetchTotalCount = () => {
+    // Build query parameters for count endpoint
+    const params = new URLSearchParams();
+    
+    if (search) params.append('search', search);
+    if (srcFilter) params.append('source', srcFilter);
+    if (catFilter) params.append('event_type', catFilter);
+    if (regionFilter) params.append('region', regionFilter);
+    if (countryFilter) params.append('country', countryFilter);
+    if (imageTypeFilter) params.append('image_type', imageTypeFilter);
+    if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
+    if (showReferenceExamples) params.append('starred_only', 'true');
+    
+    fetch(`/api/images/grouped/count?${params.toString()}`)
+      .then(r => {
+        if (!r.ok) {
+          console.error('ExplorePage: Count endpoint failed');
+          return { total_count: 0 };
+        }
+        return r.json();
+      })
+      .then(data => {
+        console.log('ExplorePage: Total count:', data.total_count);
+        setTotalItems(data.total_count);
+        setTotalPages(Math.ceil(data.total_count / itemsPerPage));
+      })
+      .catch(error => {
+        console.error('ExplorePage: Error fetching total count:', error);
+        setTotalItems(0);
+        setTotalPages(0);
+      });
+  };
+
+  // Fetch data when component mounts or filters change
   useEffect(() => {
     fetchCaptions();
-  }, []);
+    fetchTotalCount();
+  }, [currentPage, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+
+  // Reset to first page when filters change (but not when currentPage changes)
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -204,43 +247,8 @@ export default function ExplorePage() {
     });
   }, []);
 
-  const filtered = useMemo(() => {
-    return captions.filter(c => {
-      const matchesSearch = !search || 
-        c.title?.toLowerCase().includes(search.toLowerCase()) ||
-        c.generated?.toLowerCase().includes(search.toLowerCase()) ||
-        c.source?.toLowerCase().includes(search.toLowerCase()) ||
-        c.event_type?.toLowerCase().includes(search.toLowerCase());
-      
-      // Handle combined metadata from multi-upload items
-      const sourceMatches = !srcFilter || 
-        (c.source && c.source.split(', ').some(s => s.trim() === srcFilter));
-      const categoryMatches = !catFilter || 
-        (c.event_type && c.event_type.split(', ').some(e => e.trim() === catFilter));
-      const matchesRegion = !regionFilter || 
-        c.countries.some(country => country.r_code === regionFilter);
-      const matchesCountry = !countryFilter || 
-        c.countries.some(country => country.c_code === countryFilter);
-      const matchesImageType = !imageTypeFilter || c.image_type === imageTypeFilter;
-      const matchesUploadType = !uploadTypeFilter || 
-        (uploadTypeFilter === 'single' && (!c.image_count || c.image_count <= 1)) ||
-        (uploadTypeFilter === 'multiple' && c.image_count && c.image_count > 1);
-      const matchesReferenceExamples = !showReferenceExamples || c.starred === true;
-      
-      return matchesSearch && sourceMatches && categoryMatches && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
-    });
-  }, [captions, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedResults = filtered.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+  // Server-side pagination - no client-side filtering needed
+  const paginatedResults = captions;
 
   const exportDataset = async (images: ImageWithCaptionOut[], mode: 'standard' | 'fine-tuning' = 'fine-tuning') => {
     if (images.length === 0) {
@@ -648,11 +656,11 @@ export default function ExplorePage() {
 
             {/* Results Section */}
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  {filtered.length} of {captions.length} examples
-                </p>
-              </div>
+                              <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-600">
+                    {paginatedResults.length} of {totalItems} examples
+                  </p>
+                </div>
 
               {/* Loading State */}
               {isLoadingContent && (
@@ -801,18 +809,18 @@ export default function ExplorePage() {
                     </div>
                   ))}
 
-                  {!filtered.length && (
+                  {!paginatedResults.length && (
                     <div className="text-center py-12">
                       <p className="text-gray-500">No examples found.</p>
                     </div>
                   )}
                   
                   {/* Enhanced Paginator Component */}
-                  {!isLoadingContent && filtered.length > 0 && (
+                  {!isLoadingContent && paginatedResults.length > 0 && (
                     <Paginator
                       currentPage={currentPage}
                       totalPages={totalPages}
-                      totalItems={filtered.length}
+                      totalItems={totalItems}
                       itemsPerPage={itemsPerPage}
                       onPageChange={setCurrentPage}
                     />
@@ -873,14 +881,14 @@ export default function ExplorePage() {
           setIsExporting(false);
         }}
         onExport={(mode, selectedTypes) => {
-          const filteredByType = filtered.filter(img => selectedTypes.includes(img.image_type));
+          const filteredByType = paginatedResults.filter((img: ImageWithCaptionOut) => selectedTypes.includes(img.image_type));
           exportDataset(filteredByType, mode);
         }}
-        filteredCount={filtered.length}
-        totalCount={captions.length}
+        filteredCount={paginatedResults.length}
+        totalCount={totalItems}
         hasFilters={!!(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || uploadTypeFilter || showReferenceExamples)}
-        crisisMapsCount={filtered.filter(img => img.image_type === 'crisis_map').length}
-        droneImagesCount={filtered.filter(img => img.image_type === 'drone_image').length}
+        crisisMapsCount={paginatedResults.filter((img: ImageWithCaptionOut) => img.image_type === 'crisis_map').length}
+        droneImagesCount={paginatedResults.filter((img: ImageWithCaptionOut) => img.image_type === 'drone_image').length}
         isLoading={isExporting}
         exportSuccess={exportSuccess}
       />
