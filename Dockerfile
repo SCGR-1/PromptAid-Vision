@@ -25,6 +25,9 @@
     # Copy backend code
     COPY py_backend/ /app/
     
+    # Make the thumbnail conversion script executable
+    RUN chmod +x /app/generate_production_thumbnails.py
+    
     # Copy built frontend into the image (served by FastAPI)
     COPY --from=fe /fe/dist /app/static
     
