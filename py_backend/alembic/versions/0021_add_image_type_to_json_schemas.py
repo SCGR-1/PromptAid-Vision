@@ -27,8 +27,8 @@ def upgrade():
     # default_caption@1.0.0 -> crisis_map
     op.execute("UPDATE json_schemas SET image_type = 'crisis_map' WHERE schema_id = 'default_caption@1.0.0'")
     
-    # drone_caption@1.0.0 -> drone
-    op.execute("UPDATE json_schemas SET image_type = 'drone' WHERE schema_id = 'drone_caption@1.0.0'")
+    # drone_caption@1.0.0 -> drone_image
+    op.execute("UPDATE json_schemas SET image_type = 'drone_image' WHERE schema_id = 'drone_caption@1.0.0'")
 
 
 def downgrade():
