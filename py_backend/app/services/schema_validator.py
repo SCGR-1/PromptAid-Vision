@@ -3,6 +3,9 @@ from typing import Dict, Any, Optional, Tuple
 from jsonschema import validate, ValidationError
 from jsonschema.validators import Draft7Validator
 import logging
+from sqlalchemy.orm import Session
+from ..database import SessionLocal
+from .. import crud
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +14,54 @@ class SchemaValidator:
     
     def __init__(self):
         self.validators = {}
+        self._schema_cache = {}
+    
+    def _get_schema_from_db(self, schema_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch schema from database with caching"""
+        if schema_id in self._schema_cache:
+            return self._schema_cache[schema_id]
+        
+        try:
+            db = SessionLocal()
+            schema_obj = crud.get_schema(db, schema_id)
+            if schema_obj:
+                self._schema_cache[schema_id] = schema_obj.schema
+                return schema_obj.schema
+            else:
+                logger.warning(f"Schema {schema_id} not found in database")
+                return None
+        except Exception as e:
+            logger.error(f"Error fetching schema {schema_id} from database: {str(e)}")
+            return None
+        finally:
+            db.close()
+    
+    def _get_schema_by_image_type(self, image_type: str) -> Optional[Tuple[str, Dict[str, Any]]]:
+        """Fetch schema by image type from database"""
+        try:
+            db = SessionLocal()
+            schemas = crud.get_schemas_by_image_type(db, image_type)
+            if schemas:
+                # Return the first schema found (could be enhanced to handle multiple schemas)
+                schema_obj = schemas[0]
+                return schema_obj.schema_id, schema_obj.schema
+            else:
+                logger.warning(f"No schema found for image type: {image_type}")
+                return None
+        except Exception as e:
+            logger.error(f"Error fetching schema for image type {image_type} from database: {str(e)}")
+            return None
+        finally:
+            db.close()
+    
+    def clear_schema_cache(self, schema_id: Optional[str] = None):
+        """Clear schema cache for a specific schema or all schemas"""
+        if schema_id:
+            self._schema_cache.pop(schema_id, None)
+            logger.info(f"Cleared cache for schema {schema_id}")
+        else:
+            self._schema_cache.clear()
+            logger.info("Cleared all schema cache")
     
     def validate_against_schema(self, data: Dict[str, Any], schema: Dict[str, Any], schema_id: str) -> Tuple[bool, Optional[str]]:
         """
@@ -25,7 +76,6 @@ class SchemaValidator:
             Tuple of (is_valid, error_message)
         """
         try:
-            # Use Draft7Validator for better error messages
             validator = Draft7Validator(schema)
             errors = list(validator.iter_errors(data))
             
@@ -47,71 +97,30 @@ class SchemaValidator:
             logger.error(error_msg)
             return False, error_msg
     
+    def validate_by_image_type(self, data: Dict[str, Any], image_type: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate data against schema based on image type
+        """
+        # Get schema by image type
+        schema_result = self._get_schema_by_image_type(image_type)
+        if not schema_result:
+            logger.error(f"Failed to fetch schema for image type: {image_type}")
+            return False, f"No schema found for image type: {image_type}"
+        
+        schema_id, schema = schema_result
+        return self.validate_against_schema(data, schema, schema_id)
+    
     def validate_crisis_map_data(self, data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """
-        Validate crisis map data against the default schema
+        Validate crisis map data against the database schema (legacy method)
         """
-        # Define the expected crisis map schema
-        crisis_schema = {
-            "type": "object",
-            "properties": {
-                "description": {"type": "string"},
-                "analysis": {"type": "string"},
-                "recommended_actions": {"type": "string"},
-                "metadata": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string"},
-                        "source": {"type": "string"},
-                        "type": {"type": "string"},
-                        "countries": {"type": "array", "items": {"type": "string"}},
-                        "epsg": {"type": "string"}
-                    },
-                    "required": ["title", "source", "type", "countries", "epsg"]
-                }
-            },
-            "required": ["description", "analysis", "recommended_actions", "metadata"]
-        }
-        
-        return self.validate_against_schema(data, crisis_schema, "crisis_map")
+        return self.validate_by_image_type(data, "crisis_map")
     
     def validate_drone_data(self, data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """
-        Validate drone data against the drone schema
+        Validate drone data against the database schema (legacy method)
         """
-        # Define the expected drone schema
-        drone_schema = {
-            "type": "object",
-            "properties": {
-                "description": {"type": "string"},
-                "analysis": {"type": "string"},
-                "recommended_actions": {"type": "string"},
-                "metadata": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": ["string", "null"]},
-                        "source": {"type": ["string", "null"]},
-                        "type": {"type": ["string", "null"]},
-                        "countries": {"type": ["array", "null"], "items": {"type": "string"}},
-                        "epsg": {"type": ["string", "null"]},
-                        "center_lat": {"type": ["number", "null"], "minimum": -90, "maximum": 90},
-                        "center_lon": {"type": ["number", "null"], "minimum": -180, "maximum": 180},
-                        "amsl_m": {"type": ["number", "null"]},
-                        "agl_m": {"type": ["number", "null"]},
-                        "heading_deg": {"type": ["number", "null"], "minimum": 0, "maximum": 360},
-                        "yaw_deg": {"type": ["number", "null"], "minimum": -180, "maximum": 180},
-                        "pitch_deg": {"type": ["number", "null"], "minimum": -90, "maximum": 90},
-                        "roll_deg": {"type": ["number", "null"], "minimum": -180, "maximum": 180},
-                        "rtk_fix": {"type": ["boolean", "null"]},
-                        "std_h_m": {"type": ["number", "null"], "minimum": 0},
-                        "std_v_m": {"type": ["number", "null"], "minimum": 0}
-                    }
-                }
-            },
-            "required": ["description", "analysis", "recommended_actions", "metadata"]
-        }
-        
-        return self.validate_against_schema(data, drone_schema, "drone")
+        return self.validate_by_image_type(data, "drone_image")
     
     def validate_data_by_type(self, data: Dict[str, Any], image_type: str) -> Tuple[bool, Optional[str]]:
         """

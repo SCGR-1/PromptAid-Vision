@@ -380,6 +380,10 @@ def get_schema(db: Session, schema_id: str):
     """Get a specific JSON schema by ID"""
     return db.query(models.JSONSchema).filter(models.JSONSchema.schema_id == schema_id).first()
 
+def get_schemas_by_image_type(db: Session, image_type: str):
+    """Get all JSON schemas for a specific image type"""
+    return db.query(models.JSONSchema).filter(models.JSONSchema.image_type == image_type).all()
+
 def get_recent_images_with_validation(db: Session, limit: int = 100):
     """Get recent images with validation info"""
     return db.query(models.Images).order_by(models.Images.captured_at.desc()).limit(limit).all()

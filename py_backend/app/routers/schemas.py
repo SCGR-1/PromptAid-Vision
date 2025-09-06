@@ -177,3 +177,39 @@ async def get_validation_stats(
         return stats
     except Exception as e:
         raise HTTPException(500, f"Failed to get validation stats: {str(e)}")
+
+@router.put("/schemas/{schema_id}")
+async def update_schema(
+    schema_id: str,
+    schema_data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_admin_access)
+):
+    """Update a JSON schema (admin only)"""
+    try:
+        # Get the existing schema
+        existing_schema = crud.get_schema(db, schema_id)
+        if not existing_schema:
+            raise HTTPException(404, f"Schema {schema_id} not found")
+        
+        # Update only the schema content
+        existing_schema.schema = schema_data.get("schema", existing_schema.schema)
+        
+        db.commit()
+        db.refresh(existing_schema)
+        
+        # Clear schema cache to ensure fresh data on next validation
+        schema_validator.clear_schema_cache(schema_id)
+        
+        return {
+            "schema_id": existing_schema.schema_id,
+            "title": existing_schema.title,
+            "version": existing_schema.version,
+            "created_at": existing_schema.created_at.isoformat() if existing_schema.created_at else None,
+            "schema": existing_schema.schema
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Failed to update schema: {str(e)}")

@@ -106,7 +106,11 @@ class JSONSchema(Base):
     title     = Column(String, nullable=False)
     schema    = Column(JSONB, nullable=False)
     version   = Column(String, nullable=False)
+    image_type = Column(String, ForeignKey("image_types.image_type"), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.utcnow)
+    
+    # Relationship to image_types table
+    image_type_r = relationship("ImageTypes")
 
 class Images(Base):
     __tablename__ = "images"

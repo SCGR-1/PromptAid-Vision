@@ -698,13 +698,10 @@ async def upload_image(
         text = result.get("caption", "")
         metadata = result.get("metadata", {})
         
-        # Use the actual model that was used by the VLM service
         actual_model = result.get("model", model_name)
         
-        # Ensure we never use 'random' as the model name in the database
         final_model_name = actual_model if actual_model != "random" else "STUB_MODEL"
         
-        # Create caption linked to the image
         caption = crud.create_caption(
             db,
             image_id=img.image_id,
