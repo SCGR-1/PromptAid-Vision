@@ -36,6 +36,14 @@ interface ImageTypeData {
   label: string;
 }
 
+interface SchemaData {
+  schema_id: string;
+  title: string;
+  version: string;
+  created_at?: string;
+  schema: any;
+}
+
 export default function AdminPage() {
   const { isAuthenticated, isLoading, login, logout } = useAdmin();
   const [password, setPassword] = useState('');
@@ -50,6 +58,17 @@ export default function AdminPage() {
   const [availablePrompts, setAvailablePrompts] = useState<PromptData[]>([]);
   
   const [imageTypes, setImageTypes] = useState<ImageTypeData[]>([]);
+  
+  // Schema management state
+  const [availableSchemas, setAvailableSchemas] = useState<SchemaData[]>([]);
+  const [showEditSchemaForm, setShowEditSchemaForm] = useState(false);
+  const [editingSchema, setEditingSchema] = useState<SchemaData | null>(null);
+  const [newSchemaData, setNewSchemaData] = useState<SchemaData>({
+    schema_id: '',
+    title: '',
+    version: '',
+    schema: {}
+  });
   
   // Prompt management state
   const [showEditPromptForm, setShowEditPromptForm] = useState(false);
@@ -161,13 +180,32 @@ export default function AdminPage() {
       });
   }, []);
 
+  const fetchSchemas = useCallback(() => {
+    console.log('=== fetchSchemas called ===');
+    fetch('/api/schemas', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      }
+    })
+      .then(r => r.json())
+      .then(schemasData => {
+        console.log('Schemas data received:', schemasData);
+        setAvailableSchemas(schemasData || []);
+      })
+      .catch((error) => {
+        console.error('Error fetching schemas:', error);
+        // Handle error silently
+      });
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchModels();
       fetchPrompts();
       fetchImageTypes();
+      fetchSchemas();
     }
-  }, [isAuthenticated, fetchModels, fetchPrompts, fetchImageTypes]);
+  }, [isAuthenticated, fetchModels, fetchPrompts, fetchImageTypes, fetchSchemas]);
 
 
 
@@ -280,6 +318,66 @@ export default function AdminPage() {
     } catch {
       alert('Error creating prompt');
     }
+  };
+
+  // Schema management handlers
+  const handleEditSchema = (schema: SchemaData) => {
+    setEditingSchema(schema);
+    setNewSchemaData({
+      schema_id: schema.schema_id,
+      title: schema.title,
+      version: schema.version,
+      schema: schema.schema
+    });
+    setShowEditSchemaForm(true);
+  };
+
+  const handleSaveSchema = async () => {
+    try {
+      if (!editingSchema) {
+        alert('No schema selected for editing');
+        return;
+      }
+      
+      const response = await fetch(`/api/schemas/${editingSchema.schema_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(newSchemaData),
+      });
+
+      if (response.ok) {
+        // Refresh schemas and close form
+        fetchSchemas();
+        setShowEditSchemaForm(false);
+        setEditingSchema(null);
+        setNewSchemaData({
+          schema_id: '',
+          title: '',
+          version: '',
+          schema: {}
+        });
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to save schema: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error saving schema:', error);
+      alert('Error saving schema');
+    }
+  };
+
+  const handleCancelSchema = () => {
+    setShowEditSchemaForm(false);
+    setEditingSchema(null);
+    setNewSchemaData({
+      schema_id: '',
+      title: '',
+      version: '',
+      schema: {}
+    });
   };
 
   const toggleModelAvailability = async (modelCode: string, currentStatus: boolean) => {
@@ -1080,6 +1178,64 @@ Model "${newModelData.label}" added successfully!
                    </div>
                  </Container>
 
+                 {/* Schema Management Section */}
+                 <Container
+                   heading="Schema Management"
+                   headingLevel={2}
+                   withHeaderBorder
+                   withInternalPadding
+                 >
+                   <div className={styles.modelManagementArea}>
+                     <div className={styles.modelsTable}>
+                       <table>
+                         <thead>
+                           <tr>
+                             <th>Schema ID</th>
+                             <th>Schema Content</th>
+                             <th>Actions</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {availableSchemas
+                             .sort((a, b) => a.schema_id.localeCompare(b.schema_id))
+                             .map(schema => (
+                             <tr key={schema.schema_id}>
+                               <td className={styles.modelCode}>{schema.schema_id}</td>
+                               <td className={styles.promptLabel} style={{ maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                 {JSON.stringify(schema.schema)}
+                               </td>
+                               <td>
+                                 <div className={styles.modelActions}>
+                                   <Button
+                                     name={`view-schema-${schema.schema_id}`}
+                                     variant="secondary"
+                                     size={1}
+                                     onClick={() => {
+                                       setTestResults(`=== Schema Details ===\nSchema ID: ${schema.schema_id}\n\nSchema Definition:\n${JSON.stringify(schema.schema, null, 2)}`);
+                                       setTestResultsTitle(`Schema: ${schema.schema_id}`);
+                                       setShowTestResultsModal(true);
+                                     }}
+                                   >
+                                     View
+                                   </Button>
+                                   <Button
+                                     name={`edit-schema-${schema.schema_id}`}
+                                     variant="secondary"
+                                     size={1}
+                                     onClick={() => handleEditSchema(schema)}
+                                   >
+                                     Edit
+                                   </Button>
+                                 </div>
+                               </td>
+                             </tr>
+                           ))}
+                         </tbody>
+                       </table>
+                     </div>
+                   </div>
+                 </Container>
+
                      {/* Utilities Section */}
                  <Container
              heading="Utilities"
@@ -1117,50 +1273,6 @@ Model "${newModelData.label}" added successfully!
                  Test Connection
                </Button>
                
-                       <Button
-                         name="view-schemas"
-                         variant="secondary"
-                         onClick={() => {
-                           fetch('/api/schemas', {
-                             headers: {
-                               'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-                             }
-                           })
-                             .then(r => r.json())
-                             .then(data => {
-                       console.log('Schemas Response:', data);
-                       
-                       let results = '';
-                       let title = 'Schemas Response';
-                       
-                       if (data && Array.isArray(data)) {
-                         results = `Found ${data.length} schemas:\n\n`;
-                         data.forEach((schema, index) => {
-                           results += `=== Schema ${index + 1} ===\n`;
-                           results += JSON.stringify(schema, null, 2);
-                           results += '\n\n';
-                         });
-                       } else if (data && typeof data === 'object') {
-                         results = `Prompts Response:\n\nResponse type: ${typeof data}\nKeys: ${Object.keys(data).join(', ')}\n\nRaw data:\n${JSON.stringify(data, null, 2)}`;
-                       } else {
-                         results = `Prompts Response:\n\nUnexpected data type: ${typeof data}\nValue: ${data}`;
-                       }
-                       
-                       setTestResults(results);
-                       setTestResultsTitle(title);
-                       setShowTestResultsModal(true);
-                     })
-                     .catch((error) => {
-                       console.error('Schemas Error:', error);
-                       const results = `Failed to fetch prompts: ${error.message || 'Unknown error'}`;
-                       setTestResults(results);
-                       setTestResultsTitle('Schemas Error');
-                       setShowTestResultsModal(true);
-                             });
-                         }}
-                       >
-                         View Schemas
-                       </Button>
                    </div>
                  </Container>
         </div>
@@ -1410,6 +1522,63 @@ Model "${newModelData.label}" added successfully!
                   disabled={!newPromptData.p_code || !newPromptData.label}
                 >
                   Create Prompt
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Schema Form Modal */}
+      {showEditSchemaForm && (
+        <div className={styles.modalOverlay} onClick={() => setShowEditSchemaForm(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalBody}>
+              <h3 className={styles.modalTitle}>Edit Schema: {editingSchema?.schema_id}</h3>
+              <div className={styles.modalForm}>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Schema ID:</label>
+                  <TextInput
+                    name="schema-id"
+                    value={newSchemaData.schema_id}
+                    onChange={(value) => setNewSchemaData(prev => ({ ...prev, schema_id: value || '' }))}
+                    className={styles.formInput}
+                    disabled
+                  />
+                </div>
+                <div className={styles.formField}>
+                  <label className={styles.formLabel}>Schema Definition (JSON):</label>
+                  <textarea
+                    name="schema-definition"
+                    value={JSON.stringify(newSchemaData.schema, null, 2)}
+                    onChange={(e) => {
+                      try {
+                        const parsedSchema = JSON.parse(e.target.value);
+                        setNewSchemaData(prev => ({ ...prev, schema: parsedSchema }));
+                      } catch (error) {
+                        // Invalid JSON, don't update
+                      }
+                    }}
+                    className={`${styles.formInput} ${styles.textarea}`}
+                    rows={20}
+                    style={{ fontFamily: 'monospace' }}
+                  />
+                </div>
+              </div>
+              <div className={styles.modalButtons}>
+                <Button
+                  name="cancel-edit-schema"
+                  variant="tertiary"
+                  onClick={handleCancelSchema}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  name="save-schema"
+                  variant="primary"
+                  onClick={handleSaveSchema}
+                >
+                  Save Changes
                 </Button>
               </div>
             </div>
