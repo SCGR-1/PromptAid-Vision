@@ -1,8 +1,9 @@
 // Force rebuild - Frontend updated with edit prompt functionality
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAdmin } from '../../hooks/useAdmin';
-import { PageContainer, Heading, Button, Container, TextInput, SelectInput } from '@ifrc-go/ui';
+import { PageContainer, Heading, Button, Container, TextInput, SelectInput, Spinner } from '@ifrc-go/ui';
 import styles from './AdminPage.module.css';
+import uploadStyles from '../UploadPage/UploadPage.module.css';
 
 const SELECTED_MODEL_KEY = 'selectedVlmModel';
 
@@ -27,6 +28,7 @@ interface ModelData {
     stub?: boolean;
   };
   is_available: boolean;
+  is_fallback: boolean;
 }
 
 interface ImageTypeData {
@@ -42,6 +44,7 @@ export default function AdminPage() {
   
   const [availableModels, setAvailableModels] = useState<ModelData[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
+  const [selectedFallbackModel, setSelectedFallbackModel] = useState<string>('');
   
   // Prompts state
   const [availablePrompts, setAvailablePrompts] = useState<PromptData[]>([]);
@@ -71,7 +74,8 @@ export default function AdminPage() {
      model_type: 'custom',
      provider: 'huggingface',
      model_id: '',
-     is_available: false
+     is_available: false,
+     is_fallback: false
    });
   
          // Modal states
@@ -104,6 +108,25 @@ export default function AdminPage() {
             setSelectedModel(firstAvailableModel.m_code);
             localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
           }
+        }
+      })
+      .catch(() => {
+        // Handle error silently
+      });
+    
+    // Fetch current fallback model
+    fetch('/api/admin/fallback-model', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      }
+    })
+      .then(r => r.json())
+      .then(fallbackData => {
+        console.log('Fallback model data received:', fallbackData);
+        if (fallbackData.fallback_model) {
+          setSelectedFallbackModel(fallbackData.fallback_model.m_code);
+        } else {
+          setSelectedFallbackModel('');
         }
       })
       .catch(() => {
@@ -298,6 +321,32 @@ export default function AdminPage() {
     }
   };
 
+  const handleFallbackModelChange = async (modelCode: string) => {
+    try {
+      const response = await fetch(`/api/admin/models/${modelCode}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({
+          is_fallback: true
+        })
+      });
+
+      if (response.ok) {
+        setSelectedFallbackModel(modelCode);
+        // Refresh models to update the is_fallback status
+        fetchModels();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to set fallback model: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert('Error setting fallback model');
+    }
+  };
+
   // Model management functions
   const handleAddModel = async () => {
     try {
@@ -334,7 +383,8 @@ Model "${newModelData.label}" added successfully!
           model_type: 'custom',
           provider: 'huggingface',
           model_id: '',
-          is_available: false
+          is_available: false,
+          is_fallback: false
         });
         fetchModels(); // Refresh the models list
       } else {
@@ -354,7 +404,8 @@ Model "${newModelData.label}" added successfully!
        model_type: model.model_type || 'custom',
        provider: model.provider || model.config?.provider || 'huggingface',
        model_id: model.model_id || model.config?.model_id || model.m_code,
-       is_available: model.is_available
+       is_available: model.is_available,
+       is_fallback: model.is_fallback
      });
      setShowEditModelForm(true);
    };
@@ -402,7 +453,8 @@ Model "${newModelData.label}" added successfully!
            model_type: 'custom',
            provider: 'huggingface',
            model_id: '',
-           is_available: false
+           is_available: false,
+           is_fallback: false
          });
          
          console.log('Refreshing models...');
@@ -497,6 +549,14 @@ Model "${newModelData.label}" added successfully!
   if (!isAuthenticated) {
     return (
       <PageContainer>
+        {/* Login Loading State */}
+        {isLoggingIn && (
+          <div className={uploadStyles.loadingContainer}>
+            <Spinner className="text-ifrcRed" />
+            <p className={uploadStyles.loadingText}>Logging in...</p>
+          </div>
+        )}
+        
         <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           <div className="text-center mb-8">
              <Heading level={2}>Admin Login</Heading>
@@ -520,7 +580,7 @@ Model "${newModelData.label}" added successfully!
             </div>
 
             {error && (
-              <div className="bg-ifrcRed/10 border border-ifrcRed/20 rounded-md p-3">
+              <div>
                 <p className="text-sm text-ifrcRed font-medium">{error}</p>
               </div>
             )}
@@ -534,7 +594,7 @@ Model "${newModelData.label}" added successfully!
                   size={2}
                   disabled={isLoggingIn}
                 >
-                  {isLoggingIn ? 'Logging in...' : 'Login'}
+                  Login
                 </Button>
               </Container>
             </div>
@@ -578,6 +638,24 @@ Model "${newModelData.label}" added successfully!
                    onChange={(newValue) => handleModelChange(newValue || '')}
                    options={[
                      { value: 'random', label: 'Random' },
+                     ...availableModels
+                    .filter(model => model.is_available)
+                       .map(model => ({
+                         value: model.m_code,
+                         label: model.label
+                       }))
+                   ]}
+                   keySelector={(o) => o.value}
+                   labelSelector={(o) => o.label}
+                 />
+                 
+                 <SelectInput
+                   label="Fallback"
+                   name="fallback-model"
+                   value={selectedFallbackModel}
+                   onChange={(newValue) => handleFallbackModelChange(newValue || '')}
+                   options={[
+                     { value: '', label: 'No fallback (use STUB_MODEL)' },
                      ...availableModels
                     .filter(model => model.is_available)
                        .map(model => ({
@@ -832,7 +910,8 @@ Model "${newModelData.label}" added successfully!
                            model_type: 'custom',
                            provider: 'huggingface',
                            model_id: '',
-                           is_available: false
+                           is_available: false,
+                           is_fallback: false
                              });
                          }}
                        >

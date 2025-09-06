@@ -90,10 +90,15 @@ class Models(Base):
     label = Column(String, nullable=False)
     model_type = Column(String, nullable=False)
     is_available = Column(Boolean, default=True)
+    is_fallback = Column(Boolean, default=False, nullable=False)
     config = Column(JSONB, nullable=True)
     provider = Column(String, nullable=True)
     model_id = Column(String, nullable=True)
     delete_count = Column(SmallInteger, nullable=False, default=0)
+    
+    __table_args__ = (
+        CheckConstraint('NOT (is_fallback = true AND is_available = false)', name='fallback_must_be_available'),
+    )
 
 class JSONSchema(Base):
     __tablename__ = "json_schemas"

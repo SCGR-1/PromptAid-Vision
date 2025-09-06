@@ -1,9 +1,13 @@
+# app/services/vlm_services.py
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 import logging
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+
 
 class ModelType(Enum):
     """Enum for different VLM model types"""
@@ -13,244 +17,244 @@ class ModelType(Enum):
     LLAMA_VISION = "llama_vision"
     CUSTOM = "custom"
 
+
+class ServiceStatus(Enum):
+    READY = "ready"
+    DEGRADED = "degraded"     # registered but probe failed or not run
+    UNAVAILABLE = "unavailable"
+
+
 class VLMService(ABC):
     """Abstract base class for VLM services"""
-    
-    def __init__(self, model_name: str, model_type: ModelType):
+
+    def __init__(self, model_name: str, model_type: ModelType, provider: str = "custom", lazy_init: bool = True):
         self.model_name = model_name
         self.model_type = model_type
-        self.is_available = True
-    
+        self.provider = provider
+        self.lazy_init = lazy_init
+        self.is_available = True            # quick flag used by manager for random selection
+        self.status = ServiceStatus.DEGRADED
+        self._initialized = False
+
+    async def probe(self) -> bool:
+        """
+        Lightweight reachability/metadata check. Providers should override.
+        Must be quick (<5s) and NEVER raise. Return True if reachable/ok.
+        """
+        return True
+
+    async def ensure_ready(self) -> bool:
+        """
+        Called once before first use. Providers may override to open clients/warm caches.
+        Must set _initialized True and return True on success. NEVER raise.
+        """
+        self._initialized = True
+        self.status = ServiceStatus.READY
+        return True
+
     @abstractmethod
     async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "") -> Dict[str, Any]:
         """Generate caption for an image"""
-        pass
-    
+        ...
+
+    # Optional for multi-image models; override in providers that support it.
+    async def generate_multi_image_caption(self, image_bytes_list: List[bytes], prompt: str, metadata_instructions: str = "") -> Dict[str, Any]:
+        raise NotImplementedError("Multi-image caption not implemented for this service")
+
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information"""
         return {
             "name": self.model_name,
             "type": self.model_type.value,
+            "provider": self.provider,
             "available": self.is_available,
+            "status": self.status.value,
+            "lazy_init": self.lazy_init,
         }
+
 
 class VLMServiceManager:
     """Manager for multiple VLM services"""
-    
+
     def __init__(self):
         self.services: Dict[str, VLMService] = {}
         self.default_service: Optional[str] = None
-    
+
     def register_service(self, service: VLMService):
-        """Register a VLM service"""
+        """
+        Register a VLM service (NO network calls here).
+        We’ll probe later, asynchronously, so registration never blocks startup.
+        """
         self.services[service.model_name] = service
         if not self.default_service:
             self.default_service = service.model_name
-        logger.info(f"Registered VLM service: {service.model_name}")
-    
+        logger.info("Registered VLM service: %s (%s)", service.model_name, service.provider)
+
+    async def probe_all(self):
+        """
+        Run lightweight probes for all registered services.
+        Failures do not remove services; they stay DEGRADED and will lazy-init on first use.
+        """
+        for svc in self.services.values():
+            try:
+                ok = await svc.probe()
+                svc.status = ServiceStatus.READY if ok else ServiceStatus.DEGRADED
+                # If probe fails but lazy_init is allowed, keep is_available True so selection still works.
+                svc.is_available = ok or svc.lazy_init
+                logger.info("Probe %s -> %s", svc.model_name, svc.status.value)
+            except Exception as e:
+                logger.warning("Probe failed for %s: %r", svc.model_name, e)
+                svc.status = ServiceStatus.DEGRADED
+                svc.is_available = bool(svc.lazy_init)
+
     def get_service(self, model_name: str) -> Optional[VLMService]:
         """Get a specific VLM service"""
         return self.services.get(model_name)
-    
+
     def get_default_service(self) -> Optional[VLMService]:
         """Get the default VLM service"""
-        if self.default_service:
-            return self.services.get(self.default_service)
-        return None
-    
+        return self.services.get(self.default_service) if self.default_service else None
+
     def get_available_models(self) -> list:
         """Get list of available model names"""
         return list(self.services.keys())
-    
-    async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "", model_name: str | None = None, db_session = None) -> dict:
-        """Generate caption using the specified model or fallback to available service."""
-        
+
+    async def _pick_service(self, model_name: Optional[str], db_session) -> VLMService:
+        # Specific pick
         service = None
         if model_name and model_name != "random":
             service = self.services.get(model_name)
             if not service:
-                print(f"Model '{model_name}' not found, using fallback")
-        
+                logger.warning("Model '%s' not found; will pick fallback", model_name)
+
+        # Fallback / random based on DB allowlist (is_available==True)
         if not service and self.services:
-            # If random is selected or no specific model, choose a random available service
             if db_session:
-                # Check database availability for random selection
                 try:
-                    from .. import crud
+                    from .. import crud  # local import to avoid cycles at import time
                     available_models = crud.get_models(db_session)
-                    available_model_codes = [m.m_code for m in available_models if m.is_available]
+                    allowed = {m.m_code for m in available_models if getattr(m, "is_available", False)}
                     
-                    print(f"DEBUG: Available models in database: {available_model_codes}")
-                    print(f"DEBUG: Registered services: {list(self.services.keys())}")
+                    # Check for configured fallback model first
+                    configured_fallback = crud.get_fallback_model(db_session)
+                    if configured_fallback and configured_fallback in allowed:
+                        fallback_service = self.services.get(configured_fallback)
+                        if fallback_service and fallback_service.is_available:
+                            logger.info("Using configured fallback model: %s", configured_fallback)
+                            service = fallback_service
                     
-                    # Filter services to only those marked as available in database
-                    available_services = [s for s in self.services.values() if s.model_name in available_model_codes]
-                    
-                    print(f"DEBUG: Available services after filtering: {[s.model_name for s in available_services]}")
-                    print(f"DEBUG: Service model names: {[s.model_name for s in self.services.values()]}")
-                    print(f"DEBUG: Database model codes: {available_model_codes}")
-                    print(f"DEBUG: Intersection check: {[s.model_name for s in self.services.values() if s.model_name in available_model_codes]}")
-                    
-                    if available_services:
-                        import random
-                        import time
-                        # Use current time as seed for better randomness
-                        random.seed(int(time.time() * 1000000) % 1000000)
-                        
-                        # Shuffle the list first for better randomization
-                        shuffled_services = available_services.copy()
-                        random.shuffle(shuffled_services)
-                        
-                        service = shuffled_services[0]
-                        print(f"Randomly selected service: {service.model_name} (from {len(available_services)} available)")
-                        print(f"DEBUG: All available services were: {[s.model_name for s in available_services]}")
-                        print(f"DEBUG: Shuffled order: {[s.model_name for s in shuffled_services]}")
-                    else:
-                        # Fallback to any available service, prioritizing STUB_MODEL
-                        print(f"WARNING: No services found in database intersection, using fallback")
-                        if "STUB_MODEL" in self.services:
-                            service = self.services["STUB_MODEL"]
-                            print(f"Using STUB_MODEL fallback service: {service.model_name}")
-                        else:
-                            service = next(iter(self.services.values()))
-                            print(f"Using first available fallback service: {service.model_name}")
+                    # If no configured fallback or it's not available, use STUB_MODEL as final fallback
+                    if not service:
+                        service = self.services.get("STUB_MODEL") or next(iter(self.services.values()))
+                        logger.info("Using STUB_MODEL as final fallback")
                 except Exception as e:
-                    print(f"Error checking database availability: {e}, using fallback")
-                    if "STUB_MODEL" in self.services:
-                        service = self.services["STUB_MODEL"]
-                        print(f"Using STUB_MODEL fallback service: {service.model_name}")
-                    else:
-                        service = next(iter(self.services.values()))
-                        print(f"Using fallback service: {service.model_name}")
+                    logger.warning("DB availability check failed: %r; using first available", e)
+                    avail = [s for s in self.services.values() if s.is_available]
+                    service = (self.services.get("STUB_MODEL") or (random.choice(avail) if avail else next(iter(self.services.values()))))
             else:
-                # No database session, use service property
-                available_services = [s for s in self.services.values() if s.is_available]
-                if available_services:
-                    import random
-                    service = random.choice(available_services)
-                    print(f"Randomly selected service: {service.model_name}")
-                else:
-                    # Fallback to any available service, prioritizing STUB_MODEL
-                    if "STUB_MODEL" in self.services:
-                        service = self.services["STUB_MODEL"]
-                        print(f"Using STUB_MODEL fallback service: {service.model_name}")
-                    else:
-                        service = next(iter(self.services.values()))
-                        print(f"Using fallback service: {service.model_name}")
-        
+                import random
+                avail = [s for s in self.services.values() if s.is_available]
+                service = (random.choice(avail) if avail else (self.services.get("STUB_MODEL") or next(iter(self.services.values()))))
+
         if not service:
-            raise Exception("No VLM service available")
-        
-        print(f"DEBUG: Selected service for caption generation: {service.model_name}")
-        
+            raise RuntimeError("No VLM service available")
+
+        # Lazy init on first use
+        if service.lazy_init and not service._initialized:
+            try:
+                ok = await service.ensure_ready()
+                service.status = ServiceStatus.READY if ok else ServiceStatus.DEGRADED
+            except Exception as e:
+                logger.warning("ensure_ready failed for %s: %r", service.model_name, e)
+                service.status = ServiceStatus.DEGRADED
+
+        return service
+
+    async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "", model_name: str | None = None, db_session=None) -> dict:
+        """Generate caption using the specified model or fallback to available service."""
+        service = await self._pick_service(model_name, db_session)
         try:
-            print(f"DEBUG: Calling service {service.model_name} for caption generation")
             result = await service.generate_caption(image_bytes, prompt, metadata_instructions)
             result["model"] = service.model_name
-            print(f"DEBUG: Service {service.model_name} returned result with model: {result.get('model', 'NOT_FOUND')}")
             return result
         except Exception as e:
-            print(f"Error with {service.model_name}: {e}")
-            # Try other services
-            for other_service in self.services.values():
-                if other_service != service:
-                    try:
-                        result = await other_service.generate_caption(image_bytes, prompt, metadata_instructions)
-                        result["model"] = other_service.model_name
-                        result["fallback_used"] = True
-                        result["original_model"] = service.model_name
-                        result["fallback_reason"] = str(e)
-                        return result
-                    except Exception as fallback_error:
-                        print(f"Fallback service {other_service.model_name} also failed: {fallback_error}")
-                        continue
+            logger.error("Error with %s: %r; trying fallbacks", service.model_name, e)
             
-            # All services failed
-            raise Exception(f"All VLM services failed. Last error: {str(e)}")
-    
-    async def generate_multi_image_caption(self, image_bytes_list: List[bytes], prompt: str, metadata_instructions: str = "", model_name: str | None = None, db_session = None) -> dict:
-        """Generate caption for multiple images using the specified model or fallback to available service."""
-        
-        service = None
-        if model_name and model_name != "random":
-            service = self.services.get(model_name)
-            if not service:
-                print(f"Model '{model_name}' not found, using fallback")
-        
-        if not service and self.services:
-            # If random is selected or no specific model, choose a random available service
+            # First, try the configured fallback model if available
             if db_session:
-                # Check database availability for random selection
                 try:
                     from .. import crud
-                    available_models = crud.get_models(db_session)
-                    available_model_codes = [m.m_code for m in available_models if m.is_available]
-                    
-                    print(f"DEBUG: Available models in database: {available_model_codes}")
-                    print(f"DEBUG: Registered services: {list(self.services.keys())}")
-                    
-                    # Filter services to only those marked as available in database
-                    available_services = [s for s in self.services.values() if s.model_name in available_model_codes]
-                    
-                    print(f"DEBUG: Available services after filtering: {[s.model_name for s in available_services]}")
-                    
-                    if available_services:
-                        import random
-                        import time
-                        # Use current time as seed for better randomness
-                        random.seed(int(time.time() * 1000000) % 1000000)
-                        
-                        # Shuffle the list first for better randomization
-                        shuffled_services = available_services.copy()
-                        random.shuffle(shuffled_services)
-                        
-                        service = shuffled_services[0]
-                        print(f"Randomly selected service: {service.model_name} (from {len(available_services)} available)")
-                        print(f"DEBUG: All available services were: {[s.model_name for s in available_services]}")
-                        print(f"DEBUG: Shuffled order: {[s.model_name for s in shuffled_services]}")
-                    else:
-                        # Fallback to any service
-                        service = next(iter(self.services.values()))
-                        print(f"Using fallback service: {service.model_name}")
-                except Exception as e:
-                    print(f"Error checking database availability: {e}, using fallback")
-                    service = next(iter(self.services.values()))
-                    print(f"Using fallback service: {service.model_name}")
-            else:
-                # No database session, use service property
-                available_services = [s for s in self.services.values() if s.is_available]
-                if available_services:
-                    import random
-                    service = random.choice(available_services)
-                    print(f"Randomly selected service: {service.model_name}")
-                else:
-                    service = next(iter(self.services.values()))
-                    print(f"Using fallback service: {service.model_name}")
-        
-        if not service:
-            raise Exception("No VLM service available")
-        
+                    configured_fallback = crud.get_fallback_model(db_session)
+                    if configured_fallback and configured_fallback != service.model_name:
+                        fallback_service = self.services.get(configured_fallback)
+                        if fallback_service and fallback_service.is_available:
+                            logger.info("Trying configured fallback model: %s", configured_fallback)
+                            try:
+                                if fallback_service.lazy_init and not fallback_service._initialized:
+                                    await fallback_service.ensure_ready()
+                                res = await fallback_service.generate_caption(image_bytes, prompt, metadata_instructions)
+                                res.update({
+                                    "model": fallback_service.model_name,
+                                    "fallback_used": True,
+                                    "original_model": service.model_name,
+                                    "fallback_reason": str(e),
+                                })
+                                logger.info("Configured fallback model %s succeeded", configured_fallback)
+                                return res
+                            except Exception as fe:
+                                logger.warning("Configured fallback service %s also failed: %r", configured_fallback, fe)
+                except Exception as db_error:
+                    logger.warning("Failed to get configured fallback: %r", db_error)
+            
+            # If configured fallback failed or not available, try STUB_MODEL
+            stub_service = self.services.get("STUB_MODEL")
+            if stub_service and stub_service != service.model_name:
+                logger.info("Trying STUB_MODEL as final fallback")
+                try:
+                    if stub_service.lazy_init and not stub_service._initialized:
+                        await stub_service.ensure_ready()
+                    res = await stub_service.generate_caption(image_bytes, prompt, metadata_instructions)
+                    res.update({
+                        "model": stub_service.model_name,
+                        "fallback_used": True,
+                        "original_model": service.model_name,
+                        "fallback_reason": str(e),
+                    })
+                    logger.info("STUB_MODEL succeeded as final fallback")
+                    return res
+                except Exception as fe:
+                    logger.warning("STUB_MODEL also failed: %r", fe)
+            
+            # All services failed
+            raise RuntimeError(f"All VLM services failed. Last error from {service.model_name}: {e}")
+
+    async def generate_multi_image_caption(self, image_bytes_list: List[bytes], prompt: str, metadata_instructions: str = "", model_name: str | None = None, db_session=None) -> dict:
+        """Multi-image version if a provider supports it."""
+        service = await self._pick_service(model_name, db_session)
         try:
             result = await service.generate_multi_image_caption(image_bytes_list, prompt, metadata_instructions)
             result["model"] = service.model_name
             return result
         except Exception as e:
-            print(f"Error with {service.model_name}: {e}")
-            # Try other services
-            for other_service in self.services.values():
-                if other_service != service:
-                    try:
-                        result = await other_service.generate_multi_image_caption(image_bytes_list, prompt, metadata_instructions)
-                        result["model"] = other_service.model_name
-                        result["fallback_used"] = True
-                        result["original_model"] = service.model_name
-                        result["fallback_reason"] = str(e)
-                        return result
-                    except Exception as fallback_error:
-                        print(f"Fallback service {other_service.model_name} also failed: {fallback_error}")
-                        continue
-            
-            # All services failed
-            raise Exception(f"All VLM services failed. Last error: {str(e)}")
+            logger.error("Error with %s (multi): %r; trying fallbacks", service.model_name, e)
+            for other in self.services.values():
+                if other is service:
+                    continue
+                try:
+                    if other.lazy_init and not other._initialized:
+                        await other.ensure_ready()
+                    res = await other.generate_multi_image_caption(image_bytes_list, prompt, metadata_instructions)
+                    res.update({
+                        "model": other.model_name,
+                        "fallback_used": True,
+                        "original_model": service.model_name,
+                        "fallback_reason": str(e),
+                    })
+                    return res
+                except Exception:
+                    continue
+            raise RuntimeError(f"All VLM services failed (multi). Last error from {service.model_name}: {e}")
 
-vlm_manager = VLMServiceManager() 
+
+# Global manager instance (as in your current code)
+vlm_manager = VLMServiceManager()

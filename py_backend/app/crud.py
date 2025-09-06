@@ -383,3 +383,23 @@ def get_schema(db: Session, schema_id: str):
 def get_recent_images_with_validation(db: Session, limit: int = 100):
     """Get recent images with validation info"""
     return db.query(models.Images).order_by(models.Images.captured_at.desc()).limit(limit).all()
+
+# Fallback model CRUD operations
+def get_fallback_model(db: Session) -> Optional[str]:
+    """Get the configured fallback model"""
+    fallback_model = db.query(models.Models).filter(models.Models.is_fallback == True).first()
+    return fallback_model.m_code if fallback_model else None
+
+def set_fallback_model(db: Session, model_code: str):
+    """Set the fallback model - ensures only one model can be fallback"""
+    # First, clear any existing fallback
+    db.query(models.Models).filter(models.Models.is_fallback == True).update({"is_fallback": False})
+    
+    # Set the new fallback model
+    model = db.query(models.Models).filter(models.Models.m_code == model_code).first()
+    if model:
+        model.is_fallback = True
+        db.commit()
+        db.refresh(model)
+        return model
+    return None

@@ -350,6 +350,103 @@ def ensure_storage_ready():
     else:
         print(f"Unknown storage provider: {settings.STORAGE_PROVIDER}")
 
+# --------------------------------------------------------------------
+# VLM service registration on startup
+# --------------------------------------------------------------------
+from app.services.vlm_service import vlm_manager
+
+# Providers
+from app.services.stub_vlm_service import StubVLMService
+from app.services.gpt4v_service import GPT4VService
+from app.services.gemini_service import GeminiService
+from app.services.huggingface_service import ProvidersGenericVLMService
+
+from app.database import SessionLocal
+from app import crud
+import asyncio
+
+
+@app.on_event("startup")
+async def register_vlm_services() -> None:
+    """Register OpenAI, Gemini, and Hugging Face models at startup (non-blocking)."""
+    print("Registering VLM services...")
+
+    # Always have a stub as a safe fallback
+    try:
+        vlm_manager.register_service(StubVLMService())
+        print("✓ STUB_MODEL registered")
+    except Exception as e:
+        print(f"✗ Failed to register STUB_MODEL: {e}")
+
+    # OpenAI GPT-4V (if configured)
+    if settings.OPENAI_API_KEY:
+        try:
+            vlm_manager.register_service(GPT4VService(settings.OPENAI_API_KEY))
+            print("✓ GPT-4 Vision service registered")
+        except Exception as e:
+            print(f"✗ GPT-4 Vision service failed to register: {e}")
+    else:
+        print("○ GPT-4 Vision not configured (OPENAI_API_KEY missing)")
+
+    # Google Gemini (if configured)
+    if settings.GOOGLE_API_KEY:
+        try:
+            vlm_manager.register_service(GeminiService(settings.GOOGLE_API_KEY))
+            print("✓ Gemini service registered")
+        except Exception as e:
+            print(f"✗ Gemini service failed to register: {e}")
+    else:
+        print("○ Gemini not configured (GOOGLE_API_KEY missing)")
+
+    # Hugging Face Inference Providers (if configured)
+    if settings.HF_API_KEY:
+        db = SessionLocal()
+        try:
+            models = crud.get_models(db)
+            registered = 0
+            skipped = 0
+            for m in models:
+                # Only register HF rows; skip “logical” names that map to other providers
+                if (
+                    getattr(m, "provider", "") == "huggingface"
+                    and getattr(m, "model_id", None)
+                    and m.m_code not in {"STUB_MODEL", "GPT-4O", "GEMINI15"}
+                ):
+                    try:
+                        svc = ProvidersGenericVLMService(
+                            api_key=settings.HF_API_KEY,
+                            model_id=m.model_id,
+                            public_name=m.m_code,  # stable name your UI/DB uses
+                        )
+                        vlm_manager.register_service(svc)
+                        print(f"✓ HF registered: {m.m_code} -> {m.model_id}")
+                        registered += 1
+                    except Exception as e:
+                        print(f"✗ HF model {m.m_code} failed to register: {e}")
+                else:
+                    skipped += 1
+
+            if registered:
+                print(f"✓ Hugging Face services registered: {registered}")
+            else:
+                print("○ No Hugging Face models registered (none found or all skipped)")
+            if skipped:
+                print(f"ℹ HF skipped entries: {skipped}")
+        finally:
+            db.close()
+    else:
+        print("○ Hugging Face not configured (HF_API_KEY missing)")
+
+    # Kick off lightweight probes in the background (don’t block startup)
+    try:
+        asyncio.create_task(vlm_manager.probe_all())
+    except Exception as e:
+        print(f"Probe scheduling failed: {e}")
+
+    print(f"✓ Available models now: {', '.join(vlm_manager.get_available_models())}")
+    print(f"✓ Total services: {len(vlm_manager.services)}")
+
+
 # Run startup tasks
 run_migrations()
 ensure_storage_ready()

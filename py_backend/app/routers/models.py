@@ -26,6 +26,7 @@ def get_available_models(db: Session = Depends(get_db)):
             "label": model.label,
             "model_type": model.model_type,
             "is_available": model.is_available,
+            "is_fallback": model.is_fallback,
             "config": model.config,
             "delete_count": model.delete_count
         })

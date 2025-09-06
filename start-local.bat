@@ -13,7 +13,7 @@ echo.
 echo 3. Starting Backend on port 8000...
 cd py_backend
 call .venv\Scripts\activate
-start "Backend" cmd /k "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+start "Backend" cmd /k "uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
 echo.
 echo 4. Starting Frontend Dev Server on port 5173...

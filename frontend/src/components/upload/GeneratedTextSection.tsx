@@ -97,14 +97,7 @@ export default function GeneratedTextSection({
           onClick={onSubmit}
           disabled={isSubmitting}
         >
-          {isSubmitting ? (
-            <div className="flex items-center gap-2">
-              <Spinner className="w-4 h-4" />
-              <span>Submitting...</span>
-            </div>
-          ) : (
-            "Submit"
-          )}
+          Submit
         </Button>
       </div>
     </Container>

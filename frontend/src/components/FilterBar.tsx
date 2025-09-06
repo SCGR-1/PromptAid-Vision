@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, TextInput, SelectInput, MultiSelectInput, Button } from '@ifrc-go/ui';
 import { FilterLineIcon } from '@ifrc-go/icons';
 import { useFilterContext } from '../hooks/useFilterContext';
@@ -21,6 +21,7 @@ export default function FilterBar({
   isLoadingFilters = false 
 }: FilterBarProps) {
   const [showFilters, setShowFilters] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   
   const {
     search, setSearch,
@@ -33,6 +34,11 @@ export default function FilterBar({
     showReferenceExamples, setShowReferenceExamples,
     clearAllFilters
   } = useFilterContext();
+
+  // Sync local search input with context search value
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   return (
     <div className="mb-6 space-y-4">
@@ -53,9 +59,14 @@ export default function FilterBar({
         <Container withInternalPadding className="bg-white/20 backdrop-blur-sm rounded-md p-2 flex-1 min-w-[300px]">
           <TextInput
             name="search"
-            placeholder="Search examples..."
-            value={search}
-            onChange={(v) => setSearch(v || '')}
+            placeholder="Search"
+            value={searchInput}
+            onChange={(v) => setSearchInput(v || '')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setSearch(searchInput);
+              }
+            }}
           />
         </Container>
 

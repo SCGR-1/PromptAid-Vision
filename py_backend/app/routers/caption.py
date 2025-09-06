@@ -1,89 +1,12 @@
+# py_backend/app/routers/caption.py
 from fastapi import APIRouter, HTTPException, Depends, Form, Request
 from sqlalchemy.orm import Session
 from typing import List
+
 from .. import crud, database, schemas, storage
 from ..services.vlm_service import vlm_manager
 from ..services.schema_validator import schema_validator
 from ..config import settings
-
-from ..services.stub_vlm_service import StubVLMService
-from ..services.gpt4v_service import GPT4VService
-from ..services.gemini_service import GeminiService
-from ..services.huggingface_service import ProvidersGenericVLMService
-
-stub_service = StubVLMService()
-vlm_manager.register_service(stub_service)
-
-if settings.OPENAI_API_KEY:
-    try:
-        gpt4v_service = GPT4VService(settings.OPENAI_API_KEY)
-        vlm_manager.register_service(gpt4v_service)
-        print(f"✓ GPT-4 Vision service registered")
-    except Exception as e:
-        print(f"✗ GPT-4 Vision service failed: {e}")
-else:
-    print("○ GPT-4 Vision service not configured")
-
-if settings.GOOGLE_API_KEY:
-    try:
-        gemini_service = GeminiService(settings.GOOGLE_API_KEY)
-        vlm_manager.register_service(gemini_service)
-        print(f"✓ Gemini service registered")
-    except Exception as e:
-        print(f"✗ Gemini service failed: {e}")
-else:
-    print("○ Gemini service not configured")
-
-if settings.HF_API_KEY:
-    try:
-        # Dynamically register models from database
-        from .. import crud
-        from ..database import SessionLocal
-        
-        db = SessionLocal()
-        try:
-            models = crud.get_models(db)
-            registered_count = 0
-            failed_count = 0
-            
-            for model in models:
-                if (model.provider == "huggingface" and 
-                    model.model_id and 
-                    model.m_code != "STUB_MODEL" and
-                    model.m_code not in ["GPT-4O", "GEMINI15"]):
-                    try:
-                        service = ProvidersGenericVLMService(
-                            api_key=settings.HF_API_KEY,
-                            model_id=model.model_id,
-                            public_name=model.m_code
-                        )
-                        vlm_manager.register_service(service)
-                        print(f"✓ Registered HF model: {model.m_code} -> {model.model_id}")
-                        registered_count += 1
-                    except ValueError as e:
-                        print(f"✗ Failed to register {model.m_code}: Configuration error - {e}")
-                        failed_count += 1
-                    except Exception as e:
-                        print(f"✗ Failed to register {model.m_code}: {e}")
-                        failed_count += 1
-            
-            if registered_count > 0:
-                print(f"✓ Hugging Face services registered: {registered_count} models successfully")
-            if failed_count > 0:
-                print(f"⚠️ Hugging Face services: {failed_count} models failed to register")
-            if registered_count == 0 and failed_count == 0:
-                print("○ No Hugging Face models found in database")
-        finally:
-            db.close()
-    except Exception as e:
-        print(f"✗ Hugging Face services failed: {e}")
-        import traceback
-        traceback.print_exc()
-else:
-    print("○ Hugging Face services not configured (HF_API_KEY not set)")
-
-print(f"✓ Available models: {', '.join(vlm_manager.get_available_models())}")
-print(f"✓ Total services: {len(vlm_manager.services)}")
 
 router = APIRouter()
 
@@ -101,7 +24,7 @@ def get_db():
 async def create_caption(
     image_id: str,
     title: str = Form(...),
-    prompt: str = Form(None),  # Made optional since we'll use active prompts
+    prompt: str = Form(None),  # optional; will use active prompts if not provided
     model_name: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
@@ -111,32 +34,24 @@ async def create_caption(
     if not img:
         raise HTTPException(404, "image not found")
 
-    # Get the active prompt for this image type
+    # Get the prompt (explicit by code/label, or active for image type)
     if prompt:
-        # If prompt is provided, use it (for backward compatibility)
         print(f"Looking for prompt: '{prompt}' (type: {type(prompt)})")
-        prompt_obj = crud.get_prompt(db, prompt)
-        
-        if not prompt_obj:
-            print(f"Prompt not found by code, trying to find by label...")
-            prompt_obj = crud.get_prompt_by_label(db, prompt)
+        prompt_obj = crud.get_prompt(db, prompt) or crud.get_prompt_by_label(db, prompt)
     else:
-        # Use the active prompt for the image type
         print(f"Looking for active prompt for image type: {img.image_type}")
         prompt_obj = crud.get_active_prompt_by_image_type(db, img.image_type)
-        
-        if not prompt_obj:
-            raise HTTPException(400, f"No active prompt found for image type '{img.image_type}'")
-    
+
     print(f"Prompt lookup result: {prompt_obj}")
     if not prompt_obj:
-        raise HTTPException(400, f"Prompt '{prompt}' not found")
-    
+        raise HTTPException(400, f"No prompt found (requested: '{prompt}' or active for type '{img.image_type}')")
+
     prompt_text = prompt_obj.label
     metadata_instructions = prompt_obj.metadata_instructions or ""
     print(f"Using prompt text: '{prompt_text}'")
     print(f"Using metadata instructions: '{metadata_instructions[:100]}...'")
 
+    # Load image bytes (S3 or local)
     try:
         print(f"DEBUG: About to call VLM service with model_name: {model_name}")
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
@@ -152,6 +67,7 @@ async def create_caption(
                 img_bytes = f.read()
     except Exception as e:
         print(f"Error reading image file: {e}")
+        # fallback: try presigned/public URL
         try:
             url = storage.get_object_url(img.file_key)
             if url.startswith('/') and settings.STORAGE_PROVIDER == "local":
@@ -177,7 +93,6 @@ async def create_caption(
         print(f"DEBUG: VLM service result: {result}")
         print(f"DEBUG: Result model field: {result.get('model', 'NOT_FOUND')}")
         
-        # Get the raw response for validation
         raw = result.get("raw_response", {})
         
         # Validate and clean the data using schema validation
@@ -193,34 +108,22 @@ async def create_caption(
             metadata = cleaned_data.get("metadata", {})
         else:
             print(f"⚠ Schema validation failed for {image_type}: {validation_error}")
-            # Use fallback but log the validation error
             text = result.get("caption", "This is a fallback caption due to schema validation error.")
             metadata = result.get("metadata", {})
             raw["validation_error"] = validation_error
             raw["validation_failed"] = True
         
-        # Use the actual model that was used, not the requested model_name
         used_model = result.get("model", model_name) or "STUB_MODEL"
-        
-        # Ensure we never use 'random' as the model name in the database
         if used_model == "random":
             print(f"WARNING: VLM service returned 'random' as model name, using STUB_MODEL fallback")
             used_model = "STUB_MODEL"
         
-        print(f"DEBUG: Final used_model for database: {used_model}")
-        
-        # Check if fallback was used
-        fallback_used = result.get("fallback_used", False)
-        original_model = result.get("original_model", None)
-        fallback_reason = result.get("fallback_reason", None)
-        
-        if fallback_used:
-            print(f"⚠ Model fallback occurred: {original_model} -> {used_model} (reason: {fallback_reason})")
-            # Add fallback info to raw response for frontend
+        # Fallback info (if any)
+        if result.get("fallback_used"):
             raw["fallback_info"] = {
-                "original_model": original_model,
+                "original_model": result.get("original_model"),
                 "fallback_model": used_model,
-                "reason": fallback_reason
+                "reason": result.get("fallback_reason"),
             }
         
     except Exception as e:
@@ -242,10 +145,8 @@ async def create_caption(
     )
     
     db.refresh(caption)
-    
     print(f"DEBUG: Caption created, caption object: {caption}")
     print(f"DEBUG: caption_id: {caption.caption_id}")
-    
     return schemas.CaptionOut.from_orm(caption)
 
 @router.get(
@@ -264,21 +165,15 @@ def get_all_captions_legacy_format(
     result = []
     for caption in captions:
         db.refresh(caption)
-        
-        # Get the associated image for this caption
         if caption.images:
             for image in caption.images:
                 from .upload import convert_image_to_dict
-                
-                # Build absolute URL using request context
                 base_url = str(request.base_url).rstrip('/')
                 url = f"{base_url}/api/images/{image.image_id}/file"
-                
                 print(f"DEBUG: Generated image URL: {url}")
-                
                 img_dict = convert_image_to_dict(image, url)
-                
-                # Override with caption data
+
+                # Overlay caption fields (legacy shape)
                 img_dict.update({
                     "title": caption.title,
                     "prompt": caption.prompt,
@@ -294,9 +189,7 @@ def get_all_captions_legacy_format(
                     "created_at": caption.created_at,
                     "updated_at": caption.updated_at,
                 })
-                
                 result.append(schemas.ImageOut(**img_dict))
-    
     print(f"DEBUG: Returning {len(result)} legacy format results")
     return result
 
@@ -315,10 +208,8 @@ def get_all_captions_with_images(
     result = []
     for caption in captions:
         print(f"DEBUG: Processing caption {caption.caption_id}, title: {caption.title}, generated: {caption.generated}, model: {caption.model}")
-        
         db.refresh(caption)
         result.append(schemas.CaptionOut.from_orm(caption))
-    
     print(f"DEBUG: Returning {len(result)} formatted results")
     return result
 
@@ -332,12 +223,10 @@ def get_captions_by_image(
 ):
     """Get all captions for a specific image"""
     captions = crud.get_captions_by_image(db, image_id)
-    
     result = []
     for caption in captions:
         db.refresh(caption)
         result.append(schemas.CaptionOut.from_orm(caption))
-    
     return result
 
 @router.get(
@@ -351,7 +240,6 @@ def get_caption(
     caption = crud.get_caption(db, caption_id)
     if not caption:
         raise HTTPException(404, "caption not found")
-    
     db.refresh(caption)
     return schemas.CaptionOut.from_orm(caption)
 
@@ -367,7 +255,6 @@ def update_caption(
     caption = crud.update_caption(db, caption_id, update)
     if not caption:
         raise HTTPException(404, "caption not found")
-    
     db.refresh(caption)
     return schemas.CaptionOut.from_orm(caption)
 
@@ -384,15 +271,12 @@ def update_caption_by_image(
     img = crud.get_image(db, image_id)
     if not img:
         raise HTTPException(404, "image not found")
-    
     if not img.captions:
         raise HTTPException(404, "no captions found for this image")
-    
-    # Update the first caption
+
     caption = crud.update_caption(db, str(img.captions[0].caption_id), update)
     if not caption:
         raise HTTPException(404, "caption not found")
-    
     db.refresh(caption)
     return schemas.CaptionOut.from_orm(caption)
 

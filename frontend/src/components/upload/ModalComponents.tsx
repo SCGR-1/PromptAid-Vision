@@ -42,11 +42,9 @@ export function FullSizeImageModal({ isOpen, imageUrl, preview, selectedImageDat
         </div>
         <div className={styles.fullSizeModalImage}>
           {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="flex items-center gap-2">
-                <Spinner className="w-6 h-6" />
-                <span>Loading image...</span>
-              </div>
+            <div className={styles.loadingContainer}>
+              <Spinner className="text-ifrcRed" />
+              <p className={styles.loadingText}>Loading image...</p>
             </div>
           ) : (
             <img

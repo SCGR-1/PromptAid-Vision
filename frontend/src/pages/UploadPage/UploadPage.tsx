@@ -1212,6 +1212,14 @@ export default function UploadPage() {
             {/* Step 2B: Rating and Generated Text */}
         {step === '2b' && (
           <div className={styles.step2bLayout}>
+            {/* Submit Loading State */}
+            {isSubmitting && (
+              <div className={styles.loadingContainer}>
+                <Spinner className="text-ifrcRed" />
+                <p className={styles.loadingText}>Submitting...</p>
+              </div>
+            )}
+            
             <div className={`${styles.topRow} ${isPerformanceConfirmed ? styles.ratingHidden : ''}`}>
               <div className={styles.imageSection}>
                     <ImagePreviewSection
