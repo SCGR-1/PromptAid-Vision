@@ -1,7 +1,7 @@
 """add_is_fallback_to_models
 
 Revision ID: 0020_add_is_fallback_to_models
-Revises: 0019_add_image_count_to_captions
+Revises: 0019
 Create Date: 2025-01-06 12:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '0020_add_is_fallback_to_models'
-down_revision = '0019_add_image_count_to_captions'
+down_revision = '0019'
 branch_labels = None
 depends_on = None
 
