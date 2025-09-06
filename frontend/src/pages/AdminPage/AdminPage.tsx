@@ -549,14 +549,6 @@ Model "${newModelData.label}" added successfully!
   if (!isAuthenticated) {
     return (
       <PageContainer>
-        {/* Login Loading State */}
-        {isLoggingIn && (
-          <div className={uploadStyles.loadingContainer}>
-            <Spinner className="text-ifrcRed" />
-            <p className={uploadStyles.loadingText}>Logging in...</p>
-          </div>
-        )}
-        
         <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           <div className="text-center mb-8">
              <Heading level={2}>Admin Login</Heading>
@@ -576,6 +568,7 @@ Model "${newModelData.label}" added successfully!
                 placeholder="Enter admin password"
                 required
                 className="w-full"
+                disabled={isLoggingIn}
               />
             </div>
 
@@ -587,15 +580,21 @@ Model "${newModelData.label}" added successfully!
 
             <div className="flex justify-center">
               <Container withInternalPadding className="p-2">
-                <Button
-                  name="login"
-                  type="submit"
-                  variant="primary"
-                  size={2}
-                  disabled={isLoggingIn}
-                >
-                  Login
-                </Button>
+                {isLoggingIn ? (
+                  <div className={uploadStyles.loadingContainer}>
+                    <Spinner className="text-ifrcRed" />
+                    <p className={uploadStyles.loadingText}>Logging in...</p>
+                  </div>
+                ) : (
+                  <Button
+                    name="login"
+                    type="submit"
+                    variant="primary"
+                    size={2}
+                  >
+                    Login
+                  </Button>
+                )}
               </Container>
             </div>
           </form>
