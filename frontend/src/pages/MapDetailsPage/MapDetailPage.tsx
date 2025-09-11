@@ -431,7 +431,7 @@ export default function MapDetailPage() {
     }
   }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading, isDeleting]);
 
-  const checkNavigationAvailability = async (currentId: string) => {
+  const checkNavigationAvailability = useCallback(async (currentId: string) => {
     // Validate the ID before making the request
     if (!currentId || currentId === 'undefined' || currentId === 'null' || currentId.trim() === '') {
       return;
@@ -452,6 +452,17 @@ export default function MapDetailPage() {
       const response = await fetch(`/api/images/grouped?${params.toString()}`);
       if (response.ok) {
         const filteredImages = await response.json();
+        
+        console.log('Server response for upload_type=multiple:', {
+          url: `/api/images/grouped?${params.toString()}`,
+          count: filteredImages.length,
+          images: filteredImages.map((img: any) => ({
+            image_id: img.image_id,
+            image_count: img.image_count,
+            all_image_ids: img.all_image_ids,
+            all_image_ids_length: img.all_image_ids?.length
+          }))
+        });
         
         const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
         
@@ -477,7 +488,7 @@ export default function MapDetailPage() {
     } catch (error) {
       console.error('Failed to check navigation availability:', error);
     }
-  };
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
 
   const navigateToItem = async (direction: 'previous' | 'next') => {
     if (isNavigating) return;
