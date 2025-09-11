@@ -51,7 +51,6 @@ async def add_cache_headers(request: Request, call_next):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         response.headers["Vary"] = "Accept-Encoding"
     elif p in ("/sw.js", "/manifest.webmanifest", "/vite.svg"):
-        # SW updates should be detected; keep shortish cache here (or no-cache for sw.js)
         if p == "/sw.js":
             response.headers["Cache-Control"] = "no-cache"
         else:
@@ -63,7 +62,6 @@ async def add_cache_headers(request: Request, call_next):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
-        # response class is ORJSONResponse already; no need to force Content-Type here
     return response
 
 # --------------------------------------------------------------------

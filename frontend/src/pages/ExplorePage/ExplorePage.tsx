@@ -247,7 +247,7 @@ export default function ExplorePage() {
     });
   }, []);
 
-  // Server-side pagination - no client-side filtering needed
+  // Server-side pagination
   const paginatedResults = captions;
 
   const exportDataset = async (images: ImageWithCaptionOut[], mode: 'standard' | 'fine-tuning' = 'fine-tuning') => {

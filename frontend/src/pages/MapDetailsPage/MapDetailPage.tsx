@@ -457,8 +457,8 @@ export default function MapDetailPage() {
             img.countries?.some((country: any) => country.c_code === countryFilter);
           const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
           const matchesUploadType = !uploadTypeFilter || 
-            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1)) ||
-            (uploadTypeFilter === 'multiple' && img.image_count && img.image_count > 1);
+            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1) && (!img.all_image_ids || img.all_image_ids.length <= 1)) ||
+            (uploadTypeFilter === 'multiple' && (img.image_count > 1 || (img.all_image_ids && img.all_image_ids.length > 1)));
           const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
           
           return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
@@ -498,8 +498,8 @@ export default function MapDetailPage() {
             img.countries?.some((country: any) => country.c_code === countryFilter);
           const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
           const matchesUploadType = !uploadTypeFilter || 
-            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1)) ||
-            (uploadTypeFilter === 'multiple' && img.image_count && img.image_count > 1);
+            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1) && (!img.all_image_ids || img.all_image_ids.length <= 1)) ||
+            (uploadTypeFilter === 'multiple' && (img.image_count > 1 || (img.all_image_ids && img.all_image_ids.length > 1)));
           const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
           
           return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
@@ -745,8 +745,8 @@ export default function MapDetailPage() {
       map.countries.some(country => country.c_code === countryFilter);
     const matchesImageType = !imageTypeFilter || map.image_type === imageTypeFilter;
     const matchesUploadType = !uploadTypeFilter || 
-      (uploadTypeFilter === 'single' && (!map.image_count || map.image_count <= 1)) ||
-      (uploadTypeFilter === 'multiple' && map.image_count && map.image_count > 1);
+      (uploadTypeFilter === 'single' && (!map.image_count || map.image_count <= 1) && (!map.all_image_ids || map.all_image_ids.length <= 1)) ||
+      (uploadTypeFilter === 'multiple' && ((map.image_count && map.image_count > 1) || (map.all_image_ids && map.all_image_ids.length > 1)));
     const matchesReferenceExamples = !showReferenceExamples || map.starred === true;
     
     const matches = matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
@@ -786,8 +786,8 @@ export default function MapDetailPage() {
             img.countries?.some((country: any) => country.c_code === countryFilter);
           const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
           const matchesUploadType = !uploadTypeFilter || 
-            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1)) ||
-            (uploadTypeFilter === 'multiple' && img.image_count && img.image_count > 1);
+            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1) && (!img.all_image_ids || img.all_image_ids.length <= 1)) ||
+            (uploadTypeFilter === 'multiple' && (img.image_count > 1 || (img.all_image_ids && img.all_image_ids.length > 1)));
           const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
           
           return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;

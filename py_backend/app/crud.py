@@ -189,7 +189,6 @@ def toggle_prompt_active_status(db: Session, p_code: str, image_type: str):
         return prompt
     
     # If the prompt is not active, first deactivate the currently active prompt
-    # then activate this one
     current_active = db.query(models.Prompts).filter(
         models.Prompts.image_type == image_type,
         models.Prompts.is_active == True
