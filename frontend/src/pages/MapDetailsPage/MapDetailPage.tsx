@@ -438,33 +438,38 @@ export default function MapDetailPage() {
     }
 
     try {
-      const response = await fetch('/api/images/grouped');
+
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (srcFilter) params.append('source', srcFilter);
+      if (catFilter) params.append('event_type', catFilter);
+      if (regionFilter) params.append('region', regionFilter);
+      if (countryFilter) params.append('country', countryFilter);
+      if (imageTypeFilter) params.append('image_type', imageTypeFilter);
+      if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
+      if (showReferenceExamples) params.append('starred_only', 'true');
+      
+      const response = await fetch(`/api/images/grouped?${params.toString()}`);
       if (response.ok) {
-        const images = await response.json();
-        
-        const filteredImages = images.filter((img: any) => {
-          const matchesSearch = !search || 
-            img.title?.toLowerCase().includes(search.toLowerCase()) ||
-            img.generated?.toLowerCase().includes(search.toLowerCase()) ||
-            img.source?.toLowerCase().includes(search.toLowerCase()) ||
-            img.event_type?.toLowerCase().includes(search.toLowerCase());
-          
-          const matchesSource = !srcFilter || img.source === srcFilter;
-          const matchesCategory = !catFilter || img.event_type === catFilter;
-          const matchesRegion = !regionFilter || 
-            img.countries?.some((country: any) => country.r_code === regionFilter);
-          const matchesCountry = !countryFilter || 
-            img.countries?.some((country: any) => country.c_code === countryFilter);
-          const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
-          const matchesUploadType = !uploadTypeFilter || 
-            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1) && (!img.all_image_ids || img.all_image_ids.length <= 1)) ||
-            (uploadTypeFilter === 'multiple' && (img.image_count > 1 || (img.all_image_ids && img.all_image_ids.length > 1)));
-          const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
-          
-          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
-        });
+        const filteredImages = await response.json();
         
         const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
+        
+        // Debug logging
+        console.log('Navigation availability check (server-side):', {
+          filteredImagesCount: filteredImages.length,
+          currentIndex,
+          currentId,
+          uploadTypeFilter,
+          hasPrevious: filteredImages.length > 1 && currentIndex > 0,
+          hasNext: filteredImages.length > 1 && currentIndex < filteredImages.length - 1,
+          filteredImages: filteredImages.map((img: any) => ({
+            image_id: img.image_id,
+            image_count: img.image_count,
+            all_image_ids: img.all_image_ids,
+            image_type: img.image_type
+          }))
+        });
         
         setHasPrevious(filteredImages.length > 1 && currentIndex > 0);
         setHasNext(filteredImages.length > 1 && currentIndex < filteredImages.length - 1);
@@ -479,54 +484,33 @@ export default function MapDetailPage() {
     
     setIsNavigating(true);
     try {
-      const response = await fetch('/api/images/grouped');
+      // Use server-side filtering like ExplorePage
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (srcFilter) params.append('source', srcFilter);
+      if (catFilter) params.append('event_type', catFilter);
+      if (regionFilter) params.append('region', regionFilter);
+      if (countryFilter) params.append('country', countryFilter);
+      if (imageTypeFilter) params.append('image_type', imageTypeFilter);
+      if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
+      if (showReferenceExamples) params.append('starred_only', 'true');
+      
+      const response = await fetch(`/api/images/grouped?${params.toString()}`);
       if (response.ok) {
-        const images = await response.json();
-        
-        const filteredImages = images.filter((img: any) => {
-          const matchesSearch = !search || 
-            img.title?.toLowerCase().includes(search.toLowerCase()) ||
-            img.generated?.toLowerCase().includes(search.toLowerCase()) ||
-            img.source?.toLowerCase().includes(search.toLowerCase()) ||
-            img.event_type?.toLowerCase().includes(search.toLowerCase());
-          
-          const matchesSource = !srcFilter || img.source === srcFilter;
-          const matchesCategory = !catFilter || img.event_type === catFilter;
-          const matchesRegion = !regionFilter || 
-            img.countries?.some((country: any) => country.r_code === regionFilter);
-          const matchesCountry = !countryFilter || 
-            img.countries?.some((country: any) => country.c_code === countryFilter);
-          const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
-          const matchesUploadType = !uploadTypeFilter || 
-            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1) && (!img.all_image_ids || img.all_image_ids.length <= 1)) ||
-            (uploadTypeFilter === 'multiple' && (img.image_count > 1 || (img.all_image_ids && img.all_image_ids.length > 1)));
-          const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
-          
-          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
-        });
+        const filteredImages = await response.json();
         
         const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
         
-        // If current image is not in filtered list, add it temporarily for navigation
         if (currentIndex === -1) {
-          const currentImage = images.find((img: any) => img.image_id === mapId);
-          if (currentImage) {
-            filteredImages.push(currentImage);
-          }
-        }
-        
-        const adjustedCurrentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === mapId);
-        
-        if (adjustedCurrentIndex === -1) {
           console.error('Current image not found in filtered list');
           return;
         }
         
         let targetIndex: number;
         if (direction === 'previous') {
-          targetIndex = adjustedCurrentIndex > 0 ? adjustedCurrentIndex - 1 : filteredImages.length - 1;
+          targetIndex = currentIndex > 0 ? currentIndex - 1 : filteredImages.length - 1;
         } else {
-          targetIndex = adjustedCurrentIndex < filteredImages.length - 1 ? adjustedCurrentIndex + 1 : 0;
+          targetIndex = currentIndex < filteredImages.length - 1 ? currentIndex + 1 : 0;
         }
         
         const targetImage = filteredImages[targetIndex];
