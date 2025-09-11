@@ -549,6 +549,7 @@ export default function MapDetailPage() {
 
   // Check navigation availability when filters change
   useEffect(() => {
+    console.log('=== NAVIGATION USEEFFECT TRIGGERED ===');
     console.log('Navigation useEffect triggered:', { 
       map: !!map, 
       mapId, 
@@ -560,6 +561,13 @@ export default function MapDetailPage() {
     if (map && mapId && !loading && !isDeleting) {
       console.log('Calling checkNavigationAvailability with:', mapId);
       checkNavigationAvailability(mapId);
+    } else {
+      console.log('NOT calling checkNavigationAvailability because:', {
+        map: !!map,
+        mapId: !!mapId,
+        loading,
+        isDeleting
+      });
     }
   }, [map, mapId, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, loading, isDeleting, checkNavigationAvailability]);
 
