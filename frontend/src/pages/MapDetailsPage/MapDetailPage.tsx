@@ -549,7 +549,9 @@ export default function MapDetailPage() {
 
   // Check navigation availability when filters change
   useEffect(() => {
+    console.log('Navigation useEffect triggered:', { map: !!map, mapId, loading, isDeleting, uploadTypeFilter });
     if (map && mapId && !loading && !isDeleting) {
+      console.log('Calling checkNavigationAvailability with:', mapId);
       checkNavigationAvailability(mapId);
     }
   }, [map, mapId, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, loading, isDeleting, checkNavigationAvailability]);
