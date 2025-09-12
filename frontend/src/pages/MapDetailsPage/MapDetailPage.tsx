@@ -779,31 +779,20 @@ export default function MapDetailPage() {
   const navigateToMatchingImage = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/images/grouped');
+      // Use server-side filtering like ExplorePage
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (srcFilter) params.append('source', srcFilter);
+      if (catFilter) params.append('event_type', catFilter);
+      if (regionFilter) params.append('region', regionFilter);
+      if (countryFilter) params.append('country', countryFilter);
+      if (imageTypeFilter) params.append('image_type', imageTypeFilter);
+      if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
+      if (showReferenceExamples) params.append('starred_only', 'true');
+      
+      const response = await fetch(`/api/images/grouped?${params.toString()}`);
       if (response.ok) {
-        const images = await response.json();
-        
-        const filteredImages = images.filter((img: any) => {
-          const matchesSearch = !search || 
-            img.title?.toLowerCase().includes(search.toLowerCase()) ||
-            img.generated?.toLowerCase().includes(search.toLowerCase()) ||
-            img.source?.toLowerCase().includes(search.toLowerCase()) ||
-            img.event_type?.toLowerCase().includes(search.toLowerCase());
-          
-          const matchesSource = !srcFilter || img.source === srcFilter;
-          const matchesCategory = !catFilter || img.event_type === catFilter;
-          const matchesRegion = !regionFilter || 
-            img.countries?.some((country: any) => country.r_code === regionFilter);
-          const matchesCountry = !countryFilter || 
-            img.countries?.some((country: any) => country.c_code === countryFilter);
-          const matchesImageType = !imageTypeFilter || img.image_type === imageTypeFilter;
-          const matchesUploadType = !uploadTypeFilter || 
-            (uploadTypeFilter === 'single' && (!img.image_count || img.image_count <= 1) && (!img.all_image_ids || img.all_image_ids.length <= 1)) ||
-            (uploadTypeFilter === 'multiple' && (img.image_count > 1 || (img.all_image_ids && img.all_image_ids.length > 1)));
-          const matchesReferenceExamples = !showReferenceExamples || img.starred === true;
-          
-          return matchesSearch && matchesSource && matchesCategory && matchesRegion && matchesCountry && matchesImageType && matchesUploadType && matchesReferenceExamples;
-        });
+        const filteredImages = await response.json();
         
         if (filteredImages.length > 0) {
           const firstMatchingImage = filteredImages[0];
