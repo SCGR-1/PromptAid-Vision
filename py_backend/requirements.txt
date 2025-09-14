@@ -3,9 +3,10 @@ uvicorn[standard]
 orjson
 sqlalchemy
 alembic
-psycopg2-binary
+psycopg[binary,pool]
 boto3
 python-dotenv
+chardet
 pydantic>=2.7.0
 pydantic-settings>=0.2
 openai

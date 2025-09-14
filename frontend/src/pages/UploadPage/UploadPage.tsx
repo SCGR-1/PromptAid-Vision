@@ -24,8 +24,19 @@ import {
 const SELECTED_MODEL_KEY = 'selectedVlmModel';
 
 export default function UploadPage() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  // Safely get search params with fallback
+  let searchParams: URLSearchParams;
+  let navigate: any;
+  
+  try {
+    [searchParams] = useSearchParams();
+    navigate = useNavigate();
+  } catch (error) {
+    console.warn('Router context not available, using fallback:', error);
+    searchParams = new URLSearchParams();
+    navigate = () => {};
+  }
+  
   const [step, setStep] = useState<1 | '2a' | '2b' | 3>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingContribution, setIsLoadingContribution] = useState(false);
@@ -128,8 +139,19 @@ export default function UploadPage() {
   stepRef.current = step;
   uploadedImageIdRef.current = uploadedImageId;
 
+  // Helper function to convert source label to code
+  const convertSourceToCode = (sourceValue: string): string => {
+    if (!sourceValue || sources.length === 0) return sourceValue;
+    
+    // Find matching source by code or label
+    const sourceObj = sources.find(s => s.s_code === sourceValue || s.label === sourceValue);
+    return sourceObj?.s_code || sourceValue;
+  };
+
   // Event handlers
-  const handleSourceChange = (value: string | undefined) => setSource(value || '');
+  const handleSourceChange = (value: string | undefined) => {
+    setSource(convertSourceToCode(value || ''));
+  };
   const handleEventTypeChange = (value: string | undefined) => setEventType(value || '');
   const handleEpsgChange = (value: string | undefined) => setEpsg(value || '');
   const handleImageTypeChange = (value: string | undefined) => setImageType(value || '');
@@ -208,7 +230,13 @@ export default function UploadPage() {
           rtkFix: false, stdHM: '', stdVM: ''
         };
       }
-      newArray[index] = { ...newArray[index], [field]: value };
+      
+      if (field === 'source') {
+        newArray[index] = { ...newArray[index], [field]: convertSourceToCode(value) };
+      } else {
+        newArray[index] = { ...newArray[index], [field]: value };
+      }
+      
       return newArray;
     });
   };
@@ -520,8 +548,12 @@ export default function UploadPage() {
                
                if (imageMetadata && typeof imageMetadata === 'object') {
                  const imgMeta = imageMetadata as Record<string, unknown>;
+                 // Convert source label to code if needed
+                 const sourceValue = imgMeta.source as string || '';
+                 const sourceCode = convertSourceToCode(sourceValue);
+                 
                  newMetadataArray.push({
-                   source: imgMeta.source as string || '',
+                   source: sourceCode,
                    eventType: imgMeta.type as string || '',
                    epsg: imgMeta.epsg as string || '',
                    countries: Array.isArray(imgMeta.countries) ? imgMeta.countries as string[] : [],
@@ -541,8 +573,12 @@ export default function UploadPage() {
              }
            } else {
              // Fallback to shared metadata if no individual metadata found
+             // Convert source label to code if needed
+             const sourceValue = (metadata as Record<string, unknown>).source as string || '';
+             const sourceCode = convertSourceToCode(sourceValue);
+             
              const sharedMetadata = {
-               source: (metadata as Record<string, unknown>).source as string || '',
+               source: sourceCode,
                eventType: (metadata as Record<string, unknown>).type as string || '',
                epsg: (metadata as Record<string, unknown>).epsg as string || '',
                countries: Array.isArray((metadata as Record<string, unknown>).countries) 
@@ -560,8 +596,12 @@ export default function UploadPage() {
            }
          } else {
            // Single upload: use shared metadata
+           // Convert source label to code if needed
+           const sourceValue = (metadata as Record<string, unknown>).source as string || '';
+           const sourceCode = convertSourceToCode(sourceValue);
+           
            const sharedMetadata = {
-             source: (metadata as Record<string, unknown>).source as string || '',
+             source: sourceCode,
              eventType: (metadata as Record<string, unknown>).type as string || '',
              epsg: (metadata as Record<string, unknown>).epsg as string || '',
              countries: Array.isArray((metadata as Record<string, unknown>).countries) 
@@ -606,7 +646,7 @@ export default function UploadPage() {
        }
      }
 
-      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.metadata;
+      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.parsed;
       if (extractedMetadataForParts) {
         if ((extractedMetadataForParts as Record<string, unknown>).description) {
           setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);

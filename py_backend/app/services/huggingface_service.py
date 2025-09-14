@@ -24,7 +24,7 @@ def _env_token() -> Optional[str]:
 
 def _providers_url_default() -> str:
     # OpenAI-compatible gateway on HF Inference Providers
-    return os.getenv("HF_PROVIDERS_URL", "https://api-inference.huggingface.co/providers/openai")
+    return os.getenv("HF_PROVIDERS_URL", "https://router.huggingface.co/v1/chat/completions")
 
 
 class HuggingFaceService(VLMService):
@@ -140,7 +140,7 @@ class HuggingFaceService(VLMService):
                     ],
                 }
             ],
-            "max_tokens": 512,
+            "max_tokens": 4096,
             "temperature": 0.2,
         }
 
@@ -181,10 +181,16 @@ class HuggingFaceService(VLMService):
 
         caption = (content or "").strip()
 
-        # Strip accidental fenced JSON
+        # Strip accidental fenced JSON and special tokens
         if caption.startswith("```json"):
             caption = re.sub(r"^```json\s*", "", caption)
             caption = re.sub(r"\s*```$", "", caption)
+        
+        # Strip GLM special tokens
+        if caption.startswith("<|begin_of_box|>"):
+            caption = caption[16:]  # Remove <|begin_of_box|>
+        if caption.endswith("<|end_of_box|>"):
+            caption = caption[:-15]  # Remove <|end_of_box|>
 
         metadata = {}
         description = ""
@@ -199,8 +205,18 @@ class HuggingFaceService(VLMService):
             metadata = parsed.get("metadata", {})
             caption_text = f"Description: {description}\n\nAnalysis: {analysis}\n\nRecommended Actions: {recommended_actions}"
         except json.JSONDecodeError:
+            # If JSON parsing fails, treat the response as plain text analysis
             parsed = None
+            description = ""
+            analysis = caption
+            recommended_actions = ""
+            metadata = {}
             caption_text = caption
+        
+        # Fallback: if all structured fields are empty, put everything in analysis
+        if not description and not recommended_actions and not metadata:
+            analysis = caption
+            caption_text = f"Description: \n\nAnalysis: {caption}\n\nRecommended Actions: "
 
         elapsed = time.time() - start_time
 
@@ -212,6 +228,8 @@ class HuggingFaceService(VLMService):
             "raw_response": {
                 "model": self.model_id,
                 "content": content,
+                "metadata": metadata,
+                "extracted_metadata": metadata,
                 "parsed": parsed,
             },
             "description": description,
@@ -251,7 +269,7 @@ class HuggingFaceService(VLMService):
         payload = {
             "model": self.model_id,
             "messages": [{"role": "user", "content": content}],
-            "max_tokens": 800,
+            "max_tokens": 4096,
             "temperature": 0.2,
         }
 
@@ -291,6 +309,12 @@ class HuggingFaceService(VLMService):
         if caption.startswith("```json"):
             caption = re.sub(r"^```json\s*", "", caption)
             caption = re.sub(r"\s*```$", "", caption)
+        
+        # Strip GLM special tokens
+        if caption.startswith("<|begin_of_box|>"):
+            caption = caption[16:]  # Remove <|begin_of_box|>
+        if caption.endswith("<|end_of_box|>"):
+            caption = caption[:-15]  # Remove <|end_of_box|>
 
         metadata = {}
         description = ""
@@ -305,8 +329,18 @@ class HuggingFaceService(VLMService):
             metadata = parsed.get("metadata", {})
             caption_text = f"Description: {description}\n\nAnalysis: {analysis}\n\nRecommended Actions: {recommended_actions}"
         except json.JSONDecodeError:
+            # If JSON parsing fails, treat the response as plain text analysis
             parsed = None
+            description = ""
+            analysis = caption
+            recommended_actions = ""
+            metadata = {}
             caption_text = caption
+        
+        # Fallback: if all structured fields are empty, put everything in analysis
+        if not description and not recommended_actions and not metadata:
+            analysis = caption
+            caption_text = f"Description: \n\nAnalysis: {caption}\n\nRecommended Actions: "
 
         elapsed = time.time() - start_time
 
@@ -318,6 +352,8 @@ class HuggingFaceService(VLMService):
             "raw_response": {
                 "model": self.model_id,
                 "content": content_out,
+                "metadata": metadata,
+                "extracted_metadata": metadata,
                 "parsed": parsed,
                 "image_count": len(image_bytes_list),
             },
@@ -335,7 +371,7 @@ class ProvidersGenericVLMService(HuggingFaceService):
       ProvidersGenericVLMService(None, "Qwen/Qwen2.5-VL-32B-Instruct", "QWEN2_5_VL_32B")
     """
     def __init__(self, api_key: str, model_id: str, public_name: str | None = None):
-        providers_url = "https://api-inference.huggingface.co/providers/openai"
+        providers_url = "https://router.huggingface.co/v1/chat/completions"
         super().__init__(
             api_key=api_key,
             model_id=model_id,

@@ -1431,17 +1431,18 @@ export default function MapDetailPage() {
                             >
                               <div className={styles.captionContainer}>
                                     <div className={styles.captionText}>
-                            {(filteredMap.edited || filteredMap.generated || '').split('\n').map((line, index) => (
-                              <div key={index}>
-                                {line.startsWith('Description:') || line.startsWith('Analysis:') || line.startsWith('Recommended Actions:') ? (
-                                  <h4 className="font-semibold text-gray-800 mt-4 mb-2">{line}</h4>
-                                ) : line.trim() === '' ? (
-                                  <br />
-                                ) : (
-                                  <p className="mb-2">{line}</p>
-                                )}
-                              </div>
-                            ))}
+                            {(() => {
+                              const text = filteredMap.edited || filteredMap.generated || '';
+                              const sections = text.split(/(Description:|Analysis:|Recommended Actions:)/);
+                              return sections.map((section, index) => {
+                                if (section.trim() === '') return null;
+                                if (section === 'Description:' || section === 'Analysis:' || section === 'Recommended Actions:') {
+                                  return <h4 key={index} className="font-semibold text-gray-800 mt-4 mb-2">{section}</h4>;
+                                } else {
+                                  return <p key={index} className="mb-2">{section.trim()}</p>;
+                                }
+                              });
+                            })()}
                                     </div>
                               </div>
                             </Container>
@@ -1454,7 +1455,7 @@ export default function MapDetailPage() {
                             spacing="comfortable"
                           >
                             <div className={styles.captionContainer}>
-                              {filteredMap.generated ? (
+                              {filteredMap.generated || filteredMap.edited ? (
                                 <div className={styles.captionText}>
                                   <p>{filteredMap.edited || filteredMap.generated}</p>
                                 </div>
