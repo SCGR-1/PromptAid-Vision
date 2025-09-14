@@ -1,8 +1,8 @@
 fastapi
 uvicorn[standard]
 orjson
-sqlalchemy
-alembic
+sqlalchemy>=2.0.0
+alembic>=1.12.0
 psycopg[binary,pool]
 boto3
 python-dotenv
