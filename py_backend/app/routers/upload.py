@@ -687,6 +687,14 @@ async def upload_image(
         
         actual_model = result.get("model", model_name)
         
+        # Include fallback information in raw_json if fallback occurred
+        if result.get("fallback_used"):
+            raw.update({
+                "fallback_used": result.get("fallback_used"),
+                "original_model": result.get("original_model"),
+                "fallback_reason": result.get("fallback_reason")
+            })
+        
         final_model_name = actual_model if actual_model != "random" else "STUB_MODEL"
         
         caption = crud.create_caption(
@@ -846,6 +854,14 @@ async def upload_multiple_images(
         
         # Use the actual model that was used by the VLM service
         actual_model = result.get("model", model_name)
+        
+        # Include fallback information in raw_json if fallback occurred
+        if result.get("fallback_used"):
+            raw.update({
+                "fallback_used": result.get("fallback_used"),
+                "original_model": result.get("original_model"),
+                "fallback_reason": result.get("fallback_reason")
+            })
         
         # Update individual image metadata if VLM provided it
         metadata_images = metadata.get("metadata_images", {})

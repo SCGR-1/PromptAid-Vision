@@ -520,12 +520,18 @@ export default function UploadPage() {
      
      const capJson = mapJson;
 
-      const fallbackInfo = (capJson.raw_json as Record<string, unknown>)?.fallback_info;
-      if (fallbackInfo) {
+      // Check for fallback information in the response
+      const rawJson = capJson.raw_json as Record<string, unknown>;
+      const fallbackUsed = rawJson?.fallback_used;
+      const originalModel = rawJson?.original_model as string;
+      const fallbackReason = rawJson?.fallback_reason as string;
+      const currentModel = capJson.model as string;
+      
+      if (fallbackUsed && originalModel && fallbackReason) {
         setFallbackInfo({
-          originalModel: (fallbackInfo as Record<string, unknown>).original_model as string,
-          fallbackModel: (fallbackInfo as Record<string, unknown>).fallback_model as string,
-          reason: (fallbackInfo as Record<string, unknown>).reason as string
+          originalModel: originalModel,
+          fallbackModel: currentModel,
+          reason: fallbackReason
         });
         setShowFallbackNotification(true);
       }
@@ -646,7 +652,8 @@ export default function UploadPage() {
        }
      }
 
-      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.parsed;
+      // Extract the three parts from the metadata
+      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.metadata;
       if (extractedMetadataForParts) {
         if ((extractedMetadataForParts as Record<string, unknown>).description) {
           setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);

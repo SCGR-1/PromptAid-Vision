@@ -180,15 +180,38 @@ interface FallbackNotificationModalProps {
 export function FallbackNotificationModal({ isOpen, fallbackInfo, onClose }: FallbackNotificationModalProps) {
   if (!isOpen || !fallbackInfo) return null;
 
+  // Parse the reason to make it more user-friendly
+  const parseReason = (reason: string): string => {
+    if (reason.includes("quota") || reason.includes("credits")) {
+      return "API quota exceeded - you've used up your monthly free credits";
+    } else if (reason.includes("rate") || reason.includes("429")) {
+      return "Rate limit exceeded - too many requests";
+    } else if (reason.includes("loading") || reason.includes("503")) {
+      return "Model is currently loading or unavailable";
+    } else if (reason.includes("network") || reason.includes("timeout")) {
+      return "Network connection issue";
+    } else if (reason.includes("MODEL_UNAVAILABLE")) {
+      return "Model service is temporarily unavailable";
+    } else {
+      return reason;
+    }
+  };
+
+  const userFriendlyReason = parseReason(fallbackInfo.reason);
+
   return (
     <div className={styles.fullSizeModalOverlay} onClick={onClose}>
       <div className={styles.fullSizeModalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.ratingWarningContent}>
-          <h3 className={styles.ratingWarningTitle}>Model Changed</h3>
+          <h3 className={styles.ratingWarningTitle}>⚠️ Model Changed</h3>
           <p className={styles.ratingWarningText}>
-            {fallbackInfo.originalModel} is currently unavailable. 
-            We've automatically switched to {fallbackInfo.fallbackModel} to complete your request.
+            <strong>{fallbackInfo.originalModel}</strong> is currently unavailable. 
+            We've automatically switched to <strong>{fallbackInfo.fallbackModel}</strong> to complete your request.
           </p>
+          <div className={styles.fallbackReasonBox}>
+            <p className={styles.fallbackReasonTitle}>Reason:</p>
+            <p className={styles.fallbackReasonText}>{userFriendlyReason}</p>
+          </div>
           <div className={styles.ratingWarningButtons}>
             <Button
               name="close-fallback"

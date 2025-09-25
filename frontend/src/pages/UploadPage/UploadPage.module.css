@@ -655,6 +655,30 @@
   margin-top: var(--go-ui-spacing-lg);
 }
 
+/* Fallback reason box styles */
+.fallbackReasonBox {
+  background-color: var(--go-ui-color-yellow-10);
+  border: var(--go-ui-width-separator-thin) solid var(--go-ui-color-yellow-30);
+  border-radius: var(--go-ui-border-radius-md);
+  padding: var(--go-ui-spacing-md);
+  margin: var(--go-ui-spacing-lg) 0;
+  text-align: left;
+}
+
+.fallbackReasonTitle {
+  font-size: var(--go-ui-font-size-sm);
+  font-weight: var(--go-ui-font-weight-semibold);
+  color: var(--go-ui-color-gray-800);
+  margin: 0 0 var(--go-ui-spacing-xs) 0;
+}
+
+.fallbackReasonText {
+  font-size: var(--go-ui-font-size-sm);
+  color: var(--go-ui-color-gray-700);
+  margin: 0;
+  line-height: 1.5;
+}
+
 .preprocessingProgress {
   margin-top: var(--go-ui-spacing-lg);
   text-align: center;
