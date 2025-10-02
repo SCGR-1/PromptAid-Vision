@@ -110,27 +110,39 @@ export default function AdminPage() {
 
   const fetchModels = useCallback(() => {
     fetch('/api/models')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+      })
       .then(modelsData => {
          console.log('Models data received:', modelsData);
-        setAvailableModels(modelsData.models || []);
-        
-        const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
-        if (modelsData.models && modelsData.models.length > 0) {
-          if (persistedModel === 'random') {
-            // Keep random selection
-            setSelectedModel('random');
-          } else if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
-            setSelectedModel(persistedModel);
-          } else {
-            const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || (modelsData.models || [])[0];
-            setSelectedModel(firstAvailableModel.m_code);
-            localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
+        // Ensure modelsData is an object with models array
+        if (modelsData && Array.isArray(modelsData.models)) {
+          setAvailableModels(modelsData.models);
+          
+          const persistedModel = localStorage.getItem(SELECTED_MODEL_KEY);
+          if (modelsData.models.length > 0) {
+            if (persistedModel === 'random') {
+              // Keep random selection
+              setSelectedModel('random');
+            } else if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
+              setSelectedModel(persistedModel);
+            } else {
+              const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || modelsData.models[0];
+              setSelectedModel(firstAvailableModel.m_code);
+              localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
+            }
           }
+        } else {
+          console.error('Expected models object but got:', modelsData);
+          setAvailableModels([]);
         }
       })
-      .catch(() => {
-        // Handle error silently
+      .catch((error) => {
+        console.error('Error fetching models:', error);
+        setAvailableModels([]);
       });
     
     // Fetch current fallback model
@@ -139,7 +151,12 @@ export default function AdminPage() {
         'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       }
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+      })
       .then(fallbackData => {
         console.log('Fallback model data received:', fallbackData);
         if (fallbackData.fallback_model) {
@@ -148,35 +165,59 @@ export default function AdminPage() {
           setSelectedFallbackModel('');
         }
       })
-      .catch(() => {
-        // Handle error silently
+      .catch((error) => {
+        console.error('Error fetching fallback model:', error);
+        setSelectedFallbackModel('');
       });
   }, []);
 
   const fetchPrompts = useCallback(() => {
     console.log('=== fetchPrompts called ===');
     fetch('/api/prompts')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+      })
       .then(promptsData => {
         console.log('Prompts data received:', promptsData);
-        setAvailablePrompts(promptsData || []);
+        // Ensure promptsData is an array
+        if (Array.isArray(promptsData)) {
+          setAvailablePrompts(promptsData);
+        } else {
+          console.error('Expected array but got:', promptsData);
+          setAvailablePrompts([]);
+        }
         console.log('State update triggered with:', promptsData || []);
       })
       .catch((error) => {
         console.error('Error fetching prompts:', error);
-        // Handle error silently
+        setAvailablePrompts([]);
       });
   }, []);
 
   const fetchImageTypes = useCallback(() => {
     fetch('/api/image-types')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+      })
       .then(imageTypesData => {
         console.log('Image types data received:', imageTypesData);
-        setImageTypes(imageTypesData || []);
+        // Ensure imageTypesData is an array
+        if (Array.isArray(imageTypesData)) {
+          setImageTypes(imageTypesData);
+        } else {
+          console.error('Expected array but got:', imageTypesData);
+          setImageTypes([]);
+        }
       })
-      .catch(() => {
-        // Handle error silently
+      .catch((error) => {
+        console.error('Error fetching image types:', error);
+        setImageTypes([]);
       });
   }, []);
 
@@ -187,14 +228,25 @@ export default function AdminPage() {
         'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       }
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+      })
       .then(schemasData => {
         console.log('Schemas data received:', schemasData);
-        setAvailableSchemas(schemasData || []);
+        // Ensure schemasData is an array
+        if (Array.isArray(schemasData)) {
+          setAvailableSchemas(schemasData);
+        } else {
+          console.error('Expected array but got:', schemasData);
+          setAvailableSchemas([]);
+        }
       })
       .catch((error) => {
         console.error('Error fetching schemas:', error);
-        // Handle error silently
+        setAvailableSchemas([]);
       });
   }, []);
 
