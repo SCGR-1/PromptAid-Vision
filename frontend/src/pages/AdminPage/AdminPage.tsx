@@ -735,7 +735,7 @@ Model "${newModelData.label}" added successfully!
                    onChange={(newValue) => handleModelChange(newValue || '')}
                    options={[
                      { value: 'random', label: 'Random' },
-                     ...availableModels
+                     ...(availableModels || [])
                     .filter(model => model.is_available)
                        .map(model => ({
                          value: model.m_code,
@@ -753,7 +753,7 @@ Model "${newModelData.label}" added successfully!
                    onChange={(newValue) => handleFallbackModelChange(newValue || '')}
                    options={[
                      { value: '', label: 'No fallback (use STUB_MODEL)' },
-                     ...availableModels
+                     ...(availableModels || [])
                     .filter(model => model.is_available)
                        .map(model => ({
                          value: model.m_code,
@@ -794,7 +794,7 @@ Model "${newModelData.label}" added successfully!
                     </tr>
                   </thead>
                   <tbody>
-                    {availableModels.map(model => (
+                    {(availableModels || []).map(model => (
                       <tr key={model.m_code}>
                         <td className={styles.modelCode}>{model.m_code}</td>
                         <td>{model.label}</td>
@@ -1043,7 +1043,7 @@ Model "${newModelData.label}" added successfully!
                              </tr>
                            </thead>
                            <tbody>
-                             {availablePrompts
+                             {(availablePrompts || [])
                                .filter(prompt => prompt.image_type === 'crisis_map')
                                .sort((a, b) => a.p_code.localeCompare(b.p_code)) // Stable sort by code
                                .map(prompt => (
@@ -1116,7 +1116,7 @@ Model "${newModelData.label}" added successfully!
                              </tr>
                            </thead>
                            <tbody>
-                             {availablePrompts
+                             {(availablePrompts || [])
                                .filter(prompt => prompt.image_type === 'drone_image')
                                .sort((a, b) => a.p_code.localeCompare(b.p_code)) // Stable sort by code
                                .map(prompt => (
@@ -1196,7 +1196,7 @@ Model "${newModelData.label}" added successfully!
                            </tr>
                          </thead>
                          <tbody>
-                           {availableSchemas
+                           {(availableSchemas || [])
                              .sort((a, b) => a.schema_id.localeCompare(b.schema_id))
                              .map(schema => (
                              <tr key={schema.schema_id}>
@@ -1389,7 +1389,7 @@ Model "${newModelData.label}" added successfully!
                     name="prompt-image-type"
                     value={newPromptData.image_type}
                     onChange={(value) => setNewPromptData(prev => ({ ...prev, image_type: value || 'crisis_map' }))}
-                    options={imageTypes}
+                    options={imageTypes || []}
                     keySelector={(o) => o.image_type}
                     labelSelector={(o) => o.label}
                   />
