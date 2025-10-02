@@ -123,7 +123,7 @@ export default function AdminPage() {
           } else if (persistedModel && modelsData.models.find((m: { m_code: string; is_available: boolean }) => m.m_code === persistedModel && m.is_available)) {
             setSelectedModel(persistedModel);
           } else {
-            const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || modelsData.models[0];
+            const firstAvailableModel = modelsData.models.find((m: { is_available: boolean }) => m.is_available) || (modelsData.models || [])[0];
             setSelectedModel(firstAvailableModel.m_code);
             localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
           }
@@ -394,7 +394,7 @@ export default function AdminPage() {
 
       if (response.ok) {
         setAvailableModels(prev => 
-          prev.map(model => 
+          (prev || []).map(model => 
             model.m_code === modelCode 
               ? { ...model, is_available: !currentStatus }
               : model
@@ -1256,7 +1256,7 @@ Model "${newModelData.label}" added successfully!
                      const response = await fetch('/api/models');
                      if (response.ok) {
                        const data = await response.json();
-                       const results = `✅ API connection successful!\n\nFound ${data.models?.length || 0} models in database.\n\nAvailable models:\n${data.models?.filter((m: any) => m.is_available).map((m: any) => `- ${m.label} (${m.m_code})`).join('\n') || 'None'}`;
+                       const results = `✅ API connection successful!\n\nFound ${data.models?.length || 0} models in database.\n\nAvailable models:\n${(data.models || []).filter((m: any) => m.is_available).map((m: any) => `- ${m.label} (${m.m_code})`).join('\n') || 'None'}`;
                        setTestResults(results);
                      } else {
                        const results = `❌ API connection failed: HTTP ${response.status}`;
