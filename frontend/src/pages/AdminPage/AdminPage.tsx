@@ -45,7 +45,7 @@ interface SchemaData {
 }
 
 export default function AdminPage() {
-  const { isAuthenticated, isLoading, login, logout } = useAdmin();
+  const { isAuthenticated, isLoading, login, logout, verifyToken } = useAdmin();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -258,6 +258,13 @@ export default function AdminPage() {
       fetchSchemas();
     }
   }, [isAuthenticated, fetchModels, fetchPrompts, fetchImageTypes, fetchSchemas]);
+
+  // Check token validity on mount to handle expired tokens
+  useEffect(() => {
+    if (isAuthenticated) {
+      verifyToken();
+    }
+  }, [isAuthenticated, verifyToken]);
 
 
 
