@@ -95,7 +95,7 @@ Return ONLY the JSON object (no markdown) in this envelope:
     # Update default_caption@1.0.0 schema
     op.execute(sa.text("""
         UPDATE json_schemas 
-        SET schema = '{"type":"object","properties":{"description":{"type":"string"},"analysis":{"type":"string"},"recommended_actions":{"type":"string"},"metadata":{"type":"object","properties":{"title":{"type":"string"},"source":{"type":"string"},"type":{"type":"string"},"countries":{"type":"array","items":{"type":"string"}},"epsg":{"type":"string"}}}},"required":["description","analysis","recommended_actions","metadata"]}'
+        SET schema = '{"type":"object","properties":{"description":{"type":"string"},"analysis":{"type":"string"},"recommended_actions":{"type":"string"},"metadata":{"type":"object","properties":{"title":{"type":"string"},"source":{"type":"string"},"type":{"type":"string"},"countries":{"type":"array","items":{"type":"string"}},"epsg":{"type":"string"}},"required":["title","source","type","countries","epsg"]}},"required":["description","analysis","recommended_actions","metadata"]}'
         WHERE schema_id = 'default_caption@1.0.0'
     """))
 
