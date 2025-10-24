@@ -1,4 +1,4 @@
-import { PageContainer, Container, Button, Spinner, SegmentInput, TextInput, SelectInput, MultiSelectInput } from '@ifrc-go/ui';
+import { PageContainer, Container, Button, Spinner, SegmentInput } from '@ifrc-go/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronLeftLineIcon, ChevronRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';
@@ -56,37 +56,7 @@ export default function MapDetailPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAdmin();
   
-  // Debug: Log the current URL and mapId for production debugging
-  console.log('MapDetailsPage: Current URL:', window.location.href);
-  console.log('MapDetailsPage: Hash:', window.location.hash);
-  console.log('MapDetailsPage: mapId from useParams:', mapId);
-  console.log('MapDetailsPage: mapId type:', typeof mapId);
-  console.log('MapDetailsPage: mapId length:', mapId?.length);
-  console.log('MapDetailsPage: mapId value:', JSON.stringify(mapId));
-  
-  // Early validation - if mapId is invalid, show error immediately
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!mapId || mapId === 'undefined' || mapId === 'null' || mapId.trim() === '' || !uuidRegex.test(mapId)) {
-    return (
-      <PageContainer>
-        <div className="flex flex-col items-center gap-4 text-center py-12">
-          <div className="text-4xl">⚠️</div>
-          <div className="text-xl font-semibold">Invalid Map ID</div>
-          <div>The map ID provided is not valid.</div>
-          <div className="text-sm text-gray-500 mt-2">
-            Debug Info: mapId = "{mapId}" (type: {typeof mapId})
-          </div>
-          <Button
-            name="back-to-explore"
-            variant="secondary"
-            onClick={() => navigate('/explore')}
-          >
-            Return to Explore
-          </Button>
-        </div>
-      </PageContainer>
-    );
-  }
+  // All React Hooks must be called before any early returns
   const [view, setView] = useState<'explore' | 'mapDetails'>('mapDetails');
   const [map, setMap] = useState<MapOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +111,92 @@ export default function MapDetailPage() {
     { key: 'explore' as const, label: 'List' },
     { key: 'mapDetails' as const, label: 'Carousel' }
   ];
+
+  // Early validation will be moved after all hooks
+
+  const checkNavigationAvailability = useCallback(async (currentId: string) => {
+    // Validate the ID before making the request
+    if (!currentId || currentId === 'undefined' || currentId === 'null' || currentId.trim() === '') {
+      return;
+    }
+
+    try {
+
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (srcFilter) params.append('source', srcFilter);
+      if (catFilter) params.append('event_type', catFilter);
+      if (regionFilter) params.append('region', regionFilter);
+      if (countryFilter) params.append('country', countryFilter);
+      if (imageTypeFilter) params.append('image_type', imageTypeFilter);
+      if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
+      if (showReferenceExamples) params.append('starred_only', 'true');
+      
+      const response = await fetch(`/api/images/grouped?${params.toString()}`);
+      if (response.ok) {
+        const filteredImages = await response.json();
+        
+        console.log('Server response for upload_type=multiple:', {
+          url: `/api/images/grouped?${params.toString()}`,
+          count: filteredImages.length,
+          images: filteredImages.map((img: any) => ({
+            image_id: img.image_id,
+            image_count: img.image_count,
+            all_image_ids: img.all_image_ids,
+            all_image_ids_length: img.all_image_ids?.length
+          }))
+        });
+        
+        const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
+        
+        // Debug logging
+        console.log('Navigation availability check (server-side):', {
+          filteredImagesCount: filteredImages.length,
+          currentIndex,
+          currentId,
+          uploadTypeFilter,
+          hasPrevious: filteredImages.length > 1 && currentIndex > 0,
+          hasNext: filteredImages.length > 1 && currentIndex < filteredImages.length - 1,
+          filteredImages: filteredImages.map((img: any) => ({
+            image_id: img.image_id,
+            image_count: img.image_count,
+            all_image_ids: img.all_image_ids,
+            image_type: img.image_type
+          }))
+        });
+        
+        setHasPrevious(filteredImages.length > 1 && currentIndex > 0);
+        setHasNext(filteredImages.length > 1 && currentIndex < filteredImages.length - 1);
+      }
+    } catch (error) {
+      console.error('Failed to check navigation availability:', error);
+    }
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+
+  const fetchAllImages = useCallback(async (imageIds: string[]) => {
+    console.log('fetchAllImages called with imageIds:', imageIds);
+    setIsLoadingImages(true);
+    
+    try {
+      const imagePromises = imageIds.map(async (imageId) => {
+        const response = await fetch(`/api/images/${imageId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image ${imageId}`);
+        }
+        return response.json();
+      });
+      
+      const images = await Promise.all(imagePromises);
+      setAllImages(images);
+      setCurrentImageIndex(0);
+      console.log('fetchAllImages: Loaded', images.length, 'images');
+    } catch (err: unknown) {
+      console.error('fetchAllImages error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load all images');
+    } finally {
+      setIsLoadingImages(false);
+    }
+  }, []);
 
   const fetchMapData = useCallback(async (id: string) => {
     console.log('fetchMapData called with id:', id);
@@ -216,31 +272,6 @@ export default function MapDetailPage() {
       setIsNavigating(false);
     }
   }, [checkNavigationAvailability, fetchAllImages]);
-
-  const fetchAllImages = useCallback(async (imageIds: string[]) => {
-    console.log('fetchAllImages called with imageIds:', imageIds);
-    setIsLoadingImages(true);
-    
-    try {
-      const imagePromises = imageIds.map(async (imageId) => {
-        const response = await fetch(`/api/images/${imageId}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch image ${imageId}`);
-        }
-        return response.json();
-      });
-      
-      const images = await Promise.all(imagePromises);
-      setAllImages(images);
-      setCurrentImageIndex(0);
-      console.log('fetchAllImages: Loaded', images.length, 'images');
-    } catch (err: unknown) {
-      console.error('fetchAllImages error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load all images');
-    } finally {
-      setIsLoadingImages(false);
-    }
-  }, []);
 
   // Carousel navigation functions
   const goToPrevious = useCallback(() => {
@@ -430,65 +461,6 @@ export default function MapDetailPage() {
         .catch(console.error);
     }
   }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples, mapId, navigate, loading, isDeleting]);
-
-  const checkNavigationAvailability = useCallback(async (currentId: string) => {
-    // Validate the ID before making the request
-    if (!currentId || currentId === 'undefined' || currentId === 'null' || currentId.trim() === '') {
-      return;
-    }
-
-    try {
-
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (srcFilter) params.append('source', srcFilter);
-      if (catFilter) params.append('event_type', catFilter);
-      if (regionFilter) params.append('region', regionFilter);
-      if (countryFilter) params.append('country', countryFilter);
-      if (imageTypeFilter) params.append('image_type', imageTypeFilter);
-      if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
-      if (showReferenceExamples) params.append('starred_only', 'true');
-      
-      const response = await fetch(`/api/images/grouped?${params.toString()}`);
-      if (response.ok) {
-        const filteredImages = await response.json();
-        
-        console.log('Server response for upload_type=multiple:', {
-          url: `/api/images/grouped?${params.toString()}`,
-          count: filteredImages.length,
-          images: filteredImages.map((img: any) => ({
-            image_id: img.image_id,
-            image_count: img.image_count,
-            all_image_ids: img.all_image_ids,
-            all_image_ids_length: img.all_image_ids?.length
-          }))
-        });
-        
-        const currentIndex = filteredImages.findIndex((img: { image_id: string }) => img.image_id === currentId);
-        
-        // Debug logging
-        console.log('Navigation availability check (server-side):', {
-          filteredImagesCount: filteredImages.length,
-          currentIndex,
-          currentId,
-          uploadTypeFilter,
-          hasPrevious: filteredImages.length > 1 && currentIndex > 0,
-          hasNext: filteredImages.length > 1 && currentIndex < filteredImages.length - 1,
-          filteredImages: filteredImages.map((img: any) => ({
-            image_id: img.image_id,
-            image_count: img.image_count,
-            all_image_ids: img.all_image_ids,
-            image_type: img.image_type
-          }))
-        });
-        
-        setHasPrevious(filteredImages.length > 1 && currentIndex > 0);
-        setHasNext(filteredImages.length > 1 && currentIndex < filteredImages.length - 1);
-      }
-    } catch (error) {
-      console.error('Failed to check navigation availability:', error);
-    }
-  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
 
   const navigateToItem = async (direction: 'previous' | 'next') => {
     if (isNavigating) return;
@@ -735,6 +707,42 @@ export default function MapDetailPage() {
       setIsDeleting(false);
     }
   };
+
+  const navigateToMatchingImage = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Use server-side filtering like ExplorePage
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (srcFilter) params.append('source', srcFilter);
+      if (catFilter) params.append('event_type', catFilter);
+      if (regionFilter) params.append('region', regionFilter);
+      if (countryFilter) params.append('country', countryFilter);
+      if (imageTypeFilter) params.append('image_type', imageTypeFilter);
+      if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
+      if (showReferenceExamples) params.append('starred_only', 'true');
+      
+      const response = await fetch(`/api/images/grouped?${params.toString()}`);
+      if (response.ok) {
+        const filteredImages = await response.json();
+        
+        if (filteredImages.length > 0) {
+          const firstMatchingImage = filteredImages[0];
+          if (firstMatchingImage && firstMatchingImage.image_id) {
+            navigate(`/map/${firstMatchingImage.image_id}`);
+          }
+        } else {
+          // No matching images, go back to explore
+          navigate('/explore');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to navigate to matching image:', error);
+      navigate('/explore');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, navigate]);
   
   const filteredMap = useMemo(() => {
     if (!map) return null;
@@ -775,42 +783,6 @@ export default function MapDetailPage() {
     
     return matches ? map : null;
   }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, navigateToMatchingImage]);
-
-  const navigateToMatchingImage = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Use server-side filtering like ExplorePage
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (srcFilter) params.append('source', srcFilter);
-      if (catFilter) params.append('event_type', catFilter);
-      if (regionFilter) params.append('region', regionFilter);
-      if (countryFilter) params.append('country', countryFilter);
-      if (imageTypeFilter) params.append('image_type', imageTypeFilter);
-      if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
-      if (showReferenceExamples) params.append('starred_only', 'true');
-      
-      const response = await fetch(`/api/images/grouped?${params.toString()}`);
-      if (response.ok) {
-        const filteredImages = await response.json();
-        
-        if (filteredImages.length > 0) {
-          const firstMatchingImage = filteredImages[0];
-          if (firstMatchingImage && firstMatchingImage.image_id) {
-            navigate(`/map/${firstMatchingImage.image_id}`);
-          }
-        } else {
-          // No matching images, go back to explore
-          navigate('/explore');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to navigate to matching image:', error);
-      navigate('/explore');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, navigate]);
 
   const handleContribute = () => {
     if (!map) return;
@@ -1121,6 +1093,30 @@ export default function MapDetailPage() {
       setIsExporting(false);
     }
   };
+
+  // Early validation - if mapId is invalid, show error immediately
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!mapId || mapId === 'undefined' || mapId === 'null' || mapId.trim() === '' || !uuidRegex.test(mapId)) {
+    return (
+      <PageContainer>
+        <div className="flex flex-col items-center gap-4 text-center py-12">
+          <div className="text-4xl">⚠️</div>
+          <div className="text-xl font-semibold">Invalid Map ID</div>
+          <div>The map ID provided is not valid.</div>
+          <div className="text-sm text-gray-500 mt-2">
+            Debug Info: mapId = "{mapId}" (type: {typeof mapId})
+          </div>
+          <Button
+            name="back-to-explore"
+            variant="secondary"
+            onClick={() => navigate('/explore')}
+          >
+            Return to Explore
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
 
   if (loading) {
     return (
