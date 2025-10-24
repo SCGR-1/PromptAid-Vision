@@ -133,7 +133,7 @@ Return ONLY the JSON object (no markdown) in this envelope:
 
     op.execute(sa.text("""
         UPDATE json_schemas 
-        SET schema = :schema::jsonb
+        SET schema = CAST(:schema AS jsonb)
         WHERE schema_id = 'drone_caption@1.0.0'
     """).bindparams(schema=json.dumps(drone_schema, separators=(",", ":"))))
 
@@ -245,6 +245,6 @@ Return ONLY the JSON object (no markdown) in this envelope:
 
     op.execute(sa.text("""
         UPDATE json_schemas 
-        SET schema = :schema::jsonb
+        SET schema = CAST(:schema AS jsonb)
         WHERE schema_id = 'drone_caption@1.0.0'
     """).bindparams(schema=json.dumps(drone_schema, separators=(",", ":"))))
