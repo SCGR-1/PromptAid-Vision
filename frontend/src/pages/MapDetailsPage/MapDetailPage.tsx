@@ -215,7 +215,7 @@ export default function MapDetailPage() {
       setLoading(false);
       setIsNavigating(false);
     }
-  }, []);
+  }, [checkNavigationAvailability, fetchAllImages]);
 
   const fetchAllImages = useCallback(async (imageIds: string[]) => {
     console.log('fetchAllImages called with imageIds:', imageIds);
@@ -774,7 +774,7 @@ export default function MapDetailPage() {
     }
     
     return matches ? map : null;
-  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+  }, [map, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, navigateToMatchingImage]);
 
   const navigateToMatchingImage = useCallback(async () => {
     setLoading(true);

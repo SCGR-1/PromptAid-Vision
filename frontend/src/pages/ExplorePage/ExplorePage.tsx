@@ -1,4 +1,4 @@
-import { useState, useEffect} from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PageContainer, Container, SegmentInput, Spinner, Button } from '@ifrc-go/ui';
 import { DeleteBinLineIcon } from '@ifrc-go/icons';
@@ -84,7 +84,7 @@ export default function ExplorePage() {
     { key: 'mapDetails' as const, label: 'Carousel' }
   ];
 
-  const fetchCaptions = () => {
+  const fetchCaptions = useCallback(() => {
     setIsLoadingContent(true);
     
     // Build query parameters for server-side filtering and pagination
@@ -133,9 +133,9 @@ export default function ExplorePage() {
       .finally(() => {
         setIsLoadingContent(false);
       });
-  };
+  }, [currentPage, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, itemsPerPage]);
 
-  const fetchTotalCount = () => {
+  const fetchTotalCount = useCallback(() => {
     // Build query parameters for count endpoint
     const params = new URLSearchParams();
     
@@ -166,20 +166,20 @@ export default function ExplorePage() {
         setTotalItems(0);
         setTotalPages(0);
       });
-  };
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, itemsPerPage]);
 
   // Fetch data when component mounts or filters change
   useEffect(() => {
     fetchCaptions();
     fetchTotalCount();
-  }, [currentPage, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+  }, [fetchCaptions, fetchTotalCount]);
 
   // Reset to first page when filters change (but not when currentPage changes)
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+  }, [currentPage]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -192,7 +192,7 @@ export default function ExplorePage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [fetchCaptions]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -201,9 +201,9 @@ export default function ExplorePage() {
     if (exportParam === 'true') {
       setShowExportModal(true);
       if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
-
+        // Export with filters
       } else {
-
+        // Export without filters
       }
       // Clean up the URL
       navigate('/explore', { replace: true });

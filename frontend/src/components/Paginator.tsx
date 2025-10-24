@@ -15,13 +15,9 @@ interface PaginatorProps {
 export default function Paginator({
   currentPage,
   totalPages,
-  totalItems,
-  itemsPerPage,
   onPageChange,
   className = ''
 }: PaginatorProps) {
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
   // Don't render if only one page
   if (totalPages <= 1) {
@@ -41,7 +37,7 @@ export default function Paginator({
     } else {
       // Show smart range of pages
       let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, start + maxVisiblePages - 1);
+      const end = Math.min(totalPages, start + maxVisiblePages - 1);
       
       // Adjust start if we're near the end
       if (end === totalPages) {

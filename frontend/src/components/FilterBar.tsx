@@ -31,7 +31,6 @@ export default function FilterBar({
     countryFilter, setCountryFilter,
     imageTypeFilter, setImageTypeFilter,
     uploadTypeFilter, setUploadTypeFilter,
-    showReferenceExamples, setShowReferenceExamples,
     clearAllFilters
   } = useFilterContext();
 

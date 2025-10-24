@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { DragEvent } from 'react';
 import { Button, Container, SegmentInput, IconButton } from '@ifrc-go/ui';
 import { UploadCloudLineIcon, ArrowRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';

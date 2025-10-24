@@ -10,14 +10,23 @@ class GPT4VService(VLMService):
     
     def __init__(self, api_key: str):
         super().__init__("GPT4V", ModelType.GPT4V)
+        print(f"[DEBUG] GPT4V Service - Initializing with API key: {api_key[:10]}...{api_key[-4:] if api_key else 'None'}")
         self.client = openai.OpenAI(api_key=api_key)
         self.model_name = "GPT-4O"
+        print(f"[DEBUG] GPT4V Service - Initialized successfully")
     
     async def generate_caption(self, image_bytes: bytes, prompt: str, metadata_instructions: str = "") -> Dict[str, Any]:
         """Generate caption using GPT-4 Vision"""
         try:
+            # Debug logging
+            api_key_preview = self.client.api_key[:10] + "..." + self.client.api_key[-4:] if self.client.api_key else "None"
+            print(f"[DEBUG] GPT4V Service - API Key preview: {api_key_preview}")
+            print(f"[DEBUG] GPT4V Service - Image size: {len(image_bytes)} bytes")
+            print(f"[DEBUG] GPT4V Service - Prompt length: {len(prompt)} chars")
+            
             image_base64 = base64.b64encode(image_bytes).decode('utf-8')
             
+            print(f"[DEBUG] GPT4V Service - Making API call to OpenAI...")
             response = await asyncio.to_thread(
                 self.client.chat.completions.create,
                 model="gpt-4o",
@@ -37,6 +46,7 @@ class GPT4VService(VLMService):
                 ],
                 max_tokens=800
             )
+            print(f"[DEBUG] GPT4V Service - API call successful!")
             
             content = response.choices[0].message.content
             
@@ -91,6 +101,11 @@ class GPT4VService(VLMService):
             }
             
         except Exception as e:
+            print(f"[DEBUG] GPT4V Service - API call failed: {str(e)}")
+            print(f"[DEBUG] GPT4V Service - Error type: {type(e).__name__}")
+            if hasattr(e, 'response'):
+                print(f"[DEBUG] GPT4V Service - Response status: {getattr(e.response, 'status_code', 'Unknown')}")
+                print(f"[DEBUG] GPT4V Service - Response body: {getattr(e.response, 'text', 'Unknown')}")
             raise Exception(f"GPT-4 Vision API error: {str(e)}")
     
     async def generate_multi_image_caption(self, image_bytes_list: List[bytes], prompt: str, metadata_instructions: str = "") -> Dict[str, Any]:
@@ -175,4 +190,9 @@ class GPT4VService(VLMService):
             }
             
         except Exception as e:
+            print(f"[DEBUG] GPT4V Service - API call failed: {str(e)}")
+            print(f"[DEBUG] GPT4V Service - Error type: {type(e).__name__}")
+            if hasattr(e, 'response'):
+                print(f"[DEBUG] GPT4V Service - Response status: {getattr(e.response, 'status_code', 'Unknown')}")
+                print(f"[DEBUG] GPT4V Service - Response body: {getattr(e.response, 'text', 'Unknown')}")
             raise Exception(f"GPT-4 Vision API error: {str(e)}") 

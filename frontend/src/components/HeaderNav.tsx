@@ -7,7 +7,6 @@ import {
   QuestionLineIcon,
   GoMainIcon,
   SettingsIcon,
-  ChevronDownLineIcon,
   MenuLineIcon,
 } from "@ifrc-go/icons";
 import { useState, useEffect, useRef } from "react";

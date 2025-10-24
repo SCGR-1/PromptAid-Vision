@@ -624,7 +624,7 @@ export default function AnalyticsPage() {
       'Max Edit Time',
       (item) => formatEditTime(item.maxEditTime),
     ),
-  ], []);
+  ], [formatEditTime]);
 
     const percentageModifiedColumns = useMemo(() => [
     createStringColumn<PercentageModifiedData, number>(

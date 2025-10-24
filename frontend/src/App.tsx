@@ -27,7 +27,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Error caught by boundary:', error, errorInfo);
   }
 
@@ -49,7 +49,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 }
 
 // Prefetch function for better performance
-const prefetchPage = (importFn: () => Promise<any>) => {
+const prefetchPage = (importFn: () => Promise<{ default: React.ComponentType }>) => {
   // Start prefetching immediately
   const prefetchPromise = importFn();
   

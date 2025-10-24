@@ -59,7 +59,7 @@ interface MetadataFormSectionProps {
   onStdHMChange: (value: string | undefined) => void;
   onStdVMChange: (value: string | undefined) => void;
   onImageTypeChange: (value: string | undefined) => void;
-  updateMetadataForImage: (index: number, field: string, value: any) => void;
+  updateMetadataForImage: (index: number, field: string, value: string | string[] | boolean | undefined) => void;
 }
 
 export default function MetadataFormSection({
