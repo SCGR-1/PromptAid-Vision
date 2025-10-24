@@ -272,7 +272,6 @@ export function PreprocessingNotificationModal({ isOpen, preprocessingInfo, onCl
 
 interface PreprocessingModalProps {
   isOpen: boolean;
-  preprocessingFile: File | null;
   isPreprocessing: boolean;
   preprocessingProgress: string;
   onConfirm: () => void;
@@ -281,7 +280,6 @@ interface PreprocessingModalProps {
 
 export function PreprocessingModal({ 
   isOpen, 
-  preprocessingFile, 
   isPreprocessing, 
   preprocessingProgress, 
   onConfirm, 

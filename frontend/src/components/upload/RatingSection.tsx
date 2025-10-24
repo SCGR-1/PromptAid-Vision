@@ -18,7 +18,6 @@ export default function RatingSection({
   scores,
   onScoreChange,
   onConfirmRatings,
-  onEditRatings,
 }: RatingSectionProps) {
   // Don't render anything if ratings are confirmed
   if (isPerformanceConfirmed) {

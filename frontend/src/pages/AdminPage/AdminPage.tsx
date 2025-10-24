@@ -41,7 +41,7 @@ interface SchemaData {
   title: string;
   version: string;
   created_at?: string;
-  schema: any;
+  schema: Record<string, unknown>;
 }
 
 export default function AdminPage() {
@@ -463,7 +463,7 @@ export default function AdminPage() {
         const errorData = await response.json();
         alert(`Failed to toggle model availability: ${errorData.error || 'Unknown error'}`);
       }
-    } catch (_error) {
+    } catch {
       alert('Error toggling model availability');
     }
   };
@@ -499,7 +499,7 @@ export default function AdminPage() {
         const errorData = await response.json();
         alert(`Failed to set fallback model: ${errorData.detail || 'Unknown error'}`);
       }
-    } catch (error) {
+    } catch {
       alert('Error setting fallback model');
     }
   };
@@ -548,7 +548,7 @@ Model "${newModelData.label}" added successfully!
         const errorData = await response.json();
         alert(`Failed to add model: ${errorData.detail || 'Unknown error'}`);
       }
-    } catch (error) {
+    } catch {
       alert('Error adding model');
     }
   };
@@ -1315,7 +1315,7 @@ Model "${newModelData.label}" added successfully!
                      const response = await fetch('/api/models');
                      if (response.ok) {
                        const data = await response.json();
-                       const results = `✅ API connection successful!\n\nFound ${data.models?.length || 0} models in database.\n\nAvailable models:\n${(data.models || []).filter((m: any) => m.is_available).map((m: any) => `- ${m.label} (${m.m_code})`).join('\n') || 'None'}`;
+                       const results = `✅ API connection successful!\n\nFound ${data.models?.length || 0} models in database.\n\nAvailable models:\n${(data.models || []).filter((m: Record<string, unknown>) => m.is_available).map((m: Record<string, unknown>) => `- ${m.label} (${m.m_code})`).join('\n') || 'None'}`;
                        setTestResults(results);
                      } else {
                        const results = `❌ API connection failed: HTTP ${response.status}`;
@@ -1614,7 +1614,7 @@ Model "${newModelData.label}" added successfully!
                       try {
                         const parsedSchema = JSON.parse(e.target.value);
                         setNewSchemaData(prev => ({ ...prev, schema: parsedSchema }));
-                      } catch (error) {
+                      } catch {
                         // Invalid JSON, don't update
                       }
                     }}
