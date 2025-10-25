@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, Form, Depends, HTTPException, Response
 from pydantic import BaseModel
 import io
+import logging
 from sqlalchemy.orm import Session
 from .. import crud, schemas, storage, database
 from ..config import settings
@@ -13,6 +14,7 @@ import base64
 import datetime
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 class CopyImageRequest(BaseModel):
     source_image_id: str
@@ -49,7 +51,7 @@ def convert_image_to_dict(img, image_url):
         try:
             countries_list = [{"c_code": c.c_code, "label": c.label, "r_code": c.r_code} for c in img.countries]
         except Exception as e:
-            print(f"Warning: Error processing countries for image {img.image_id}: {e}")
+            logger.warning(f"Error processing countries for image {img.image_id}: {e}")
             countries_list = []
     
     captions_list = []
@@ -74,7 +76,7 @@ def convert_image_to_dict(img, image_url):
                 } for c in img.captions
             ]
         except Exception as e:
-            print(f"Warning: Error processing captions for image {img.image_id}: {e}")
+            logger.warning(f"Error processing captions for image {img.image_id}: {e}")
             captions_list = []
     
     # Get starred status and other caption fields from first caption for backward compatibility
@@ -116,13 +118,13 @@ def convert_image_to_dict(img, image_url):
         try:
             thumbnail_url = storage.get_object_url(img.thumbnail_key)
         except Exception as e:
-            print(f"Warning: Error generating thumbnail URL for image {img.image_id}: {e}")
+            logger.warning(f"Error generating thumbnail URL for image {img.image_id}: {e}")
     
     if hasattr(img, 'detail_key') and img.detail_key:
         try:
             detail_url = storage.get_object_url(img.detail_key)
         except Exception as e:
-            print(f"Warning: Error generating detail URL for image {img.image_id}: {e}")
+            logger.warning(f"Error generating detail URL for image {img.image_id}: {e}")
     
     img_dict = {
         "image_id": img.image_id,
@@ -585,7 +587,7 @@ async def upload_image(
         # Log preprocessing info
         preprocessing_info = None
         if processed_filename != file.filename:
-            print(f"Image preprocessed: {file.filename} -> {processed_filename} ({mime_type})")
+            logger.info(f"Image preprocessed: {file.filename} -> {processed_filename} ({mime_type})")
             preprocessing_info = {
                 "original_filename": file.filename,
                 "processed_filename": processed_filename,
@@ -603,7 +605,7 @@ async def upload_image(
             }
         
     except Exception as e:
-        print(f"Image preprocessing failed: {str(e)}")
+        logger.error(f"Image preprocessing failed: {str(e)}")
         # Fall back to original content if preprocessing fails
         processed_content = content
         processed_filename = file.filename
@@ -636,14 +638,14 @@ async def upload_image(
         
         if thumbnail_result:
             thumbnail_key, thumbnail_sha256 = thumbnail_result
-            print(f"Thumbnail generated and uploaded: key={thumbnail_key}, sha256={thumbnail_sha256}")
+            logger.info(f"Thumbnail generated and uploaded: key={thumbnail_key}, sha256={thumbnail_sha256}")
         
         if detail_result:
             detail_key, detail_sha256 = detail_result
-            print(f"Detail version generated and uploaded: key={detail_key}, sha256={detail_sha256}")
+            logger.info(f"Detail version generated and uploaded: key={detail_key}, sha256={detail_sha256}")
             
     except Exception as e:
-        print(f"Image resolution processing failed: {str(e)}")
+        logger.error(f"Image resolution processing failed: {str(e)}")
         # Continue without processed versions if generation fails
 
     try:
@@ -710,7 +712,7 @@ async def upload_image(
         )
         
     except Exception as e:
-        print(f"VLM caption generation failed: {str(e)}")
+        logger.error(f"VLM caption generation failed: {str(e)}")
         # Continue without caption if VLM fails
     
     img_dict = convert_image_to_dict(img, url)
@@ -798,7 +800,7 @@ async def upload_multiple_images(
                 quality=95
             )
         except Exception as e:
-            print(f"Image preprocessing failed: {str(e)}")
+            logger.debug(f"Image preprocessing failed: {str(e)}")
             processed_content = content
             processed_filename = file.filename
             mime_type = 'image/png'
@@ -900,7 +902,7 @@ async def upload_multiple_images(
         db.commit()
         
     except Exception as e:
-        print(f"VLM error: {e}")
+        logger.debug(f"VLM error: {e}")
         # Create fallback caption
         fallback_text = f"Analysis of {len(image_bytes_list)} images"
         caption = crud.create_caption(
@@ -988,52 +990,52 @@ async def copy_image_for_contribution(
 @router.get("/{image_id}/file")
 async def get_image_file(image_id: str, db: Session = Depends(get_db)):
     """Serve the actual image file"""
-    print(f"🔍 Serving image file for image_id: {image_id}")
+    logger.debug(f"Serving image file for image_id: {image_id}")
     
     img = crud.get_image(db, image_id)
     if not img:
-        print(f"❌ Image not found: {image_id}")
+        logger.warning(f"Image not found: {image_id}")
         raise HTTPException(404, "Image not found")
     
-    print(f"✅ Found image: {img.image_id}, file_key: {img.file_key}")
+    logger.debug(f"Found image: {img.image_id}, file_key: {img.file_key}")
     
     try:
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
-            print(f"�� Using S3 storage - serving file content directly")
+            logger.debug(f"Using S3 storage - serving file content directly")
             try:
                 response = storage.s3.get_object(Bucket=settings.S3_BUCKET, Key=img.file_key)
                 content = response['Body'].read()
-                print(f"✅ Read {len(content)} bytes from S3")
+                logger.debug(f"Read {len(content)} bytes from S3")
             except Exception as e:
-                print(f"❌ Failed to get S3 object: {e}")
+                logger.error(f"Failed to get S3 object: {e}")
                 raise HTTPException(500, f"Failed to retrieve image from storage: {e}")
         else:
-            print(f"🔍 Using local storage")
+            logger.debug(f"Using local storage")
             import os
             file_path = os.path.join(settings.STORAGE_DIR, img.file_key)
-            print(f"📁 Reading from: {file_path}")
-            print(f"📁 File exists: {os.path.exists(file_path)}")
+            logger.debug(f"Reading from: {file_path}")
+            logger.debug(f"File exists: {os.path.exists(file_path)}")
             
             if not os.path.exists(file_path):
-                print(f"❌ File not found at: {file_path}")
+                logger.error(f"File not found at: {file_path}")
                 raise FileNotFoundError(f"Image file not found: {file_path}")
             
             with open(file_path, 'rb') as f:
                 content = f.read()
             
-            print(f"✅ Read {len(content)} bytes from file")
+            logger.debug(f"Read {len(content)} bytes from file")
         
         import mimetypes
         content_type, _ = mimetypes.guess_type(img.file_key)
         if not content_type:
             content_type = 'application/octet-stream'
         
-        print(f"✅ Serving image with content-type: {content_type}, size: {len(content)} bytes")
+        logger.debug(f"Serving image with content-type: {content_type}, size: {len(content)} bytes")
         return Response(content=content, media_type=content_type)
     except Exception as e:
-        print(f"❌ Error serving image: {e}")
+        logger.error(f"Error serving image: {e}")
         import traceback
-        print(f"🔍 Full traceback: {traceback.format_exc()}")
+        logger.debug(f"Full traceback: {traceback.format_exc()}")
         raise HTTPException(500, f"Failed to serve image file: {e}")
 
 @router.put("/{image_id}")
@@ -1043,15 +1045,15 @@ def update_image_metadata(
     db: Session = Depends(get_db)
 ):
     """Update image metadata (source, type, epsg, image_type, countries)"""
-    print(f"DEBUG: Updating metadata for image {image_id}")
-    print(f"DEBUG: Metadata received: {metadata}")
+    logger.debug(f"DEBUG: Updating metadata for image {image_id}")
+    logger.debug(f"DEBUG: Metadata received: {metadata}")
     
     img = crud.get_image(db, image_id)
     if not img:
-        print(f"DEBUG: Image {image_id} not found in database")
+        logger.debug(f"DEBUG: Image {image_id} not found in database")
         raise HTTPException(404, "Image not found")
     
-    print(f"DEBUG: Found image {image_id} in database")
+    logger.debug(f"DEBUG: Found image {image_id} in database")
     
     try:
         if metadata.source is not None:
@@ -1103,17 +1105,17 @@ def update_image_metadata(
             img.std_v_m = metadata.std_v_m
         
         if metadata.countries is not None:
-            print(f"DEBUG: Updating countries to: {metadata.countries}")
+            logger.debug(f"DEBUG: Updating countries to: {metadata.countries}")
             img.countries.clear()
             for country_code in metadata.countries:
                 country = crud.get_country(db, country_code)
                 if country:
                     img.countries.append(country)
-                    print(f"DEBUG: Added country: {country_code}")
+                    logger.debug(f"DEBUG: Added country: {country_code}")
         
         db.commit()
         db.refresh(img)
-        print(f"DEBUG: Metadata update successful for image {image_id}")
+        logger.debug(f"DEBUG: Metadata update successful for image {image_id}")
         
         try:
             url = storage.get_object_url(img.file_key)
@@ -1125,7 +1127,7 @@ def update_image_metadata(
         
     except Exception as e:
         db.rollback()
-        print(f"DEBUG: Metadata update failed for image {image_id}: {str(e)}")
+        logger.debug(f"DEBUG: Metadata update failed for image {image_id}: {str(e)}")
         raise HTTPException(500, f"Failed to update image metadata: {str(e)}")
 
 @router.delete("/{image_id}")

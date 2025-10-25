@@ -1,7 +1,10 @@
 import io
 import mimetypes
+import logging
 from typing import Tuple, Optional, BinaryIO
 from PIL import Image, ImageOps
+
+logger = logging.getLogger(__name__)
 
 # Import PyMuPDF for PDF processing
 try:
@@ -146,7 +149,7 @@ class ImagePreprocessor:
             ImagePreprocessor.PDF_ZOOM_FACTOR = zoom_factor
             ImagePreprocessor.PDF_COMPRESS_LEVEL = compress_level
         
-        print(f"PDF processing configured: zoom={ImagePreprocessor.PDF_ZOOM_FACTOR}, "
+        logger.debug(f"PDF processing configured: zoom={ImagePreprocessor.PDF_ZOOM_FACTOR}, "
               f"compression={ImagePreprocessor.PDF_COMPRESS_LEVEL}, mode={quality_mode}")
     
     @staticmethod
@@ -161,7 +164,7 @@ class ImagePreprocessor:
             raise ValueError("PDF processing is not available. PyMuPDF is not installed.")
             
         try:
-            print(f"Starting PDF processing for {filename}...")
+            logger.info(f"Starting PDF processing for {filename}...")
             
             # Open PDF with PyMuPDF
             pdf_document = fitz.open(stream=file_content, filetype="pdf")
@@ -169,7 +172,7 @@ class ImagePreprocessor:
             if len(pdf_document) == 0:
                 raise ValueError("PDF has no pages")
             
-            print(f"PDF opened successfully, processing page 1 of {len(pdf_document)}...")
+            logger.debug(f"PDF opened successfully, processing page 1 of {len(pdf_document)}...")
             
             # Get first page
             page = pdf_document[0]
@@ -178,7 +181,7 @@ class ImagePreprocessor:
             zoom = ImagePreprocessor.PDF_ZOOM_FACTOR
             mat = fitz.Matrix(zoom, zoom)
             
-            print(f"Rendering page at {zoom}x zoom...")
+            logger.debug(f"Rendering page at {zoom}x zoom...")
             
             # Render page to image with optimized settings
             pix = page.get_pixmap(
@@ -187,7 +190,7 @@ class ImagePreprocessor:
                 colorspace="rgb"  # Force RGB colorspace
             )
             
-            print(f"Page rendered, size: {pix.width}x{pix.height}")
+            logger.debug(f"Page rendered, size: {pix.width}x{pix.height}")
             
             # Convert to PIL Image - use more efficient method
             img_data = pix.tobytes("png")
@@ -197,7 +200,7 @@ class ImagePreprocessor:
             if img.mode in ('RGBA', 'LA', 'P'):
                 img = img.convert('RGB')
             
-            print(f"Image converted to RGB, mode: {img.mode}")
+            logger.debug(f"Image converted to RGB, mode: {img.mode}")
             
             # Save to bytes with optimization
             output_buffer = io.BytesIO()
@@ -218,12 +221,12 @@ class ImagePreprocessor:
             base_name = os.path.splitext(filename)[0]
             new_filename = f"{base_name}{new_extension}"
             
-            print(f"PDF processing completed: {filename} -> {new_filename}")
+            logger.info(f"PDF processing completed: {filename} -> {new_filename}")
             
             return output_buffer.getvalue(), new_filename, new_mime_type
             
         except Exception as e:
-            print(f"PDF processing failed: {str(e)}")
+            logger.error(f"PDF processing failed: {str(e)}")
             raise ValueError(f"Failed to process PDF: {str(e)}")
     
     @staticmethod

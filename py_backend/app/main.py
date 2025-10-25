@@ -1,5 +1,6 @@
 import os
 import subprocess
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -13,6 +14,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.config import settings
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+    ]
+)
+logger = logging.getLogger(__name__)
+
 from app.routers import upload, caption, metadata, models
 from app.routers.images import router as images_router
 from app.routers.prompts import router as prompts_router
@@ -34,9 +46,9 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # --------------------------------------------------------------------
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"DEBUG: {request.method} {request.url.path}")
+    logger.debug(f"{request.method} {request.url.path}")
     response = await call_next(request)
-    print(f"DEBUG: {request.method} {request.url.path} -> {response.status_code}")
+    logger.debug(f"{request.method} {request.url.path} -> {response.status_code}")
     return response
 
 # --------------------------------------------------------------------
@@ -155,7 +167,7 @@ CANDIDATES = [
     Path("/app/app") / "static",      # some containers use /app/app
 ]
 STATIC_DIR = next((p for p in CANDIDATES if p.is_dir()), APP_DIR / "static")
-print(f"Serving static from: {STATIC_DIR}")
+logger.info(f"Serving static files from: {STATIC_DIR}")
 
 # --------------------------------------------------------------------
 # Explicit top-level static files
@@ -268,19 +280,19 @@ def spa_fallback(full_path: str):
 def run_migrations():
     """Run database migrations on startup"""
     try:
-        print("Running database migrations...")
+        logger.info("Running database migrations...")
         current_dir = os.getcwd()
-        print(f"Current working directory: {current_dir}")
+        logger.debug(f"Current working directory: {current_dir}")
 
         try:
             result = subprocess.run(["which", "alembic"], capture_output=True, text=True)
-            print(f"Alembic location: {result.stdout.strip() if result.stdout else 'Not found'}")
+            logger.debug(f"Alembic location: {result.stdout.strip() if result.stdout else 'Not found'}")
         except Exception as e:
-            print(f"Could not check alembic location: {e}")
+            logger.debug(f"Could not check alembic location: {e}")
 
-        print(f"Checking if /app exists: {os.path.exists('/app')}")
+        logger.debug(f"Checking if /app exists: {os.path.exists('/app')}")
         if os.path.exists('/app'):
-            print(f"Contents of /app: {os.listdir('/app')}")
+            logger.debug(f"Contents of /app: {os.listdir('/app')}")
 
         alembic_paths = [
             "alembic.ini",
@@ -292,14 +304,14 @@ def run_migrations():
         for path in alembic_paths:
             if os.path.exists(path):
                 alembic_dir = os.path.dirname(path)
-                print(f"Found alembic.ini at: {path}")
+                logger.debug(f"Found alembic.ini at: {path}")
                 break
         if not alembic_dir:
-            print("Could not find alembic.ini - using current directory")
+            logger.warning("Could not find alembic.ini - using current directory")
             alembic_dir = current_dir
 
         try:
-            print(f"Running alembic upgrade head from: {alembic_dir}")
+            logger.info(f"Running alembic upgrade head from: {alembic_dir}")
             result = subprocess.run(
                 ["alembic", "upgrade", "head"],
                 cwd=alembic_dir,
@@ -307,46 +319,46 @@ def run_migrations():
                 text=True,
                 timeout=60,
             )
-            print(f"Alembic return code: {result.returncode}")
-            print(f"Alembic stdout: {result.stdout}")
-            print(f"Alembic stderr: {result.stderr}")
+            logger.debug(f"Alembic return code: {result.returncode}")
+            logger.debug(f"Alembic stdout: {result.stdout}")
+            logger.debug(f"Alembic stderr: {result.stderr}")
 
             if result.returncode == 0:
-                print("Database migrations completed successfully")
+                logger.info("Database migrations completed successfully")
             else:
-                print("Database migrations failed")
-                print("Trying fallback: create tables directly...")
+                logger.error("Database migrations failed")
+                logger.warning("Trying fallback: create tables directly...")
                 try:
                     from app.database import engine
                     from app.models import Base
                     Base.metadata.create_all(bind=engine)
-                    print("Tables created directly via SQLAlchemy")
+                    logger.info("Tables created directly via SQLAlchemy")
                 except Exception as fallback_error:
-                    print(f"Fallback also failed: {fallback_error}")
+                    logger.error(f"Fallback also failed: {fallback_error}")
         except Exception as e:
-            print(f"Error running alembic: {e}")
+            logger.error(f"Error running alembic: {e}")
 
     except Exception as e:
-        print(f"Could not run migrations: {e}")
+        logger.error(f"Could not run migrations: {e}")
 
 def ensure_storage_ready():
     """Ensure storage is ready before starting the app"""
-    print(f"Storage provider from settings: '{settings.STORAGE_PROVIDER}'")
-    print(f"S3 endpoint from settings: '{settings.S3_ENDPOINT}'")
-    print(f"S3 bucket from settings: '{settings.S3_BUCKET}'")
+    logger.debug(f"Storage provider from settings: '{settings.STORAGE_PROVIDER}'")
+    logger.debug(f"S3 endpoint from settings: '{settings.S3_ENDPOINT}'")
+    logger.debug(f"S3 bucket from settings: '{settings.S3_BUCKET}'")
     if settings.STORAGE_PROVIDER == "s3":
         try:
-            print("Checking S3 storage connection...")
+            logger.info("Checking S3 storage connection...")
             from app.storage import _ensure_bucket
             _ensure_bucket()
-            print("S3 storage ready")
+            logger.info("S3 storage ready")
         except Exception as e:
-            print(f"Warning: S3 storage not ready: {e}")
-            print("Storage operations may fail until S3 is available")
+            logger.warning(f"S3 storage not ready: {e}")
+            logger.warning("Storage operations may fail until S3 is available")
     elif settings.STORAGE_PROVIDER == "local":
-        print("Using local storage - no external dependencies")
+        logger.info("Using local storage - no external dependencies")
     else:
-        print(f"Unknown storage provider: {settings.STORAGE_PROVIDER}")
+        logger.warning(f"Unknown storage provider: {settings.STORAGE_PROVIDER}")
 
 # --------------------------------------------------------------------
 # VLM service registration on startup
@@ -367,45 +379,45 @@ import asyncio
 @app.on_event("startup")
 async def startup_tasks() -> None:
     """Run all startup tasks including migrations, storage setup, and VLM service registration."""
-    print("Starting application initialization...")
+    logger.info("Starting application initialization...")
     
     # Run database migrations
-    print("Running database migrations...")
+    logger.info("Running database migrations...")
     run_migrations()
     
     # Ensure storage is ready
-    print("Checking storage...")
+    logger.info("Checking storage...")
     ensure_storage_ready()
     
     # Register VLM services
-    print("Registering VLM services...")
+    logger.info("Registering VLM services...")
 
     # Always have a stub as a safe fallback
     try:
         vlm_manager.register_service(StubVLMService())
-        print("✓ STUB_MODEL registered")
+        logger.info("✓ STUB_MODEL registered")
     except Exception as e:
-        print(f"✗ Failed to register STUB_MODEL: {e}")
+        logger.error(f"✗ Failed to register STUB_MODEL: {e}")
 
     # OpenAI GPT-4V (if configured)
     if settings.OPENAI_API_KEY:
         try:
             vlm_manager.register_service(GPT4VService(settings.OPENAI_API_KEY))
-            print("✓ GPT-4 Vision service registered")
+            logger.info("✓ GPT-4 Vision service registered")
         except Exception as e:
-            print(f"✗ GPT-4 Vision service failed to register: {e}")
+            logger.error(f"✗ GPT-4 Vision service failed to register: {e}")
     else:
-        print("○ GPT-4 Vision not configured (OPENAI_API_KEY missing)")
+        logger.info("○ GPT-4 Vision not configured (OPENAI_API_KEY missing)")
 
     # Google Gemini (if configured)
     if settings.GOOGLE_API_KEY:
         try:
             vlm_manager.register_service(GeminiService(settings.GOOGLE_API_KEY))
-            print("✓ Gemini service registered")
+            logger.info("✓ Gemini service registered")
         except Exception as e:
-            print(f"✗ Gemini service failed to register: {e}")
+            logger.error(f"✗ Gemini service failed to register: {e}")
     else:
-        print("○ Gemini not configured (GOOGLE_API_KEY missing)")
+        logger.info("○ Gemini not configured (GOOGLE_API_KEY missing)")
 
     # Hugging Face Inference Providers (if configured)
     if settings.HF_API_KEY:
@@ -428,35 +440,35 @@ async def startup_tasks() -> None:
                             public_name=m.m_code,  # stable name your UI/DB uses
                         )
                         vlm_manager.register_service(svc)
-                        print(f"✓ HF registered: {m.m_code} -> {m.model_id}")
+                        logger.info(f"✓ HF registered: {m.m_code} -> {m.model_id}")
                         registered += 1
                     except Exception as e:
-                        print(f"✗ HF model {m.m_code} failed to register: {e}")
+                        logger.error(f"✗ HF model {m.m_code} failed to register: {e}")
                 else:
                     skipped += 1
 
             if registered:
-                print(f"✓ Hugging Face services registered: {registered}")
+                logger.info(f"✓ Hugging Face services registered: {registered}")
             else:
-                print("○ No Hugging Face models registered (none found or all skipped)")
+                logger.info("○ No Hugging Face models registered (none found or all skipped)")
             if skipped:
-                print(f"ℹ HF skipped entries: {skipped}")
+                logger.info(f"ℹ HF skipped entries: {skipped}")
         finally:
             db.close()
     else:
-        print("○ Hugging Face not configured (HF_API_KEY missing)")
+        logger.info("○ Hugging Face not configured (HF_API_KEY missing)")
 
-    # Kick off lightweight probes in the background (don’t block startup)
+    # Kick off lightweight probes in the background (don't block startup)
     try:
         asyncio.create_task(vlm_manager.probe_all())
     except Exception as e:
-        print(f"Probe scheduling failed: {e}")
+        logger.error(f"Probe scheduling failed: {e}")
 
-    print(f"✓ Available models now: {', '.join(vlm_manager.get_available_models())}")
-    print(f"✓ Total services: {len(vlm_manager.services)}")
+    logger.info(f"✓ Available models now: {', '.join(vlm_manager.get_available_models())}")
+    logger.info(f"✓ Total services: {len(vlm_manager.services)}")
 
 
-print("PromptAid Vision API server ready")
-print("Endpoints: /api/images, /api/captions, /api/metadata, /api/models")
-print(f"Environment: {settings.ENVIRONMENT}")
-print("CORS: localhost + *.hf.space")
+logger.info("PromptAid Vision API server ready")
+logger.info("Endpoints: /api/images, /api/captions, /api/metadata, /api/models")
+logger.info(f"Environment: {settings.ENVIRONMENT}")
+logger.info("CORS: localhost + *.hf.space")

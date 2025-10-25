@@ -1,8 +1,11 @@
 import io, hashlib
+import logging
 from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 from . import models, schemas
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 def hash_bytes(data: bytes) -> str:
     """Compute SHA-256 hex digest of the data."""
@@ -88,10 +91,10 @@ def get_image(db: Session, image_id: str):
     )
 
 def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None, image_count=None):
-    print(f"Creating caption for image_id: {image_id}")
-    print(f"Caption data: title={title}, prompt={prompt}, model={model_code}")
-    print(f"Database session ID: {id(db)}")
-    print(f"Database session is active: {db.is_active}")
+    logger.debug(f"Creating caption for image_id: {image_id}")
+    logger.debug(f"Caption data: title={title}, prompt={prompt}, model={model_code}")
+    logger.debug(f"Database session ID: {id(db)}")
+    logger.debug(f"Database session is active: {db.is_active}")
     
     if metadata:
         raw_json["extracted_metadata"] = metadata
@@ -122,11 +125,11 @@ def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, t
     # Link caption to image
     img.captions.append(caption)
     
-    print(f"About to commit caption to database...")
+    logger.debug(f"About to commit caption to database...")
     db.commit()
-    print(f"Caption commit successful!")
+    logger.debug(f"Caption commit successful!")
     db.refresh(caption)
-    print(f"Caption created successfully for image: {img.image_id}")
+    logger.info(f"Caption created successfully for image: {img.image_id}")
     return caption
 
 def get_caption(db: Session, caption_id: str):
