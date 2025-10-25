@@ -1,3 +1,14 @@
+---
+title: PromptAid Vision
+emoji: 🚀
+colorFrom: blue
+colorTo: red
+sdk: docker
+sdk_version: "4.0.0"
+app_file: app.py
+pinned: false
+---
+
 # PromptAid Vision
 
 An AI-powered platform for crisis mapping and drone image analysis.
