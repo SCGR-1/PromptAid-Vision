@@ -30,6 +30,11 @@ from app.routers.images import router as images_router
 from app.routers.prompts import router as prompts_router
 from app.routers.admin import router as admin_router
 from app.routers.schemas import router as schemas_router
+# New modular image routers
+from app.routers.images_listing import router as images_listing_router
+from app.routers.images_metadata import router as images_metadata_router
+from app.routers.images_files import router as images_files_router
+from app.routers.images_upload import router as images_upload_router
 
 app = FastAPI(
     title="PromptAid Vision",
@@ -95,14 +100,20 @@ app.add_middleware(
 # --------------------------------------------------------------------
 # API Routers
 # --------------------------------------------------------------------
-app.include_router(caption.router,     prefix="/api",            tags=["captions"])
-app.include_router(metadata.router,    prefix="/api",            tags=["metadata"])
-app.include_router(models.router,      prefix="/api",            tags=["models"])
-app.include_router(upload.router,      prefix="/api/images",     tags=["images"])
-app.include_router(images_router,      prefix="/api/contribute", tags=["contribute"])
-app.include_router(prompts_router,     prefix="/api/prompts",    tags=["prompts"])
-app.include_router(admin_router,       prefix="/api/admin",      tags=["admin"])
-app.include_router(schemas_router,     prefix="/api",            tags=["schemas"])
+app.include_router(caption.router,              prefix="/api",            tags=["captions"])
+app.include_router(metadata.router,             prefix="/api",            tags=["metadata"])
+app.include_router(models.router,               prefix="/api",            tags=["models"])
+# Legacy upload router (to be deprecated)
+app.include_router(upload.router,               prefix="/api/images",     tags=["images-legacy"])
+# New modular image routers
+app.include_router(images_listing_router,       prefix="/api/images",     tags=["images-listing"])
+app.include_router(images_metadata_router,      prefix="/api/images",     tags=["images-metadata"])
+app.include_router(images_files_router,         prefix="/api/images",     tags=["images-files"])
+app.include_router(images_upload_router,       prefix="/api/images",     tags=["images-upload"])
+app.include_router(images_router,              prefix="/api/contribute", tags=["contribute"])
+app.include_router(prompts_router,             prefix="/api/prompts",    tags=["prompts"])
+app.include_router(admin_router,               prefix="/api/admin",     tags=["admin"])
+app.include_router(schemas_router,             prefix="/api",            tags=["schemas"])
 
 # Handle /api/images and /api/prompts without trailing slash (avoid 307)
 @app.get("/api/images", include_in_schema=False)
