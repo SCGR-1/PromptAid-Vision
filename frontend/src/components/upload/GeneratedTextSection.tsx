@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Container, TextArea, Button, IconButton } from '@ifrc-go/ui';
 import { DeleteBinLineIcon } from '@ifrc-go/icons';
 import styles from '../../pages/UploadPage/UploadPage.module.css';
@@ -31,17 +32,40 @@ export default function GeneratedTextSection({
   isPerformanceConfirmed = false,
   isSubmitting = false,
 }: GeneratedTextSectionProps) {
+  // Local state to maintain the textarea value and cursor position
+  const [textareaValue, setTextareaValue] = useState('');
+  
+  // Update local state when props change (e.g., when AI generates new content)
+  useEffect(() => {
+    const formattedText = `Description:\n${description || 'AI-generated description will appear here...'}\n\nAnalysis:\n${analysis || 'AI-generated analysis will appear here...'}\n\nRecommended Actions:\n${recommendedActions || 'AI-generated recommended actions will appear here...'}`;
+    setTextareaValue(formattedText);
+  }, [description, analysis, recommendedActions]);
+
   const handleTextChange = (value: string | undefined) => {
-    if (value) {
+    if (value !== undefined) {
+      setTextareaValue(value);
+      
+      // Parse the text and update the individual sections
       const lines = value.split('\n');
       const descIndex = lines.findIndex(line => line.startsWith('Description:'));
       const analysisIndex = lines.findIndex(line => line.startsWith('Analysis:'));
       const actionsIndex = lines.findIndex(line => line.startsWith('Recommended Actions:'));
       
       if (descIndex !== -1 && analysisIndex !== -1 && actionsIndex !== -1) {
-        onDescriptionChange(lines.slice(descIndex + 1, analysisIndex).join('\n').trim());
-        onAnalysisChange(lines.slice(analysisIndex + 1, actionsIndex).join('\n').trim());
-        onRecommendedActionsChange(lines.slice(actionsIndex + 1).join('\n').trim());
+        const newDescription = lines.slice(descIndex + 1, analysisIndex).join('\n').trim();
+        const newAnalysis = lines.slice(analysisIndex + 1, actionsIndex).join('\n').trim();
+        const newRecommendedActions = lines.slice(actionsIndex + 1).join('\n').trim();
+        
+        // Update parent state only if values have changed
+        if (newDescription !== description) {
+          onDescriptionChange(newDescription);
+        }
+        if (newAnalysis !== analysis) {
+          onAnalysisChange(newAnalysis);
+        }
+        if (newRecommendedActions !== recommendedActions) {
+          onRecommendedActionsChange(newRecommendedActions);
+        }
       }
     }
   };
@@ -57,7 +81,7 @@ export default function GeneratedTextSection({
         <div>
           <TextArea
             name="generatedContent"
-            value={`Description:\n${description || 'AI-generated description will appear here...'}\n\nAnalysis:\n${analysis || 'AI-generated analysis will appear here...'}\n\nRecommended Actions:\n${recommendedActions || 'AI-generated recommended actions will appear here...'}`}
+            value={textareaValue}
             onChange={handleTextChange}
             rows={12}
             placeholder="AI-generated content will appear here..."
