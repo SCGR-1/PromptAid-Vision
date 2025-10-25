@@ -1,66 +1,106 @@
----
-title: PromptAid Vision
-emoji: 🚀
-colorFrom: blue
-colorTo: red
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # PromptAid Vision
 
-A comprehensive vision analysis platform for crisis mapping and drone image processing.
+An AI-powered platform for crisis mapping and drone image analysis.
 
-## Testing
+## Overview
 
-### Frontend Tests
-- **Unit Tests**: `frontend/src/test/unit_tests/` - Component and hook testing with Vitest
-- **Integration Tests**: `frontend/src/test/integration/` - Component interaction testing
+PromptAid Vision combines multiple AI vision models (GPT-4V, Gemini, Hugging Face) to analyze imagery for crisis response and humanitarian mapping. The platform provides automated image analysis, metadata extraction, and comprehensive reporting capabilities.
 
-### Backend Tests
-- **Unit Tests**: `py_backend/tests/unit_tests/` - Individual service testing
-- **Integration Tests**: `py_backend/tests/integration_tests/` - API and workflow testing
+## Architecture
 
-### End-to-End Tests
-- **E2E Tests**: `e2e/` - Complete user workflow testing with Playwright
-- **CI/CD**: `.github/workflows/e2e.yml` - Automated E2E testing pipeline
+- **Frontend**: React + TypeScript with Tailwind CSS
+- **Backend**: FastAPI + Python with PostgreSQL
+- **AI Models**: Multi-model support with intelligent fallbacks
+- **Storage**: Flexible local/S3 storage with image processing
+- **Testing**: Unit, integration, and E2E test coverage
 
 ## Quick Start
 
-### Development
-```bash
-# Frontend
-cd frontend
-npm install
-npm run dev
+### Prerequisites
+- Node.js 20+
+- Python 3.11+
+- PostgreSQL 16+
 
-# Backend
-cd py_backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+### Development Setup
+
+1. **Backend**
+   ```bash
+   cd py_backend
+   python -m venv .venv
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   alembic upgrade head
+   uvicorn app.main:app --reload --port 7860
+   ```
+
+2. **Frontend**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+3. **Access**
+   - Application: http://localhost:5173
+   - API: http://localhost:7860
+   - Documentation: http://localhost:7860/docs
+
+## Deployment
+
+### Local Production
+```bash
+cd frontend && npm run build
+cd py_backend && uvicorn app.main:app --host 0.0.0.0 --port 7860
 ```
 
-### Testing
+### Docker
 ```bash
-# Frontend tests
-cd frontend
-npm run test:unit
-npm run test:integration
+docker-compose up --build
+```
 
-# Backend tests
-cd py_backend
-python -m pytest tests/
+### Hugging Face Spaces
+Automatically deployed via GitHub Actions workflow. Configure environment variables in Space settings.
 
-# E2E tests
-cd e2e
-./run_e2e_tests.sh
+## Environment Variables
+
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/promptaid
+STORAGE_PROVIDER=local  # or s3
+OPENAI_API_KEY=your-key
+ANTHROPIC_API_KEY=your-key
+GOOGLE_API_KEY=your-key
+HUGGINGFACE_API_KEY=your-key
+```
+
+## Testing
+
+```bash
+# Backend
+cd py_backend && python -m pytest tests/ -v
+
+# Frontend
+cd frontend && npm run test:unit
+
+# E2E
+cd e2e && ./run_e2e_tests.sh
 ```
 
 ## Project Structure
+
 ```
-├── frontend/                 # React + TypeScript
-├── py_backend/              # FastAPI + Python
-├── e2e/                     # End-to-end tests
-└── .github/workflows/       # CI/CD pipelines
+├── frontend/          # React frontend
+├── py_backend/        # FastAPI backend
+├── e2e/              # End-to-end tests
+└── .github/workflows/ # CI/CD pipelines
 ```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Submit a pull request
+
+## License
+
+MIT License
