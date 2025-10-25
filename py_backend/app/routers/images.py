@@ -26,7 +26,7 @@ def get_db():
 @router.post("/from-url", response_model=CreateImageFromUrlOut)
 async def create_image_from_url(payload: CreateImageFromUrlIn, db: Session = Depends(get_db)):
     try:
-logger.debug(f"Creating contribution from URL: {payload.url}")
+        logger.debug(f"Creating contribution from URL: {payload.url}")
         logger.debug(f"Payload: {payload}")
         
         # Check database connectivity
