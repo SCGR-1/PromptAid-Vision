@@ -365,8 +365,19 @@ import asyncio
 
 
 @app.on_event("startup")
-async def register_vlm_services() -> None:
-    """Register OpenAI, Gemini, and Hugging Face models at startup (non-blocking)."""
+async def startup_tasks() -> None:
+    """Run all startup tasks including migrations, storage setup, and VLM service registration."""
+    print("Starting application initialization...")
+    
+    # Run database migrations
+    print("Running database migrations...")
+    run_migrations()
+    
+    # Ensure storage is ready
+    print("Checking storage...")
+    ensure_storage_ready()
+    
+    # Register VLM services
     print("Registering VLM services...")
 
     # Always have a stub as a safe fallback
@@ -444,10 +455,6 @@ async def register_vlm_services() -> None:
     print(f"✓ Available models now: {', '.join(vlm_manager.get_available_models())}")
     print(f"✓ Total services: {len(vlm_manager.services)}")
 
-
-# Run startup tasks
-run_migrations()
-ensure_storage_ready()
 
 print("PromptAid Vision API server ready")
 print("Endpoints: /api/images, /api/captions, /api/metadata, /api/models")
