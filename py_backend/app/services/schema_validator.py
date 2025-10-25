@@ -4,8 +4,8 @@ from jsonschema import validate, ValidationError
 from jsonschema.validators import Draft7Validator
 import logging
 from sqlalchemy.orm import Session
-from ..database import SessionLocal
-from .. import crud
+from app.database import SessionLocal
+from app import crud
 
 logger = logging.getLogger(__name__)
 

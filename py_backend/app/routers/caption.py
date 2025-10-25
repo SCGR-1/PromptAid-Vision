@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Form, Request
 from sqlalchemy.orm import Session
 from typing import List
+import logging
 
 from .. import crud, database, schemas, storage
 from ..services.vlm_service import vlm_manager
@@ -9,6 +10,7 @@ from ..services.schema_validator import schema_validator
 from ..config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 def get_db():
     db = database.SessionLocal()
@@ -28,7 +30,7 @@ async def create_caption(
     model_name: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
-    print(f"DEBUG: Received request - image_id: {image_id}, title: {title}, prompt: {prompt}, model_name: {model_name}")
+    logger.debug(f"Received request - image_id: {image_id}, title: {title}, prompt: {prompt}, model_name: {model_name}")
     
     img = crud.get_image(db, image_id)
     if not img:
@@ -36,24 +38,24 @@ async def create_caption(
 
     # Get the prompt (explicit by code/label, or active for image type)
     if prompt:
-        print(f"Looking for prompt: '{prompt}' (type: {type(prompt)})")
+        logger.debug(f"Looking for prompt: '{prompt}' (type: {type(prompt)})")
         prompt_obj = crud.get_prompt(db, prompt) or crud.get_prompt_by_label(db, prompt)
     else:
-        print(f"Looking for active prompt for image type: {img.image_type}")
+        logger.debug(f"Looking for active prompt for image type: {img.image_type}")
         prompt_obj = crud.get_active_prompt_by_image_type(db, img.image_type)
 
-    print(f"Prompt lookup result: {prompt_obj}")
+    logger.debug(f"Prompt lookup result: {prompt_obj}")
     if not prompt_obj:
         raise HTTPException(400, f"No prompt found (requested: '{prompt}' or active for type '{img.image_type}')")
 
     prompt_text = prompt_obj.label
     metadata_instructions = prompt_obj.metadata_instructions or ""
-    print(f"Using prompt text: '{prompt_text}'")
-    print(f"Using metadata instructions: '{metadata_instructions[:100]}...'")
+    logger.debug(f"Using prompt text: '{prompt_text}'")
+    logger.debug(f"Using metadata instructions: '{metadata_instructions[:100]}...'")
 
     # Load image bytes (S3 or local)
     try:
-        print(f"DEBUG: About to call VLM service with model_name: {model_name}")
+        logger.debug(f"About to call VLM service with model_name: {model_name}")
         if hasattr(storage, 's3') and settings.STORAGE_PROVIDER != "local":
             response = storage.s3.get_object(
                 Bucket=settings.S3_BUCKET,
@@ -66,7 +68,7 @@ async def create_caption(
             with open(file_path, 'rb') as f:
                 img_bytes = f.read()
     except Exception as e:
-        print(f"Error reading image file: {e}")
+        logger.error(f"Error reading image file: {e}")
         # fallback: try presigned/public URL
         try:
             url = storage.get_object_url(img.file_key)
@@ -77,7 +79,7 @@ async def create_caption(
             resp.raise_for_status()
             img_bytes = resp.content
         except Exception as fallback_error:
-            print(f"Fallback also failed: {fallback_error}")
+            logger.error(f"Fallback also failed: {fallback_error}")
             raise HTTPException(500, f"Could not read image file: {e}")
 
     metadata = {}
@@ -90,24 +92,24 @@ async def create_caption(
             db_session=db,
         )
         
-        print(f"DEBUG: VLM service result: {result}")
-        print(f"DEBUG: Result model field: {result.get('model', 'NOT_FOUND')}")
+        logger.debug(f"VLM service result: {result}")
+        logger.debug(f"Result model field: {result.get('model', 'NOT_FOUND')}")
         
         raw = result.get("raw_response", {})
         
         # Validate and clean the data using schema validation
         image_type = img.image_type
-        print(f"DEBUG: Validating data for image type: {image_type}")
-        print(f"DEBUG: Raw data structure: {list(raw.keys()) if isinstance(raw, dict) else 'Not a dict'}")
+        logger.debug(f"Validating data for image type: {image_type}")
+        logger.debug(f"Raw data structure: {list(raw.keys()) if isinstance(raw, dict) else 'Not a dict'}")
         
         cleaned_data, is_valid, validation_error = schema_validator.clean_and_validate_data(raw, image_type)
         
         if is_valid:
-            print(f"✓ Schema validation passed for {image_type}")
+            logger.debug(f"✓ Schema validation passed for {image_type}")
             text = cleaned_data.get("analysis", "")
             metadata = cleaned_data.get("metadata", {})
         else:
-            print(f"⚠ Schema validation failed for {image_type}: {validation_error}")
+            logger.debug(f"⚠ Schema validation failed for {image_type}: {validation_error}")
             text = result.get("caption", "This is a fallback caption due to schema validation error.")
             metadata = result.get("metadata", {})
             raw["validation_error"] = validation_error
@@ -115,7 +117,7 @@ async def create_caption(
         
         used_model = result.get("model", model_name) or "STUB_MODEL"
         if used_model == "random":
-            print(f"WARNING: VLM service returned 'random' as model name, using STUB_MODEL fallback")
+            logger.warning(f"VLM service returned 'random' as model name, using STUB_MODEL fallback")
             used_model = "STUB_MODEL"
         
         # Fallback info (if any)
@@ -127,7 +129,7 @@ async def create_caption(
             }
         
     except Exception as e:
-        print(f"VLM error, using fallback: {e}")
+        logger.warning(f"VLM error, using fallback: {e}")
         text = "This is a fallback caption due to VLM service error."
         used_model = "STUB_MODEL"
         raw = {"error": str(e), "fallback": True}
@@ -145,8 +147,8 @@ async def create_caption(
     )
     
     db.refresh(caption)
-    print(f"DEBUG: Caption created, caption object: {caption}")
-    print(f"DEBUG: caption_id: {caption.caption_id}")
+    logger.debug(f"Caption created, caption object: {caption}")
+    logger.debug(f"caption_id: {caption.caption_id}")
     return schemas.CaptionOut.from_orm(caption)
 
 @router.get(
@@ -158,9 +160,9 @@ def get_all_captions_legacy_format(
     db: Session = Depends(get_db),
 ):
     """Get all images with captions in the old format for backward compatibility"""
-    print(f"DEBUG: Fetching all captions in legacy format...")
+    logger.debug(f"Fetching all captions in legacy format...")
     captions = crud.get_all_captions_with_images(db)
-    print(f"DEBUG: Found {len(captions)} captions")
+    logger.debug(f"Found {len(captions)} captions")
     
     result = []
     for caption in captions:
@@ -170,7 +172,7 @@ def get_all_captions_legacy_format(
                 from .upload import convert_image_to_dict
                 base_url = str(request.base_url).rstrip('/')
                 url = f"{base_url}/api/images/{image.image_id}/file"
-                print(f"DEBUG: Generated image URL: {url}")
+                logger.debug(f"Generated image URL: {url}")
                 img_dict = convert_image_to_dict(image, url)
 
                 # Overlay caption fields (legacy shape)
@@ -190,7 +192,7 @@ def get_all_captions_legacy_format(
                     "updated_at": caption.updated_at,
                 })
                 result.append(schemas.ImageOut(**img_dict))
-    print(f"DEBUG: Returning {len(result)} legacy format results")
+    logger.debug(f"Returning {len(result)} legacy format results")
     return result
 
 @router.get(
@@ -201,16 +203,16 @@ def get_all_captions_with_images(
     db: Session = Depends(get_db),
 ):
     """Get all captions"""
-    print(f"DEBUG: Fetching all captions...")
+    logger.debug(f"Fetching all captions...")
     captions = crud.get_all_captions_with_images(db)
-    print(f"DEBUG: Found {len(captions)} captions")
+    logger.debug(f"Found {len(captions)} captions")
     
     result = []
     for caption in captions:
-        print(f"DEBUG: Processing caption {caption.caption_id}, title: {caption.title}, generated: {caption.generated}, model: {caption.model}")
+        logger.debug(f"Processing caption {caption.caption_id}, title: {caption.title}, generated: {caption.generated}, model: {caption.model}")
         db.refresh(caption)
         result.append(schemas.CaptionOut.from_orm(caption))
-    print(f"DEBUG: Returning {len(result)} formatted results")
+    logger.debug(f"Returning {len(result)} formatted results")
     return result
 
 @router.get(

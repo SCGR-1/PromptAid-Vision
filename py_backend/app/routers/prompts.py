@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
+import logging
 from .. import crud, database, schemas
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 def get_db():
     db = database.SessionLocal()
@@ -15,15 +17,15 @@ def get_db():
 @router.get("/", response_model=List[schemas.PromptOut])
 def get_prompts(db: Session = Depends(get_db)):
     """Get all available prompts"""
-    print("=== get_prompts called ===")
+    logger.debug("get_prompts called")
     try:
         prompts = crud.get_prompts(db)
-        print(f"=== Found {len(prompts)} prompts ===")
+        logger.debug(f"Found {len(prompts)} prompts")
         for prompt in prompts:
-            print(f"  - {prompt.p_code}: {prompt.label} ({prompt.image_type}, active: {prompt.is_active})")
+            logger.debug(f"  - {prompt.p_code}: {prompt.label} ({prompt.image_type}, active: {prompt.is_active})")
         return prompts
     except Exception as e:
-        print(f"=== Error in get_prompts: {e} ===")
+        logger.error(f"Error in get_prompts: {e}")
         raise
 
 @router.post("/", response_model=schemas.PromptOut)

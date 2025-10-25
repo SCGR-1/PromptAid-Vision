@@ -1,8 +1,11 @@
 import io
+import logging
 from PIL import Image, ImageOps
 from typing import Tuple, Optional
 import base64
 from ..storage import upload_fileobj, get_object_url
+
+logger = logging.getLogger(__name__)
 
 class ImageProcessingService:
     """Service for creating and managing multiple image resolutions"""
@@ -76,7 +79,7 @@ class ImageProcessingService:
             return resized_bytes, resized_filename
             
         except Exception as e:
-            print(f"Error creating resized image: {str(e)}")
+            logger.error(f"Error creating resized image: {str(e)}")
             # Return original content as fallback
             return image_content, filename
     
@@ -153,7 +156,7 @@ class ImageProcessingService:
             return resized_bytes, resized_filename
             
         except Exception as e:
-            print(f"Error creating resized image: {str(e)}")
+            logger.error(f"Error creating resized image: {str(e)}")
             # Return original content as fallback
             return image_content, filename
     
@@ -227,7 +230,7 @@ class ImageProcessingService:
             return resized_key, resized_sha256
             
         except Exception as e:
-            print(f"Error uploading resized image: {str(e)}")
+            logger.error(f"Error uploading resized image: {str(e)}")
             return None
     
     @staticmethod
@@ -278,7 +281,7 @@ class ImageProcessingService:
             return resized_key, resized_sha256
             
         except Exception as e:
-            print(f"Error uploading resized image: {str(e)}")
+            logger.error(f"Error uploading resized image: {str(e)}")
             return None
     
     @staticmethod
@@ -318,7 +321,7 @@ class ImageProcessingService:
             return uploaded_key, sha256
             
         except Exception as e:
-            print(f"Error uploading image bytes: {str(e)}")
+            logger.error(f"Error uploading image bytes: {str(e)}")
             return None
     
     @staticmethod
@@ -357,7 +360,7 @@ class ImageProcessingService:
                 )
                 
         except Exception as e:
-            print(f"Error processing image resolutions: {str(e)}")
+            logger.error(f"Error processing image resolutions: {str(e)}")
         
         return thumbnail_result, detail_result
     
