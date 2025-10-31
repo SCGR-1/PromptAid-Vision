@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, String, DateTime, SmallInteger, Table, ForeignKey, Boolean,
-    CheckConstraint, UniqueConstraint, Text, Integer
+    CheckConstraint, UniqueConstraint, Text, Integer, Index
 )
 from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP, CHAR, JSONB
 from sqlalchemy.orm import relationship
@@ -22,6 +22,8 @@ image_countries = Table(
       ForeignKey("countries.c_code"),
       primary_key=True,
     ),
+    Index('ix_image_countries_image_id', 'image_id'),
+    Index('ix_image_countries_c_code', 'c_code'),
 )
 
 images_captions = Table(
@@ -121,6 +123,10 @@ class Images(Base):
         CheckConstraint('pitch_deg IS NULL OR (pitch_deg BETWEEN -90 AND 90)', name='chk_images_pitch_deg'),
         CheckConstraint('yaw_deg IS NULL OR (yaw_deg BETWEEN -180 AND 180)', name='chk_images_yaw_deg'),
         CheckConstraint('roll_deg IS NULL OR (roll_deg BETWEEN -180 AND 180)', name='chk_images_roll_deg'),
+        Index('ix_images_source', 'source'),
+        Index('ix_images_event_type', 'event_type'),
+        Index('ix_images_image_type', 'image_type'),
+        Index('ix_images_captured_at', 'captured_at'),
     )
 
     image_id    = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -159,6 +165,8 @@ class Captions(Base):
         CheckConstraint('accuracy IS NULL OR (accuracy BETWEEN 0 AND 100)', name='chk_captions_accuracy'),
         CheckConstraint('context IS NULL OR (context BETWEEN 0 AND 100)', name='chk_captions_context'),
         CheckConstraint('usability IS NULL OR (usability BETWEEN 0 AND 100)', name='chk_captions_usability'),
+        Index('ix_captions_starred', 'starred'),
+        Index('ix_captions_created_at', 'created_at'),
     )
 
     caption_id  = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
