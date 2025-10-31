@@ -135,6 +135,33 @@ export default function AdminPage() {
               localStorage.setItem(SELECTED_MODEL_KEY, firstAvailableModel.m_code);
             }
           }
+          
+          // Fetch current fallback model after models are loaded
+          fetch('/api/admin/fallback-model', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+          })
+            .then(r => {
+              if (!r.ok) {
+                throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+              }
+              return r.json();
+            })
+            .then(fallbackData => {
+              console.log('Fallback model data received:', fallbackData);
+              if (fallbackData.fallback_model) {
+                setSelectedFallbackModel(fallbackData.fallback_model.m_code);
+              } else {
+                const stubModel = modelsData.models.find((m: ModelData) => m.m_code === 'STUB_MODEL' && m.is_available);
+                setSelectedFallbackModel(stubModel ? 'STUB_MODEL' : '');
+              }
+            })
+            .catch((error) => {
+              console.error('Error fetching fallback model:', error);
+              const stubModel = modelsData.models.find((m: ModelData) => m.m_code === 'STUB_MODEL' && m.is_available);
+              setSelectedFallbackModel(stubModel ? 'STUB_MODEL' : '');
+            });
         } else {
           console.error('Expected models object but got:', modelsData);
           setAvailableModels([]);
@@ -143,31 +170,6 @@ export default function AdminPage() {
       .catch((error) => {
         console.error('Error fetching models:', error);
         setAvailableModels([]);
-      });
-    
-    // Fetch current fallback model
-    fetch('/api/admin/fallback-model', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    })
-      .then(r => {
-        if (!r.ok) {
-          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-        }
-        return r.json();
-      })
-      .then(fallbackData => {
-        console.log('Fallback model data received:', fallbackData);
-        if (fallbackData.fallback_model) {
-          setSelectedFallbackModel(fallbackData.fallback_model.m_code);
-        } else {
-          setSelectedFallbackModel('');
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching fallback model:', error);
-        setSelectedFallbackModel('');
       });
   }, []);
 
@@ -791,7 +793,10 @@ Model "${newModelData.label}" added successfully!
                    label="Model"
                    name="selected-model"
                   value={selectedModel}
-                   onChange={(newValue) => handleModelChange(newValue || '')}
+                   onChange={(newValue) => {
+                     const modelCode = newValue || (availableModels.find(m => m.m_code === 'STUB_MODEL' && m.is_available)?.m_code || 'STUB_MODEL');
+                     handleModelChange(modelCode);
+                   }}
                    options={[
                      { value: 'random', label: 'Random' },
                      ...(availableModels || [])
@@ -809,16 +814,14 @@ Model "${newModelData.label}" added successfully!
                    label="Fallback"
                    name="fallback-model"
                    value={selectedFallbackModel}
-                   onChange={(newValue) => handleFallbackModelChange(newValue || '')}
-                   options={[
-                     { value: '', label: 'No fallback (use STUB_MODEL)' },
-                     ...(availableModels || [])
+                   onChange={(newValue) => handleFallbackModelChange(newValue || 'STUB_MODEL')}
+                   options={(availableModels || [])
                     .filter(model => model.is_available)
                        .map(model => ({
                          value: model.m_code,
                          label: model.label
                        }))
-                   ]}
+                   }
                    keySelector={(o) => o.value}
                    labelSelector={(o) => o.label}
                  />

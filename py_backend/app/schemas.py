@@ -211,4 +211,8 @@ class CountryOut(BaseModel):
 class ModelToggleRequest(BaseModel):
     is_available: bool
 
+class PaginatedImageOut(BaseModel):
+    items: List[ImageOut]
+    total_count: int
+
 ImageOut.update_forward_refs()
