@@ -145,10 +145,8 @@ export default function ExplorePage() {
 
   // Reset to first page when filters change (but not when currentPage changes)
   useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [currentPage]);
+    setCurrentPage(1);
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
