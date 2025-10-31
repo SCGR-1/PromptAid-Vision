@@ -67,6 +67,7 @@ export default function ExplorePage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // Delete state management
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -86,11 +87,13 @@ export default function ExplorePage() {
 
   const fetchCaptions = useCallback(() => {
     setIsLoadingContent(true);
+    setFetchError(null);
     
     // Build query parameters for server-side filtering and pagination
     const params = new URLSearchParams({
       page: currentPage.toString(),
-      limit: itemsPerPage.toString()
+      limit: itemsPerPage.toString(),
+      include_count: 'true'
     });
     
     if (search) params.append('search', search);
@@ -105,74 +108,40 @@ export default function ExplorePage() {
     fetch(`/api/images/grouped?${params.toString()}`)
       .then(r => {
         if (!r.ok) {
-          console.error('ExplorePage: Grouped endpoint failed, trying legacy endpoint');
-          // Fallback to legacy endpoint for backward compatibility
-          return fetch('/api/captions/legacy').then(r2 => {
-            if (!r2.ok) {
-              console.error('ExplorePage: Legacy endpoint failed, trying regular images endpoint');
-              return fetch('/api/images').then(r3 => {
-                if (!r3.ok) {
-                  throw new Error(`HTTP ${r3.status}: ${r3.statusText}`);
-                }
-                return r3.json();
-              });
-            }
-            return r2.json();
-          });
+          throw new Error(`Failed to fetch images: ${r.status} ${r.statusText}`);
         }
         return r.json();
       })
       .then(data => {
         console.log('ExplorePage: Fetched captions:', data);
-        setCaptions(data);
+        if (data.items && typeof data.total_count === 'number') {
+          setCaptions(data.items);
+          setTotalItems(data.total_count);
+          setTotalPages(Math.ceil(data.total_count / itemsPerPage));
+        } else if (Array.isArray(data)) {
+          setCaptions(data);
+        } else {
+          throw new Error('Unexpected response format');
+        }
+        setFetchError(null);
       })
       .catch(error => {
         console.error('ExplorePage: Error fetching captions:', error);
+        setFetchError(error instanceof Error ? error.message : 'Failed to load images. Please try again later.');
         setCaptions([]);
+        setTotalItems(0);
+        setTotalPages(0);
       })
       .finally(() => {
         setIsLoadingContent(false);
       });
   }, [currentPage, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, itemsPerPage]);
 
-  const fetchTotalCount = useCallback(() => {
-    // Build query parameters for count endpoint
-    const params = new URLSearchParams();
-    
-    if (search) params.append('search', search);
-    if (srcFilter) params.append('source', srcFilter);
-    if (catFilter) params.append('event_type', catFilter);
-    if (regionFilter) params.append('region', regionFilter);
-    if (countryFilter) params.append('country', countryFilter);
-    if (imageTypeFilter) params.append('image_type', imageTypeFilter);
-    if (uploadTypeFilter) params.append('upload_type', uploadTypeFilter);
-    if (showReferenceExamples) params.append('starred_only', 'true');
-    
-    fetch(`/api/images/grouped/count?${params.toString()}`)
-      .then(r => {
-        if (!r.ok) {
-          console.error('ExplorePage: Count endpoint failed');
-          return { total_count: 0 };
-        }
-        return r.json();
-      })
-      .then(data => {
-        console.log('ExplorePage: Total count:', data.total_count);
-        setTotalItems(data.total_count);
-        setTotalPages(Math.ceil(data.total_count / itemsPerPage));
-      })
-      .catch(error => {
-        console.error('ExplorePage: Error fetching total count:', error);
-        setTotalItems(0);
-        setTotalPages(0);
-      });
-  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, itemsPerPage]);
 
   // Fetch data when component mounts or filters change
   useEffect(() => {
     fetchCaptions();
-    fetchTotalCount();
-  }, [fetchCaptions, fetchTotalCount]);
+  }, [fetchCaptions]);
 
   // Reset to first page when filters change (but not when currentPage changes)
   useEffect(() => {
@@ -672,8 +641,27 @@ export default function ExplorePage() {
                 </div>
               )}
 
+              {/* Error State */}
+              {!isLoadingContent && fetchError && (
+                <div className="text-center py-12">
+                  <Container withInternalPadding className="bg-red-50 border border-red-200 rounded-md max-w-2xl mx-auto">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="text-red-800 font-semibold text-lg">Failed to Load Images</div>
+                      <div className="text-red-700">{fetchError}</div>
+                      <Button
+                        name="retry-fetch"
+                        variant="primary"
+                        onClick={() => fetchCaptions()}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  </Container>
+                </div>
+              )}
+
               {/* Content */}
-              {!isLoadingContent && (
+              {!isLoadingContent && !fetchError && (
                 <div className="space-y-4">
                   {paginatedResults.map(c => (
                     <div key={c.image_id} className="flex items-center gap-4">

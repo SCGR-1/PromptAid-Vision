@@ -44,8 +44,11 @@ def get_db():
         db.close()
 
 
-def convert_image_to_dict(img, image_url):
-    """Helper function to convert SQLAlchemy image model to dict for Pydantic"""
+def convert_image_to_dict(img, image_url, url_cache: Optional[dict[str, str]] = None):
+    """Helper function to convert SQLAlchemy image model to dict for Pydantic
+    
+    url_cache: Optional dict to cache generated URLs by key, avoiding duplicate presigned URL generation
+    """
     countries_list = []
     if hasattr(img, 'countries') and img.countries is not None:
         try:
@@ -110,19 +113,19 @@ def convert_image_to_dict(img, image_url):
         created_at = first_caption.get("created_at")
         updated_at = first_caption.get("updated_at")
     
-    # Generate URLs for all image versions
+    # Generate URLs for all image versions (using cache if provided)
     thumbnail_url = None
     detail_url = None
     
     if hasattr(img, 'thumbnail_key') and img.thumbnail_key:
         try:
-            thumbnail_url = storage.get_object_url(img.thumbnail_key)
+            thumbnail_url = storage.get_object_url(img.thumbnail_key, cache=url_cache)
         except Exception as e:
             logger.warning(f"Error generating thumbnail URL for image {img.image_id}: {e}")
     
     if hasattr(img, 'detail_key') and img.detail_key:
         try:
-            detail_url = storage.get_object_url(img.detail_key)
+            detail_url = storage.get_object_url(img.detail_key, cache=url_cache)
         except Exception as e:
             logger.warning(f"Error generating detail URL for image {img.image_id}: {e}")
     
@@ -181,14 +184,15 @@ def convert_image_to_dict(img, image_url):
 def list_images(db: Session = Depends(get_db)):
     """Get all images with their caption data"""
     images = crud.get_images(db)
+    url_cache: dict[str, str] = {}
     result = []
     for img in images:
-        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file", url_cache=url_cache)
         result.append(schemas.ImageOut(**img_dict))
     
     return result
 
-@router.get("/grouped", response_model=List[schemas.ImageOut])
+@router.get("/grouped")
 def list_images_grouped(
     page: int = 1, 
     limit: int = 10, 
@@ -200,67 +204,46 @@ def list_images_grouped(
     image_type: str = None,
     upload_type: str = None,
     starred_only: bool = False,
+    include_count: bool = False,
     db: Session = Depends(get_db)
 ):
-    """Get images grouped by shared captions for multi-upload items with pagination and filtering"""
+    """Get images grouped by shared captions for multi-upload items with pagination and filtering
     
-    # Validate pagination parameters
+    If include_count=true, returns {items: [], total_count: N} format.
+    Otherwise returns array format for backward compatibility.
+    """
+    
     if page < 1:
         page = 1
     if limit < 1 or limit > 100:
         limit = 10
     
-    # Get all captions with their associated images
-    captions = crud.get_all_captions_with_images(db)
-    result = []
+    captions, total_count = crud.get_captions_with_images_filtered(
+        db=db,
+        search=search,
+        source=source,
+        event_type=event_type,
+        region=region,
+        country=country,
+        image_type=image_type,
+        upload_type=upload_type,
+        starred_only=starred_only,
+        page=page,
+        limit=limit
+    )
     
+    url_cache: dict[str, str] = {}
+    
+    result = []
     for caption in captions:
         if not caption.images:
             continue
 
         effective_image_count = caption.image_count if caption.image_count is not None and caption.image_count > 0 else len(caption.images)
         
-        # Apply filters
-        if search:
-            search_lower = search.lower()
-            if not (caption.title and search_lower in caption.title.lower()) and \
-               not (caption.generated and search_lower in caption.generated.lower()):
-                continue
-        
-        if starred_only and not caption.starred:
-            continue
-            
         if effective_image_count > 1:
             first_img = caption.images[0]
-            if source:
-                if not any(source in img.source for img in caption.images if img.source):
-                    continue
-            if event_type:
-                if not any(event_type in img.event_type for img in caption.images if img.event_type):
-                    continue
-            if image_type:
-                if not any(img.image_type == image_type for img in caption.images):
-                    continue
-            if upload_type:
-                if upload_type == 'single' and effective_image_count > 1:
-                    continue
-                if upload_type == 'multiple' and effective_image_count <= 1:
-                    continue
-            if region or country:
-                has_matching_country = False
-                for img in caption.images:
-                    for img_country in img.countries:
-                        if region and img_country.r_code == region:
-                            has_matching_country = True
-                            break
-                        if country and img_country.c_code == country:
-                            has_matching_country = True
-                            break
-                    if has_matching_country:
-                        break
-                if not has_matching_country:
-                    continue
-            # Combine metadata from all images
+            
             combined_source = set()
             combined_event_type = set()
             combined_epsg = set()
@@ -273,15 +256,12 @@ def list_images_grouped(
                 if img.epsg:
                     combined_epsg.add(img.epsg)
             
-            # Create a combined image dict using the first image as a template
-            img_dict = convert_image_to_dict(first_img, f"/api/images/{first_img.image_id}/file")
+            img_dict = convert_image_to_dict(first_img, f"/api/images/{first_img.image_id}/file", url_cache=url_cache)
             
-            # Override with combined metadata
             img_dict["source"] = ", ".join(sorted(list(combined_source))) if combined_source else "OTHER"
             img_dict["event_type"] = ", ".join(sorted(list(combined_event_type))) if combined_event_type else "OTHER"
             img_dict["epsg"] = ", ".join(sorted(list(combined_epsg))) if combined_epsg else "OTHER"
             
-            # Update countries to include all unique countries
             all_countries = []
             for img in caption.images:
                 for country_obj in img.countries:
@@ -289,11 +269,9 @@ def list_images_grouped(
                         all_countries.append({"c_code": country_obj.c_code, "label": country_obj.label, "r_code": country_obj.r_code})
             img_dict["countries"] = all_countries
             
-            # Add all image IDs for reference
             img_dict["all_image_ids"] = [str(img.image_id) for img in caption.images]
             img_dict["image_count"] = effective_image_count
             
-            # Set caption-level fields
             img_dict["title"] = caption.title
             img_dict["prompt"] = caption.prompt
             img_dict["model"] = caption.model
@@ -310,36 +288,12 @@ def list_images_grouped(
 
             result.append(schemas.ImageOut(**img_dict))
         else:
-            # For single images, apply filters
             img = caption.images[0]
             
-            if source and img.source != source:
-                continue
-            if event_type and img.event_type != event_type:
-                continue
-            if image_type and img.image_type != image_type:
-                continue
-            if upload_type == 'multiple':
-                continue
-            
-            # Apply region/country filter
-            if region or country:
-                has_matching_country = False
-                for img_country in img.countries:
-                    if region and img_country.r_code == region:
-                        has_matching_country = True
-                        break
-                    if country and img_country.c_code == country:
-                        has_matching_country = True
-                        break
-                if not has_matching_country:
-                    continue
-            
-            img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+            img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file", url_cache=url_cache)
             img_dict["all_image_ids"] = [str(img.image_id)]
             img_dict["image_count"] = 1
             
-            # Set caption-level fields
             img_dict["title"] = caption.title
             img_dict["prompt"] = caption.prompt
             img_dict["model"] = caption.model
@@ -356,13 +310,9 @@ def list_images_grouped(
 
             result.append(schemas.ImageOut(**img_dict))
     
-    # Apply pagination
-    total_count = len(result)
-    start_index = (page - 1) * limit
-    end_index = start_index + limit
-    paginated_result = result[start_index:end_index]
-    
-    return paginated_result
+    if include_count:
+        return {"items": result, "total_count": total_count}
+    return result
 
 @router.get("/grouped/count")
 def get_images_grouped_count(
@@ -378,92 +328,17 @@ def get_images_grouped_count(
 ):
     """Get total count of images for pagination"""
     
-    # Get all captions with their associated images
-    captions = crud.get_all_captions_with_images(db)
-    count = 0
-    
-    for caption in captions:
-        if not caption.images:
-            continue
-            
-        # Determine the effective image count for this caption
-        effective_image_count = caption.image_count if caption.image_count is not None and caption.image_count > 0 else len(caption.images)
-        
-        # Apply filters (same logic as above)
-        if search:
-            search_lower = search.lower()
-            if not (caption.title and search_lower in caption.title.lower()) and \
-               not (caption.generated and search_lower in caption.generated.lower()):
-                continue
-        
-        if starred_only and not caption.starred:
-            continue
-            
-        if effective_image_count > 1:
-            # Multi-upload item
-            first_img = caption.images[0]
-            
-            # Apply filters
-            if source:
-                if not any(source in img.source for img in caption.images if img.source):
-                    continue
-            
-            if event_type:
-                if not any(event_type in img.event_type for img in caption.images if img.event_type):
-                    continue
-            
-            if image_type:
-                if not any(img.image_type == image_type for img in caption.images):
-                    continue
-            
-            if upload_type:
-                if upload_type == 'single' and effective_image_count > 1:
-                    continue
-                if upload_type == 'multiple' and effective_image_count <= 1:
-                    continue
-            
-            if region or country:
-                has_matching_country = False
-                for img in caption.images:
-                    for img_country in img.countries:
-                        if region and img_country.r_code == region:
-                            has_matching_country = True
-                            break
-                        if country and img_country.c_code == country:
-                            has_matching_country = True
-                            break
-                    if has_matching_country:
-                        break
-                if not has_matching_country:
-                    continue
-            
-            count += 1
-        else:
-            # Single image
-            img = caption.images[0]
-            
-            if source and img.source != source:
-                continue
-            if event_type and img.event_type != event_type:
-                continue
-            if image_type and img.image_type != image_type:
-                continue
-            if upload_type == 'multiple':
-                continue
-            
-            if region or country:
-                has_matching_country = False
-                for img_country in img.countries:
-                    if region and img_country.r_code == region:
-                        has_matching_country = True
-                        break
-                    if country and img_country.c_code == country:
-                        has_matching_country = True
-                        break
-                if not has_matching_country:
-                    continue
-            
-            count += 1
+    count = crud.count_captions_with_images_filtered(
+        db=db,
+        search=search,
+        source=source,
+        event_type=event_type,
+        region=region,
+        country=country,
+        image_type=image_type,
+        upload_type=upload_type,
+        starred_only=starred_only
+    )
     
     return {"total_count": count}
 
