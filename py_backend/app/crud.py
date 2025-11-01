@@ -145,16 +145,26 @@ def get_images_paginated(
     
     if needs_grouping:
         base_query = base_query.group_by(models.Captions.caption_id)
-        effective_count = case(
-            (
-                func.max(models.Captions.image_count).isnot(None),
-                case(
-                    (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
-                    else_=func.count(distinct(models.Images.image_id))
-                )
-            ),
-            else_=func.count(distinct(models.Images.image_id))
-        )
+        
+        # Check if any image-level filters are active
+        has_image_filters = source is not None or event_type is not None or image_type is not None or needs_country_join
+        
+        if has_image_filters:
+            # When image filters are active, count filtered images only
+            effective_count = func.count(distinct(models.Images.image_id))
+        else:
+            # When no image filters, use cached image_count if available
+            effective_count = case(
+                (
+                    func.max(models.Captions.image_count).isnot(None),
+                    case(
+                        (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                        else_=func.count(distinct(models.Images.image_id))
+                    )
+                ),
+                else_=func.count(distinct(models.Images.image_id))
+            )
+        
         if upload_type == 'single':
             base_query = base_query.having(effective_count <= 1)
         elif upload_type == 'multiple':
@@ -305,16 +315,26 @@ def get_images_count(
         
         # Group by caption_id and apply having filter
         caption_query = caption_query.group_by(models.Captions.caption_id)
-        effective_count = case(
-            (
-                func.max(models.Captions.image_count).isnot(None),
-                case(
-                    (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
-                    else_=func.count(distinct(models.Images.image_id))
-                )
-            ),
-            else_=func.count(distinct(models.Images.image_id))
-        )
+        
+        # Check if any image-level filters are active
+        has_image_filters = source is not None or event_type is not None or image_type is not None or needs_country_join
+        
+        if has_image_filters:
+            # When image filters are active, count filtered images only
+            effective_count = func.count(distinct(models.Images.image_id))
+        else:
+            # When no image filters, use cached image_count if available
+            effective_count = case(
+                (
+                    func.max(models.Captions.image_count).isnot(None),
+                    case(
+                        (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                        else_=func.count(distinct(models.Images.image_id))
+                    )
+                ),
+                else_=func.count(distinct(models.Images.image_id))
+            )
+        
         if upload_type == 'single':
             caption_query = caption_query.having(effective_count <= 1)
         elif upload_type == 'multiple':
