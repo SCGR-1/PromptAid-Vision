@@ -111,6 +111,8 @@ def get_images_grouped_count(
     region: str = Query(None),
     country: str = Query(None),
     image_type: str = Query(None),
+    upload_type: Optional[str] = Query(None),
+    starred_only: bool = Query(False),
     db: Session = Depends(get_db)
 ):
     """Get total count of images matching filters"""
@@ -130,6 +132,10 @@ def get_images_grouped_count(
         filters['country'] = country
     if image_type:
         filters['image_type'] = image_type
+    if upload_type:
+        filters['upload_type'] = upload_type
+    if starred_only:
+        filters['starred_only'] = starred_only
     
     count = crud.get_images_count(db, **filters)
     logger.info(f"Total images count: {count}")

@@ -249,7 +249,43 @@ def get_images_count(
             query = query.filter(models.Country.c_code == country)
     
     if needs_grouping:
-        query = query.group_by(models.Captions.caption_id)
+        # When grouping, query caption_ids instead of image_ids
+        caption_query = db.query(models.Captions.caption_id)
+        
+        if search:
+            search_pattern = f"%{search.lower()}%"
+            caption_query = caption_query.filter(
+                or_(
+                    func.lower(models.Captions.title).like(search_pattern),
+                    func.lower(models.Captions.generated).like(search_pattern),
+                    func.lower(models.Captions.edited).like(search_pattern)
+                )
+            )
+        
+        if starred_only:
+            caption_query = caption_query.filter(models.Captions.starred == True)
+        
+        # Join with images to apply image-level filters
+        caption_query = caption_query.join(models.images_captions).join(models.Images)
+        
+        if source:
+            caption_query = caption_query.filter(models.Images.source == source)
+        
+        if event_type:
+            caption_query = caption_query.filter(models.Images.event_type == event_type)
+        
+        if image_type:
+            caption_query = caption_query.filter(models.Images.image_type == image_type)
+        
+        if needs_country_join:
+            caption_query = caption_query.join(models.image_countries).join(models.Country)
+            if region:
+                caption_query = caption_query.filter(models.Country.r_code == region)
+            if country:
+                caption_query = caption_query.filter(models.Country.c_code == country)
+        
+        # Group by caption_id and apply having filter
+        caption_query = caption_query.group_by(models.Captions.caption_id)
         effective_count = case(
             (
                 func.max(models.Captions.image_count).isnot(None),
@@ -261,11 +297,11 @@ def get_images_count(
             else_=func.count(distinct(models.Images.image_id))
         )
         if upload_type == 'single':
-            query = query.having(effective_count <= 1)
+            caption_query = caption_query.having(effective_count <= 1)
         elif upload_type == 'multiple':
-            query = query.having(effective_count > 1)
+            caption_query = caption_query.having(effective_count > 1)
         
-        count = query.count()
+        count = caption_query.count()
     else:
         count = query.count()
     
