@@ -22,10 +22,18 @@ if "sslmode=" not in raw_db_url and "localhost" not in raw_db_url and "127.0.0.1
 
 logger.debug(f"database url: {raw_db_url}")  
 
+# Connection pool configuration:
+# - pool_size: number of persistent connections to keep (default: 5)
+# - max_overflow: additional connections beyond pool_size (default: 10)
+#   Total max connections = pool_size + max_overflow = 20
+# - pool_pre_ping: test connections before use to handle stale connections
+# - pool_recycle: recycle connections after 300 seconds to prevent stale connections
 engine = create_engine(
     raw_db_url,            
     pool_pre_ping=True,
-    pool_recycle=300,        
+    pool_recycle=300,
+    pool_size=10,
+    max_overflow=10,
 )
 
 SessionLocal = sessionmaker(

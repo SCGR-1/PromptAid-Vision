@@ -222,12 +222,23 @@ def get_captions_with_images_filtered(
             base_query = base_query.having(effective_count > 1)
     
     if needs_grouping:
-        count_query = base_query.with_entities(func.count())
+        total_count = count_captions_with_images_filtered(
+            db=db,
+            search=search,
+            source=source,
+            event_type=event_type,
+            region=region,
+            country=country,
+            image_type=image_type,
+            upload_type=upload_type,
+            starred_only=starred_only
+        )
     elif needs_image_join:
         count_query = base_query.with_entities(func.count(distinct(models.Captions.caption_id)))
+        total_count = count_query.scalar()
     else:
         count_query = base_query.with_entities(func.count(models.Captions.caption_id))
-    total_count = count_query.scalar()
+        total_count = count_query.scalar()
     
     query = base_query.order_by(models.Captions.created_at.desc())
     

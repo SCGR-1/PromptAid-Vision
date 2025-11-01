@@ -2,14 +2,20 @@
 Shared utilities for image operations
 """
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from .. import crud, storage
 
 logger = logging.getLogger(__name__)
 
-def convert_image_to_dict(img, image_url: str) -> Dict[str, Any]:
-    """Helper function to convert SQLAlchemy image model to dict for Pydantic"""
+def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """Helper function to convert SQLAlchemy image model to dict for Pydantic
+    
+    Args:
+        img: SQLAlchemy image model instance
+        image_url: URL for the main image file
+        url_cache: Optional dict to cache generated URLs by key, avoiding duplicate presigned URL generation
+    """
     countries_list = []
     if hasattr(img, 'countries') and img.countries is not None:
         try:
@@ -62,13 +68,13 @@ def convert_image_to_dict(img, image_url: str) -> Dict[str, Any]:
     
     if hasattr(img, 'thumbnail_key') and img.thumbnail_key:
         try:
-            thumbnail_url = storage.get_object_url(img.thumbnail_key)
+            thumbnail_url = storage.get_object_url(img.thumbnail_key, cache=url_cache)
         except Exception as e:
             logger.warning(f"Error generating thumbnail URL for image {img.image_id}: {e}")
     
     if hasattr(img, 'detail_key') and img.detail_key:
         try:
-            detail_url = storage.get_object_url(img.detail_key)
+            detail_url = storage.get_object_url(img.detail_key, cache=url_cache)
         except Exception as e:
             logger.warning(f"Error generating detail URL for image {img.image_id}: {e}")
     

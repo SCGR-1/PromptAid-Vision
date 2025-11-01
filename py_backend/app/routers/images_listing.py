@@ -25,9 +25,10 @@ def list_images(db: Session = Depends(get_db)):
     """Get all images with their caption data"""
     logger.debug("Listing all images")
     images = crud.get_images(db)
+    url_cache: dict[str, str] = {}
     result = []
     for img in images:
-        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file", url_cache=url_cache)
         result.append(schemas.ImageOut(**img_dict))
     
     logger.info(f"Returned {len(result)} images")
@@ -73,9 +74,10 @@ def list_images_grouped(
         **filters
     )
     
+    url_cache: dict[str, str] = {}
     result = []
     for img in images:
-        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file", url_cache=url_cache)
         result.append(schemas.ImageOut(**img_dict))
     
     logger.info(f"Returned {len(result)} images for page {page}")
