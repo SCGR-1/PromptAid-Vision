@@ -168,9 +168,28 @@ def get_images_paginated(
         ).order_by(func.max(models.Images.captured_at).desc()).offset(offset).limit(limit).all()
         matching_caption_ids = [row[0] for row in caption_id_rows]
         
-        # Get distinct image_ids from the matching captions
+        # Get distinct image_ids from the matching captions, reapplying image-level filters
+        image_ids_query = db.query(models.Images.image_id)
+        
+        if source:
+            image_ids_query = image_ids_query.filter(models.Images.source == source)
+        
+        if event_type:
+            image_ids_query = image_ids_query.filter(models.Images.event_type == event_type)
+        
+        if image_type:
+            image_ids_query = image_ids_query.filter(models.Images.image_type == image_type)
+        
+        if needs_country_join:
+            image_ids_query = image_ids_query.join(models.image_countries).join(models.Country)
+            if region:
+                image_ids_query = image_ids_query.filter(models.Country.r_code == region)
+            if country:
+                image_ids_query = image_ids_query.filter(models.Country.c_code == country)
+        
+        # Join with captions and filter by matching caption_ids
         image_ids_query = (
-            db.query(models.Images.image_id)
+            image_ids_query
             .join(models.images_captions)
             .filter(models.images_captions.c.caption_id.in_(matching_caption_ids))
             .distinct()
