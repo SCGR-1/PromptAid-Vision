@@ -1,7 +1,8 @@
 import io, hashlib
 import logging
 from typing import Optional, List
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import func, or_, and_, distinct, case
 from . import models, schemas
 from fastapi import HTTPException
 
@@ -152,6 +153,168 @@ def get_all_captions_with_images(db: Session):
         )
         .all()
     )
+
+def get_captions_with_images_filtered(
+    db: Session,
+    search: Optional[str] = None,
+    source: Optional[str] = None,
+    event_type: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    image_type: Optional[str] = None,
+    upload_type: Optional[str] = None,
+    starred_only: bool = False,
+    page: int = 1,
+    limit: int = 10,
+):
+    """Get captions with filtered and paginated results using SQL queries"""
+    needs_grouping = upload_type is not None
+    needs_image_join = source is not None or event_type is not None or image_type is not None or region is not None or country is not None or upload_type is not None
+    
+    base_query = db.query(models.Captions)
+    
+    if search:
+        search_pattern = f"%{search.lower()}%"
+        base_query = base_query.filter(
+            or_(
+                func.lower(models.Captions.title).like(search_pattern),
+                func.lower(models.Captions.generated).like(search_pattern)
+            )
+        )
+    
+    if starred_only:
+        base_query = base_query.filter(models.Captions.starred == True)
+    
+    if needs_image_join:
+        base_query = base_query.join(models.images_captions).join(models.Images)
+        
+        if source:
+            base_query = base_query.filter(models.Images.source == source)
+        
+        if event_type:
+            base_query = base_query.filter(models.Images.event_type == event_type)
+        
+        if image_type:
+            base_query = base_query.filter(models.Images.image_type == image_type)
+        
+        if region or country:
+            base_query = base_query.join(models.image_countries).join(models.Country)
+            if region:
+                base_query = base_query.filter(models.Country.r_code == region)
+            if country:
+                base_query = base_query.filter(models.Country.c_code == country)
+    
+    if needs_grouping:
+        base_query = base_query.group_by(models.Captions.caption_id)
+        effective_count = case(
+            (
+                func.max(models.Captions.image_count).isnot(None),
+                case(
+                    (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                    else_=func.count(distinct(models.Images.image_id))
+                )
+            ),
+            else_=func.count(distinct(models.Images.image_id))
+        )
+        if upload_type == 'single':
+            base_query = base_query.having(effective_count <= 1)
+        elif upload_type == 'multiple':
+            base_query = base_query.having(effective_count > 1)
+    
+    if needs_grouping:
+        count_query = base_query.with_entities(func.count())
+    elif needs_image_join:
+        count_query = base_query.with_entities(func.count(distinct(models.Captions.caption_id)))
+    else:
+        count_query = base_query.with_entities(func.count(models.Captions.caption_id))
+    total_count = count_query.scalar()
+    
+    query = base_query.order_by(models.Captions.created_at.desc())
+    
+    offset = (page - 1) * limit
+    query = query.offset(offset).limit(limit)
+    
+    caption_ids = [row[0] for row in query.with_entities(models.Captions.caption_id).all()]
+    
+    captions = (
+        db.query(models.Captions)
+        .filter(models.Captions.caption_id.in_(caption_ids))
+        .options(
+            selectinload(models.Captions.images).selectinload(models.Images.countries)
+        )
+        .order_by(models.Captions.created_at.desc())
+        .all()
+    )
+    
+    return captions, total_count
+
+def count_captions_with_images_filtered(
+    db: Session,
+    search: Optional[str] = None,
+    source: Optional[str] = None,
+    event_type: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    image_type: Optional[str] = None,
+    upload_type: Optional[str] = None,
+    starred_only: bool = False,
+):
+    """Count captions matching filters using SQL queries"""
+    needs_grouping = upload_type is not None
+    needs_image_join = source is not None or event_type is not None or image_type is not None or region is not None or country is not None or upload_type is not None
+    
+    query = db.query(models.Captions.caption_id).distinct()
+    
+    if search:
+        search_pattern = f"%{search.lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(models.Captions.title).like(search_pattern),
+                func.lower(models.Captions.generated).like(search_pattern)
+            )
+        )
+    
+    if starred_only:
+        query = query.filter(models.Captions.starred == True)
+    
+    if needs_image_join:
+        query = query.join(models.images_captions).join(models.Images)
+        
+        if source:
+            query = query.filter(models.Images.source == source)
+        
+        if event_type:
+            query = query.filter(models.Images.event_type == event_type)
+        
+        if image_type:
+            query = query.filter(models.Images.image_type == image_type)
+        
+        if region or country:
+            query = query.join(models.image_countries).join(models.Country)
+            if region:
+                query = query.filter(models.Country.r_code == region)
+            if country:
+                query = query.filter(models.Country.c_code == country)
+    
+    if needs_grouping:
+        query = query.group_by(models.Captions.caption_id)
+        effective_count = case(
+            (
+                func.max(models.Captions.image_count).isnot(None),
+                case(
+                    (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                    else_=func.count(distinct(models.Images.image_id))
+                )
+            ),
+            else_=func.count(distinct(models.Images.image_id))
+        )
+        if upload_type == 'single':
+            query = query.having(effective_count <= 1)
+        elif upload_type == 'multiple':
+            query = query.having(effective_count > 1)
+    
+    count = query.count()
+    return count
 
 def get_prompts(db: Session):
     """Get all available prompts"""

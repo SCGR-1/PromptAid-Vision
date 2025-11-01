@@ -137,6 +137,7 @@ export default function ExplorePage() {
       });
   }, [currentPage, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, itemsPerPage]);
 
+
   // Fetch data when component mounts or filters change
   useEffect(() => {
     fetchCaptions();

@@ -47,15 +47,32 @@ def _ensure_bucket() -> None:
         s3.create_bucket(**create_kwargs)
 
 
-def get_object_url(key: str, *, expires_in: int = 3600) -> str:
-    """Return browser-usable URL for object."""
+_url_cache: dict[str, str] = {}
+
+def get_object_url(key: str, *, expires_in: int = 3600, cache: Optional[dict[str, str]] = None) -> str:
+    """Return browser-usable URL for object.
+    
+    If cache dict is provided, URLs are cached per key to avoid duplicate presigned URL generation.
+    """
     if settings.STORAGE_PROVIDER == "local":
         return f"/uploads/{key}"
     
     public_base = getattr(settings, "S3_PUBLIC_URL_BASE", None)
     if public_base:
         return f"{public_base.rstrip('/')}/{key}"
-    return generate_presigned_url(key, expires_in=expires_in)
+    
+    cache_dict = cache if cache is not None else _url_cache
+    
+    if key in cache_dict:
+        return cache_dict[key]
+    
+    url = generate_presigned_url(key, expires_in=expires_in)
+    cache_dict[key] = url
+    return url
+
+def clear_url_cache():
+    """Clear the global URL cache (mainly for testing)."""
+    _url_cache.clear()
 
 
 def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
