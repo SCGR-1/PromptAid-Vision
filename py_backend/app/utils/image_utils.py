@@ -41,6 +41,7 @@ def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str
                     "context": c.context,
                     "usability": c.usability,
                     "starred": c.starred if c.starred is not None else False,
+                    "image_count": getattr(c, "image_count", None),
                     "created_at": c.created_at,
                     "updated_at": c.updated_at
                 } for c in img.captions
@@ -96,6 +97,26 @@ def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str
         except Exception as e:
             logger.warning(f"Error generating detail URL for image {img.image_id}: {e}")
     
+    # Compute multi-upload metadata from primary caption
+    image_count = None
+    all_image_ids = None
+    if img.captions:
+        primary_caption = img.captions[0]
+        # Use image_count if available and positive, otherwise count images
+        if hasattr(primary_caption, 'image_count') and primary_caption.image_count is not None and primary_caption.image_count > 0:
+            image_count = primary_caption.image_count
+        elif hasattr(primary_caption, 'images') and primary_caption.images is not None:
+            image_count = len(primary_caption.images)
+            all_image_ids = [str(linked_img.image_id) for linked_img in primary_caption.images]
+        else:
+            # Default to single image
+            image_count = 1
+            all_image_ids = [str(img.image_id)]
+    else:
+        # No captions, default to single image
+        image_count = 1
+        all_image_ids = [str(img.image_id)]
+    
     img_dict = {
         "image_id": img.image_id,
         "file_key": img.file_key,
@@ -115,6 +136,10 @@ def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str
         "captions": captions_list,
         "starred": starred,
         "captured_at": getattr(img, 'captured_at', None),
+        
+        # Multi-upload fields
+        "image_count": image_count,
+        "all_image_ids": all_image_ids,
         
         # Backward compatibility fields for legacy frontend
         "title": title,

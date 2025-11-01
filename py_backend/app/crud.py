@@ -219,7 +219,7 @@ def get_images_paginated(
         .filter(models.Images.image_id.in_(image_ids))
         .options(
             joinedload(models.Images.countries),
-            joinedload(models.Images.captions)
+            joinedload(models.Images.captions).joinedload(models.Captions.images)
         )
         .order_by(models.Images.captured_at.desc())
         .all()
