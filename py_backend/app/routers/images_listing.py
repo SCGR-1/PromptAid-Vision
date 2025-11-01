@@ -44,6 +44,8 @@ def list_images_grouped(
     region: str = Query(None),
     country: str = Query(None),
     image_type: str = Query(None),
+    upload_type: Optional[str] = Query(None),
+    starred_only: bool = Query(False),
     include_count: bool = Query(False),
     db: Session = Depends(get_db)
 ):
@@ -68,6 +70,10 @@ def list_images_grouped(
         filters['country'] = country
     if image_type:
         filters['image_type'] = image_type
+    if upload_type:
+        filters['upload_type'] = upload_type
+    if starred_only:
+        filters['starred_only'] = starred_only
     
     logger.debug(f"Applied filters: {filters}")
     

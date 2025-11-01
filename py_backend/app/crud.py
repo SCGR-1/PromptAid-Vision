@@ -99,22 +99,33 @@ def get_images_paginated(
     region: Optional[str] = None,
     country: Optional[str] = None,
     image_type: Optional[str] = None,
+    upload_type: Optional[str] = None,
+    starred_only: bool = False,
     page: int = 1,
     limit: int = 10,
 ):
     """Get paginated and filtered images using SQL queries"""
+    needs_grouping = upload_type is not None
+    needs_caption_join = search is not None or starred_only or needs_grouping
+    needs_country_join = region is not None or country is not None
+    
     base_query = db.query(models.Images)
     
-    if search:
+    if needs_caption_join:
         base_query = base_query.join(models.images_captions).join(models.Captions)
-        search_pattern = f"%{search.lower()}%"
-        base_query = base_query.filter(
-            or_(
-                func.lower(models.Captions.title).like(search_pattern),
-                func.lower(models.Captions.generated).like(search_pattern),
-                func.lower(models.Captions.edited).like(search_pattern)
+        
+        if search:
+            search_pattern = f"%{search.lower()}%"
+            base_query = base_query.filter(
+                or_(
+                    func.lower(models.Captions.title).like(search_pattern),
+                    func.lower(models.Captions.generated).like(search_pattern),
+                    func.lower(models.Captions.edited).like(search_pattern)
+                )
             )
-        )
+        
+        if starred_only:
+            base_query = base_query.filter(models.Captions.starred == True)
     
     if source:
         base_query = base_query.filter(models.Images.source == source)
@@ -125,20 +136,54 @@ def get_images_paginated(
     if image_type:
         base_query = base_query.filter(models.Images.image_type == image_type)
     
-    if region or country:
+    if needs_country_join:
         base_query = base_query.join(models.image_countries).join(models.Country)
         if region:
             base_query = base_query.filter(models.Country.r_code == region)
         if country:
             base_query = base_query.filter(models.Country.c_code == country)
     
-    offset = (page - 1) * limit
-    # For distinct with order_by, we need to include the ordering column in the select
-    image_id_rows = base_query.with_entities(
-        models.Images.image_id,
-        models.Images.captured_at
-    ).distinct().order_by(models.Images.captured_at.desc()).offset(offset).limit(limit).all()
-    image_ids = [row[0] for row in image_id_rows]
+    if needs_grouping:
+        base_query = base_query.group_by(models.Captions.caption_id)
+        effective_count = case(
+            (
+                func.max(models.Captions.image_count).isnot(None),
+                case(
+                    (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                    else_=func.count(distinct(models.Images.image_id))
+                )
+            ),
+            else_=func.count(distinct(models.Images.image_id))
+        )
+        if upload_type == 'single':
+            base_query = base_query.having(effective_count <= 1)
+        elif upload_type == 'multiple':
+            base_query = base_query.having(effective_count > 1)
+        
+        offset = (page - 1) * limit
+        # Get caption_ids that match the upload_type filter
+        caption_id_rows = base_query.with_entities(
+            models.Captions.caption_id,
+            func.max(models.Images.captured_at).label('captured_at')
+        ).order_by(func.max(models.Images.captured_at).desc()).offset(offset).limit(limit).all()
+        matching_caption_ids = [row[0] for row in caption_id_rows]
+        
+        # Get distinct image_ids from the matching captions
+        image_ids_query = (
+            db.query(models.Images.image_id)
+            .join(models.images_captions)
+            .filter(models.images_captions.c.caption_id.in_(matching_caption_ids))
+            .distinct()
+        )
+        image_ids = [row[0] for row in image_ids_query.all()]
+    else:
+        offset = (page - 1) * limit
+        # For distinct with order_by, we need to include the ordering column in the select
+        image_id_rows = base_query.with_entities(
+            models.Images.image_id,
+            models.Images.captured_at
+        ).distinct().order_by(models.Images.captured_at.desc()).offset(offset).limit(limit).all()
+        image_ids = [row[0] for row in image_id_rows]
     
     images = (
         db.query(models.Images)
@@ -161,20 +206,31 @@ def get_images_count(
     region: Optional[str] = None,
     country: Optional[str] = None,
     image_type: Optional[str] = None,
+    upload_type: Optional[str] = None,
+    starred_only: bool = False,
 ):
     """Count images matching filters using SQL queries"""
+    needs_grouping = upload_type is not None
+    needs_caption_join = search is not None or starred_only or needs_grouping
+    needs_country_join = region is not None or country is not None
+    
     query = db.query(models.Images.image_id).distinct()
     
-    if search:
+    if needs_caption_join:
         query = query.join(models.images_captions).join(models.Captions)
-        search_pattern = f"%{search.lower()}%"
-        query = query.filter(
-            or_(
-                func.lower(models.Captions.title).like(search_pattern),
-                func.lower(models.Captions.generated).like(search_pattern),
-                func.lower(models.Captions.edited).like(search_pattern)
+        
+        if search:
+            search_pattern = f"%{search.lower()}%"
+            query = query.filter(
+                or_(
+                    func.lower(models.Captions.title).like(search_pattern),
+                    func.lower(models.Captions.generated).like(search_pattern),
+                    func.lower(models.Captions.edited).like(search_pattern)
+                )
             )
-        )
+        
+        if starred_only:
+            query = query.filter(models.Captions.starred == True)
     
     if source:
         query = query.filter(models.Images.source == source)
@@ -185,14 +241,34 @@ def get_images_count(
     if image_type:
         query = query.filter(models.Images.image_type == image_type)
     
-    if region or country:
+    if needs_country_join:
         query = query.join(models.image_countries).join(models.Country)
         if region:
             query = query.filter(models.Country.r_code == region)
         if country:
             query = query.filter(models.Country.c_code == country)
     
-    count = query.count()
+    if needs_grouping:
+        query = query.group_by(models.Captions.caption_id)
+        effective_count = case(
+            (
+                func.max(models.Captions.image_count).isnot(None),
+                case(
+                    (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                    else_=func.count(distinct(models.Images.image_id))
+                )
+            ),
+            else_=func.count(distinct(models.Images.image_id))
+        )
+        if upload_type == 'single':
+            query = query.having(effective_count <= 1)
+        elif upload_type == 'multiple':
+            query = query.having(effective_count > 1)
+        
+        count = query.count()
+    else:
+        count = query.count()
+    
     return count
 
 def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None, image_count=None):
