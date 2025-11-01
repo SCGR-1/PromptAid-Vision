@@ -4,7 +4,7 @@ Handles listing, pagination, and filtering of images
 """
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Union
 import logging
 
 from .. import crud, schemas, database
@@ -25,15 +25,16 @@ def list_images(db: Session = Depends(get_db)):
     """Get all images with their caption data"""
     logger.debug("Listing all images")
     images = crud.get_images(db)
+    url_cache: dict[str, str] = {}
     result = []
     for img in images:
-        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file", url_cache=url_cache)
         result.append(schemas.ImageOut(**img_dict))
     
     logger.info(f"Returned {len(result)} images")
     return result
 
-@router.get("/grouped", response_model=List[schemas.ImageOut])
+@router.get("/grouped", response_model=Union[List[schemas.ImageOut], schemas.PaginatedImageOut])
 def list_images_grouped(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
@@ -43,9 +44,16 @@ def list_images_grouped(
     region: str = Query(None),
     country: str = Query(None),
     image_type: str = Query(None),
+    upload_type: Optional[str] = Query(None),
+    starred_only: bool = Query(False),
+    include_count: bool = Query(False),
     db: Session = Depends(get_db)
 ):
-    """Get paginated and filtered images"""
+    """Get paginated and filtered images
+    
+    If include_count=true, returns {items: [], total_count: N} format.
+    Otherwise returns array format for backward compatibility.
+    """
     logger.debug(f"Listing grouped images - page: {page}, limit: {limit}")
     
     # Build filter parameters
@@ -62,8 +70,18 @@ def list_images_grouped(
         filters['country'] = country
     if image_type:
         filters['image_type'] = image_type
+    if upload_type:
+        filters['upload_type'] = upload_type
+    if starred_only:
+        filters['starred_only'] = starred_only
     
     logger.debug(f"Applied filters: {filters}")
+    
+    # Get total count if requested
+    total_count = None
+    if include_count:
+        total_count = crud.get_images_count(db, **filters)
+        logger.debug(f"Total count: {total_count}")
     
     # Get paginated results
     images = crud.get_images_paginated(
@@ -73,12 +91,16 @@ def list_images_grouped(
         **filters
     )
     
+    url_cache: dict[str, str] = {}
     result = []
     for img in images:
-        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file")
+        img_dict = convert_image_to_dict(img, f"/api/images/{img.image_id}/file", url_cache=url_cache)
         result.append(schemas.ImageOut(**img_dict))
     
     logger.info(f"Returned {len(result)} images for page {page}")
+    
+    if include_count:
+        return {"items": result, "total_count": total_count}
     return result
 
 @router.get("/grouped/count")
@@ -89,6 +111,8 @@ def get_images_grouped_count(
     region: str = Query(None),
     country: str = Query(None),
     image_type: str = Query(None),
+    upload_type: Optional[str] = Query(None),
+    starred_only: bool = Query(False),
     db: Session = Depends(get_db)
 ):
     """Get total count of images matching filters"""
@@ -108,6 +132,10 @@ def get_images_grouped_count(
         filters['country'] = country
     if image_type:
         filters['image_type'] = image_type
+    if upload_type:
+        filters['upload_type'] = upload_type
+    if starred_only:
+        filters['starred_only'] = starred_only
     
     count = crud.get_images_count(db, **filters)
     logger.info(f"Total images count: {count}")

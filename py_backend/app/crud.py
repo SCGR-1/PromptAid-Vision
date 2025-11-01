@@ -91,6 +91,261 @@ def get_image(db: Session, image_id: str):
         .first()
     )
 
+def get_images_paginated(
+    db: Session,
+    search: Optional[str] = None,
+    source: Optional[str] = None,
+    event_type: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    image_type: Optional[str] = None,
+    upload_type: Optional[str] = None,
+    starred_only: bool = False,
+    page: int = 1,
+    limit: int = 10,
+):
+    """Get paginated and filtered images using SQL queries"""
+    needs_grouping = upload_type is not None
+    needs_caption_join = search is not None or starred_only or needs_grouping
+    needs_country_join = region is not None or country is not None
+    
+    base_query = db.query(models.Images)
+    
+    if needs_caption_join:
+        base_query = base_query.join(models.images_captions).join(models.Captions)
+        
+        if search:
+            search_pattern = f"%{search.lower()}%"
+            base_query = base_query.filter(
+                or_(
+                    func.lower(models.Captions.title).like(search_pattern),
+                    func.lower(models.Captions.generated).like(search_pattern),
+                    func.lower(models.Captions.edited).like(search_pattern)
+                )
+            )
+        
+        if starred_only:
+            base_query = base_query.filter(models.Captions.starred == True)
+    
+    if source:
+        base_query = base_query.filter(models.Images.source == source)
+    
+    if event_type:
+        base_query = base_query.filter(models.Images.event_type == event_type)
+    
+    if image_type:
+        base_query = base_query.filter(models.Images.image_type == image_type)
+    
+    if needs_country_join:
+        base_query = base_query.join(models.image_countries).join(models.Country)
+        if region:
+            base_query = base_query.filter(models.Country.r_code == region)
+        if country:
+            base_query = base_query.filter(models.Country.c_code == country)
+    
+    if needs_grouping:
+        base_query = base_query.group_by(models.Captions.caption_id)
+        
+        # Check if any image-level filters are active
+        has_image_filters = source is not None or event_type is not None or image_type is not None or needs_country_join
+        
+        if has_image_filters:
+            # When image filters are active, count filtered images only
+            effective_count = func.count(distinct(models.Images.image_id))
+        else:
+            # When no image filters, use cached image_count if available
+            effective_count = case(
+                (
+                    func.max(models.Captions.image_count).isnot(None),
+                    case(
+                        (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                        else_=func.count(distinct(models.Images.image_id))
+                    )
+                ),
+                else_=func.count(distinct(models.Images.image_id))
+            )
+        
+        if upload_type == 'single':
+            base_query = base_query.having(effective_count <= 1)
+        elif upload_type == 'multiple':
+            base_query = base_query.having(effective_count > 1)
+        
+        offset = (page - 1) * limit
+        # Get caption_ids that match the upload_type filter
+        caption_id_rows = base_query.with_entities(
+            models.Captions.caption_id,
+            func.max(models.Images.captured_at).label('captured_at')
+        ).order_by(func.max(models.Images.captured_at).desc()).offset(offset).limit(limit).all()
+        matching_caption_ids = [row[0] for row in caption_id_rows]
+        
+        # Get distinct image_ids from the matching captions, reapplying image-level filters
+        image_ids_query = db.query(models.Images.image_id)
+        
+        if source:
+            image_ids_query = image_ids_query.filter(models.Images.source == source)
+        
+        if event_type:
+            image_ids_query = image_ids_query.filter(models.Images.event_type == event_type)
+        
+        if image_type:
+            image_ids_query = image_ids_query.filter(models.Images.image_type == image_type)
+        
+        if needs_country_join:
+            image_ids_query = image_ids_query.join(models.image_countries).join(models.Country)
+            if region:
+                image_ids_query = image_ids_query.filter(models.Country.r_code == region)
+            if country:
+                image_ids_query = image_ids_query.filter(models.Country.c_code == country)
+        
+        # Join with captions and filter by matching caption_ids
+        image_ids_query = (
+            image_ids_query
+            .join(models.images_captions)
+            .filter(models.images_captions.c.caption_id.in_(matching_caption_ids))
+            .distinct()
+        )
+        image_ids = [row[0] for row in image_ids_query.all()]
+    else:
+        offset = (page - 1) * limit
+        # For distinct with order_by, we need to include the ordering column in the select
+        image_id_rows = base_query.with_entities(
+            models.Images.image_id,
+            models.Images.captured_at
+        ).distinct().order_by(models.Images.captured_at.desc()).offset(offset).limit(limit).all()
+        image_ids = [row[0] for row in image_id_rows]
+    
+    images = (
+        db.query(models.Images)
+        .filter(models.Images.image_id.in_(image_ids))
+        .options(
+            joinedload(models.Images.countries),
+            joinedload(models.Images.captions).joinedload(models.Captions.images)
+        )
+        .order_by(models.Images.captured_at.desc())
+        .all()
+    )
+    
+    return images
+
+def get_images_count(
+    db: Session,
+    search: Optional[str] = None,
+    source: Optional[str] = None,
+    event_type: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    image_type: Optional[str] = None,
+    upload_type: Optional[str] = None,
+    starred_only: bool = False,
+):
+    """Count images matching filters using SQL queries"""
+    needs_grouping = upload_type is not None
+    needs_caption_join = search is not None or starred_only or needs_grouping
+    needs_country_join = region is not None or country is not None
+    
+    query = db.query(models.Images.image_id).distinct()
+    
+    if needs_caption_join:
+        query = query.join(models.images_captions).join(models.Captions)
+        
+        if search:
+            search_pattern = f"%{search.lower()}%"
+            query = query.filter(
+                or_(
+                    func.lower(models.Captions.title).like(search_pattern),
+                    func.lower(models.Captions.generated).like(search_pattern),
+                    func.lower(models.Captions.edited).like(search_pattern)
+                )
+            )
+        
+        if starred_only:
+            query = query.filter(models.Captions.starred == True)
+    
+    if source:
+        query = query.filter(models.Images.source == source)
+    
+    if event_type:
+        query = query.filter(models.Images.event_type == event_type)
+    
+    if image_type:
+        query = query.filter(models.Images.image_type == image_type)
+    
+    if needs_country_join:
+        query = query.join(models.image_countries).join(models.Country)
+        if region:
+            query = query.filter(models.Country.r_code == region)
+        if country:
+            query = query.filter(models.Country.c_code == country)
+    
+    if needs_grouping:
+        # When grouping, query caption_ids instead of image_ids
+        caption_query = db.query(models.Captions.caption_id)
+        
+        if search:
+            search_pattern = f"%{search.lower()}%"
+            caption_query = caption_query.filter(
+                or_(
+                    func.lower(models.Captions.title).like(search_pattern),
+                    func.lower(models.Captions.generated).like(search_pattern),
+                    func.lower(models.Captions.edited).like(search_pattern)
+                )
+            )
+        
+        if starred_only:
+            caption_query = caption_query.filter(models.Captions.starred == True)
+        
+        # Join with images to apply image-level filters
+        caption_query = caption_query.join(models.images_captions).join(models.Images)
+        
+        if source:
+            caption_query = caption_query.filter(models.Images.source == source)
+        
+        if event_type:
+            caption_query = caption_query.filter(models.Images.event_type == event_type)
+        
+        if image_type:
+            caption_query = caption_query.filter(models.Images.image_type == image_type)
+        
+        if needs_country_join:
+            caption_query = caption_query.join(models.image_countries).join(models.Country)
+            if region:
+                caption_query = caption_query.filter(models.Country.r_code == region)
+            if country:
+                caption_query = caption_query.filter(models.Country.c_code == country)
+        
+        # Group by caption_id and apply having filter
+        caption_query = caption_query.group_by(models.Captions.caption_id)
+        
+        # Check if any image-level filters are active
+        has_image_filters = source is not None or event_type is not None or image_type is not None or needs_country_join
+        
+        if has_image_filters:
+            # When image filters are active, count filtered images only
+            effective_count = func.count(distinct(models.Images.image_id))
+        else:
+            # When no image filters, use cached image_count if available
+            effective_count = case(
+                (
+                    func.max(models.Captions.image_count).isnot(None),
+                    case(
+                        (func.max(models.Captions.image_count) > 0, func.max(models.Captions.image_count)),
+                        else_=func.count(distinct(models.Images.image_id))
+                    )
+                ),
+                else_=func.count(distinct(models.Images.image_id))
+            )
+        
+        if upload_type == 'single':
+            caption_query = caption_query.having(effective_count <= 1)
+        elif upload_type == 'multiple':
+            caption_query = caption_query.having(effective_count > 1)
+        
+        count = caption_query.count()
+    else:
+        count = query.count()
+    
+    return count
+
 def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None, image_count=None):
     logger.debug(f"Creating caption for image_id: {image_id}")
     logger.debug(f"Caption data: title={title}, prompt={prompt}, model={model_code}")
@@ -222,12 +477,23 @@ def get_captions_with_images_filtered(
             base_query = base_query.having(effective_count > 1)
     
     if needs_grouping:
-        count_query = base_query.with_entities(func.count())
+        total_count = count_captions_with_images_filtered(
+            db=db,
+            search=search,
+            source=source,
+            event_type=event_type,
+            region=region,
+            country=country,
+            image_type=image_type,
+            upload_type=upload_type,
+            starred_only=starred_only
+        )
     elif needs_image_join:
         count_query = base_query.with_entities(func.count(distinct(models.Captions.caption_id)))
+        total_count = count_query.scalar()
     else:
         count_query = base_query.with_entities(func.count(models.Captions.caption_id))
-    total_count = count_query.scalar()
+        total_count = count_query.scalar()
     
     query = base_query.order_by(models.Captions.created_at.desc())
     
