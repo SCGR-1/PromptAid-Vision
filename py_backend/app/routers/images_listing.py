@@ -34,7 +34,7 @@ def list_images(db: Session = Depends(get_db)):
     logger.info(f"Returned {len(result)} images")
     return result
 
-@router.get("/grouped")
+@router.get("/grouped", response_model=Union[List[schemas.ImageOut], schemas.PaginatedImageOut])
 def list_images_grouped(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
