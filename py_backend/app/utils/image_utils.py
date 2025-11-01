@@ -105,6 +105,12 @@ def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str
         # Use image_count if available and positive, otherwise count images
         if hasattr(primary_caption, 'image_count') and primary_caption.image_count is not None and primary_caption.image_count > 0:
             image_count = primary_caption.image_count
+            # Populate all_image_ids from the relationship if loaded
+            if hasattr(primary_caption, 'images') and primary_caption.images is not None:
+                all_image_ids = [str(linked_img.image_id) for linked_img in primary_caption.images]
+            else:
+                # Fallback to single image if relationship not loaded
+                all_image_ids = [str(img.image_id)]
         elif hasattr(primary_caption, 'images') and primary_caption.images is not None:
             image_count = len(primary_caption.images)
             all_image_ids = [str(linked_img.image_id) for linked_img in primary_caption.images]
