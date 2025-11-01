@@ -4,7 +4,7 @@ Handles listing, pagination, and filtering of images
 """
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Union
 import logging
 
 from .. import crud, schemas, database
@@ -34,7 +34,7 @@ def list_images(db: Session = Depends(get_db)):
     logger.info(f"Returned {len(result)} images")
     return result
 
-@router.get("/grouped", response_model=List[schemas.ImageOut])
+@router.get("/grouped")
 def list_images_grouped(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
@@ -44,9 +44,14 @@ def list_images_grouped(
     region: str = Query(None),
     country: str = Query(None),
     image_type: str = Query(None),
+    include_count: bool = Query(False),
     db: Session = Depends(get_db)
 ):
-    """Get paginated and filtered images"""
+    """Get paginated and filtered images
+    
+    If include_count=true, returns {items: [], total_count: N} format.
+    Otherwise returns array format for backward compatibility.
+    """
     logger.debug(f"Listing grouped images - page: {page}, limit: {limit}")
     
     # Build filter parameters
@@ -66,6 +71,12 @@ def list_images_grouped(
     
     logger.debug(f"Applied filters: {filters}")
     
+    # Get total count if requested
+    total_count = None
+    if include_count:
+        total_count = crud.get_images_count(db, **filters)
+        logger.debug(f"Total count: {total_count}")
+    
     # Get paginated results
     images = crud.get_images_paginated(
         db, 
@@ -81,6 +92,9 @@ def list_images_grouped(
         result.append(schemas.ImageOut(**img_dict))
     
     logger.info(f"Returned {len(result)} images for page {page}")
+    
+    if include_count:
+        return {"items": result, "total_count": total_count}
     return result
 
 @router.get("/grouped/count")
