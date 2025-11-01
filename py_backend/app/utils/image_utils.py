@@ -31,10 +31,16 @@ def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str
                 {
                     "caption_id": c.caption_id,
                     "title": c.title,
-                    "text": c.text,
-                    "starred": c.starred,
-                    "generated": c.generated,
+                    "prompt": c.prompt,
                     "model": c.model,
+                    "schema_id": c.schema_id,
+                    "raw_json": c.raw_json,
+                    "generated": c.generated,
+                    "edited": c.edited,
+                    "accuracy": c.accuracy,
+                    "context": c.context,
+                    "usability": c.usability,
+                    "starred": c.starred if c.starred is not None else False,
                     "created_at": c.created_at,
                     "updated_at": c.updated_at
                 } for c in img.captions
@@ -46,19 +52,31 @@ def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str
     # Get starred status and other caption fields from first caption for backward compatibility
     starred = False
     title = None
-    text = None
-    generated = False
+    prompt = None
     model = None
+    schema_id = None
+    raw_json = None
+    generated = None
+    edited = None
+    accuracy = None
+    context = None
+    usability = None
     created_at = None
     updated_at = None
     
     if captions_list:
         first_caption = captions_list[0]
         starred = first_caption.get("starred", False)
-        title = first_caption.get("title", "")
-        text = first_caption.get("text", "")
-        generated = first_caption.get("generated", False)
-        model = first_caption.get("model", "")
+        title = first_caption.get("title")
+        prompt = first_caption.get("prompt")
+        model = first_caption.get("model")
+        schema_id = first_caption.get("schema_id")
+        raw_json = first_caption.get("raw_json")
+        generated = first_caption.get("generated")
+        edited = first_caption.get("edited")
+        accuracy = first_caption.get("accuracy")
+        context = first_caption.get("context")
+        usability = first_caption.get("usability")
         created_at = first_caption.get("created_at")
         updated_at = first_caption.get("updated_at")
     
@@ -82,22 +100,36 @@ def convert_image_to_dict(img, image_url: str, url_cache: Optional[Dict[str, str
         "image_id": img.image_id,
         "file_key": img.file_key,
         "sha256": img.sha256,
+        "thumbnail_key": getattr(img, 'thumbnail_key', None),
+        "thumbnail_sha256": getattr(img, 'thumbnail_sha256', None),
+        "thumbnail_url": thumbnail_url,
+        "detail_key": getattr(img, 'detail_key', None),
+        "detail_sha256": getattr(img, 'detail_sha256', None),
+        "detail_url": detail_url,
         "source": img.source,
         "event_type": img.event_type,
         "epsg": img.epsg,
         "image_type": img.image_type,
+        "image_url": image_url,
         "countries": countries_list,
         "captions": captions_list,
         "starred": starred,
+        "captured_at": getattr(img, 'captured_at', None),
+        
+        # Backward compatibility fields for legacy frontend
         "title": title,
-        "text": text,
-        "generated": generated,
+        "prompt": prompt,
         "model": model,
+        "schema_id": schema_id,
+        "raw_json": raw_json,
+        "generated": generated,
+        "edited": edited,
+        "accuracy": accuracy,
+        "context": context,
+        "usability": usability,
         "created_at": created_at,
         "updated_at": updated_at,
-        "url": image_url,
-        "thumbnail_url": thumbnail_url,
-        "detail_url": detail_url,
+        
         # Drone-specific fields
         "center_lon": getattr(img, 'center_lon', None),
         "center_lat": getattr(img, 'center_lat', None),

@@ -91,6 +91,110 @@ def get_image(db: Session, image_id: str):
         .first()
     )
 
+def get_images_paginated(
+    db: Session,
+    search: Optional[str] = None,
+    source: Optional[str] = None,
+    event_type: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    image_type: Optional[str] = None,
+    page: int = 1,
+    limit: int = 10,
+):
+    """Get paginated and filtered images using SQL queries"""
+    base_query = db.query(models.Images)
+    
+    if search:
+        base_query = base_query.join(models.images_captions).join(models.Captions)
+        search_pattern = f"%{search.lower()}%"
+        base_query = base_query.filter(
+            or_(
+                func.lower(models.Captions.title).like(search_pattern),
+                func.lower(models.Captions.generated).like(search_pattern),
+                func.lower(models.Captions.edited).like(search_pattern)
+            )
+        )
+    
+    if source:
+        base_query = base_query.filter(models.Images.source == source)
+    
+    if event_type:
+        base_query = base_query.filter(models.Images.event_type == event_type)
+    
+    if image_type:
+        base_query = base_query.filter(models.Images.image_type == image_type)
+    
+    if region or country:
+        base_query = base_query.join(models.image_countries).join(models.Country)
+        if region:
+            base_query = base_query.filter(models.Country.r_code == region)
+        if country:
+            base_query = base_query.filter(models.Country.c_code == country)
+    
+    offset = (page - 1) * limit
+    # For distinct with order_by, we need to include the ordering column in the select
+    image_id_rows = base_query.with_entities(
+        models.Images.image_id,
+        models.Images.captured_at
+    ).distinct().order_by(models.Images.captured_at.desc()).offset(offset).limit(limit).all()
+    image_ids = [row[0] for row in image_id_rows]
+    
+    images = (
+        db.query(models.Images)
+        .filter(models.Images.image_id.in_(image_ids))
+        .options(
+            joinedload(models.Images.countries),
+            joinedload(models.Images.captions)
+        )
+        .order_by(models.Images.captured_at.desc())
+        .all()
+    )
+    
+    return images
+
+def get_images_count(
+    db: Session,
+    search: Optional[str] = None,
+    source: Optional[str] = None,
+    event_type: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    image_type: Optional[str] = None,
+):
+    """Count images matching filters using SQL queries"""
+    query = db.query(models.Images.image_id).distinct()
+    
+    if search:
+        query = query.join(models.images_captions).join(models.Captions)
+        search_pattern = f"%{search.lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(models.Captions.title).like(search_pattern),
+                func.lower(models.Captions.generated).like(search_pattern),
+                func.lower(models.Captions.edited).like(search_pattern)
+            )
+        )
+    
+    if source:
+        query = query.filter(models.Images.source == source)
+    
+    if event_type:
+        query = query.filter(models.Images.event_type == event_type)
+    
+    if image_type:
+        query = query.filter(models.Images.image_type == image_type)
+    
+    if region or country:
+        query = query.join(models.image_countries).join(models.Country)
+        if region:
+            query = query.filter(models.Country.r_code == region)
+        if country:
+            query = query.filter(models.Country.c_code == country)
+    
+    count = query.count()
+    return count
+
 def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, text, metadata=None, image_count=None):
     logger.debug(f"Creating caption for image_id: {image_id}")
     logger.debug(f"Caption data: title={title}, prompt={prompt}, model={model_code}")
