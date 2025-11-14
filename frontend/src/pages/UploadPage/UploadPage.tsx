@@ -53,6 +53,7 @@ export default function UploadPage() {
   const [imageType, setImageType] = useState('crisis_map');
   const [countries, setCountries] = useState<string[]>([]);
   const [title, setTitle] = useState('');
+  const [isManualMode, setIsManualMode] = useState(false);
 
   // Drone metadata fields
   const [centerLon, setCenterLon] = useState<string>('');
@@ -431,9 +432,14 @@ export default function UploadPage() {
       if (stdVM) fd.append('std_v_m', stdVM);
      }
 
-     const modelName = localStorage.getItem(SELECTED_MODEL_KEY);
-     if (modelName) {
-       fd.append('model_name', modelName);
+     // Use manual mode if selected, otherwise use the selected model from localStorage
+     if (isManualMode) {
+       fd.append('model_name', 'manual');
+     } else {
+       const modelName = localStorage.getItem(SELECTED_MODEL_KEY);
+       if (modelName) {
+         fd.append('model_name', modelName);
+       }
      }
 
      const mapRes = await fetch('/api/images/', { method: 'POST', body: fd });
@@ -536,6 +542,9 @@ export default function UploadPage() {
         setShowFallbackNotification(true);
       }
 
+      // Check if this is manual mode (model is "manual")
+      const isManualModel = (capJson.model as string) === 'manual';
+      
       const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.metadata;
       if (extractedMetadata) {
         const metadata = (extractedMetadata as Record<string, unknown>).metadata || extractedMetadata;
@@ -554,9 +563,9 @@ export default function UploadPage() {
                
                if (imageMetadata && typeof imageMetadata === 'object') {
                  const imgMeta = imageMetadata as Record<string, unknown>;
-                 // Convert source label to code if needed
+                 // For manual mode, use empty values; otherwise convert source label to code if needed
                  const sourceValue = imgMeta.source as string || '';
-                 const sourceCode = convertSourceToCode(sourceValue);
+                 const sourceCode = isManualModel ? '' : convertSourceToCode(sourceValue);
                  
                  newMetadataArray.push({
                    source: sourceCode,
@@ -579,9 +588,9 @@ export default function UploadPage() {
              }
            } else {
              // Fallback to shared metadata if no individual metadata found
-             // Convert source label to code if needed
+             // For manual mode, use empty values; otherwise convert source label to code if needed
              const sourceValue = (metadata as Record<string, unknown>).source as string || '';
-             const sourceCode = convertSourceToCode(sourceValue);
+             const sourceCode = isManualModel ? '' : convertSourceToCode(sourceValue);
              
              const sharedMetadata = {
                source: sourceCode,
@@ -602,9 +611,9 @@ export default function UploadPage() {
            }
          } else {
            // Single upload: use shared metadata
-           // Convert source label to code if needed
+           // For manual mode, use empty values; otherwise convert source label to code if needed
            const sourceValue = (metadata as Record<string, unknown>).source as string || '';
-           const sourceCode = convertSourceToCode(sourceValue);
+           const sourceCode = isManualModel ? '' : convertSourceToCode(sourceValue);
            
            const sharedMetadata = {
              source: sourceCode,
@@ -624,17 +633,26 @@ export default function UploadPage() {
          
          if (newMetadataArray.length > 0) {
            const firstMeta = newMetadataArray[0];
-           // Set shared title from metadata
-           if (metadata && typeof metadata === 'object') {
-             const sharedTitle = (metadata as Record<string, unknown>).title;
-             if (sharedTitle) {
-               setTitle(sharedTitle as string || '');
+           // For manual mode, always set title, eventType, and epsg to empty
+           if (isManualModel) {
+             setTitle('');
+             setSource('');
+             setEventType('');
+             setEpsg('');
+             setCountries([]);
+           } else {
+             // Set shared title from metadata for non-manual modes
+             if (metadata && typeof metadata === 'object') {
+               const sharedTitle = (metadata as Record<string, unknown>).title;
+               if (sharedTitle) {
+                 setTitle(sharedTitle as string || '');
+               }
              }
+             setSource(firstMeta.source || '');
+             setEventType(firstMeta.eventType || '');
+             setEpsg(firstMeta.epsg || '');
+             setCountries(firstMeta.countries || []);
            }
-           setSource(firstMeta.source || '');
-           setEventType(firstMeta.eventType || '');
-           setEpsg(firstMeta.epsg || '');
-           setCountries(firstMeta.countries || []);
         if (imageType === 'drone_image') {
              setCenterLon(firstMeta.centerLon || '');
              setCenterLat(firstMeta.centerLat || '');
@@ -650,25 +668,84 @@ export default function UploadPage() {
            }
          }
        }
+     } else if (isManualModel) {
+       // If no metadata extracted in manual mode, ensure all fields are empty
+       setTitle('');
+       setSource('');
+       setEventType('');
+       setEpsg('');
+       setCountries([]);
+       if (imageType === 'drone_image') {
+         setCenterLon('');
+         setCenterLat('');
+         setAmslM('');
+         setAglM('');
+         setHeadingDeg('');
+         setYawDeg('');
+         setPitchDeg('');
+         setRollDeg('');
+         setRtkFix(false);
+         setStdHM('');
+         setStdVM('');
+       }
+       // Set empty metadata array for multi-upload
+       if (isMultiUpload) {
+         const emptyMetadata = {
+           source: '', eventType: '', epsg: '', countries: [],
+           centerLon: '', centerLat: '', amslM: '', aglM: '',
+           headingDeg: '', yawDeg: '', pitchDeg: '', rollDeg: '',
+           rtkFix: false, stdHM: '', stdVM: ''
+         };
+         setMetadataArray(Array(files.length).fill(null).map(() => ({ ...emptyMetadata })));
+       } else {
+         setMetadataArray([{
+           source: '', eventType: '', epsg: '', countries: [],
+           centerLon: '', centerLat: '', amslM: '', aglM: '',
+           headingDeg: '', yawDeg: '', pitchDeg: '', rollDeg: '',
+           rtkFix: false, stdHM: '', stdVM: ''
+         }]);
+       }
      }
 
       // Extract the three parts from the metadata
       const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.metadata;
       if (extractedMetadataForParts) {
-        if ((extractedMetadataForParts as Record<string, unknown>).description) {
-          setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);
+        // For manual mode, explicitly set empty strings (don't skip if empty)
+        if (isManualModel) {
+          setDescription((extractedMetadataForParts as Record<string, unknown>).description as string || '');
+          setAnalysis((extractedMetadataForParts as Record<string, unknown>).analysis as string || '');
+          setRecommendedActions((extractedMetadataForParts as Record<string, unknown>).recommended_actions as string || '');
+        } else {
+          // For other modes, only set if value exists
+          if ((extractedMetadataForParts as Record<string, unknown>).description) {
+            setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);
+          }
+          if ((extractedMetadataForParts as Record<string, unknown>).analysis) {
+            setAnalysis((extractedMetadataForParts as Record<string, unknown>).analysis as string);
+          }
+          if ((extractedMetadataForParts as Record<string, unknown>).recommended_actions) {
+            setRecommendedActions((extractedMetadataForParts as Record<string, unknown>).recommended_actions as string);
+          }
         }
-        if ((extractedMetadataForParts as Record<string, unknown>).analysis) {
-          setAnalysis((extractedMetadataForParts as Record<string, unknown>).analysis as string);
-        }
-        if ((extractedMetadataForParts as Record<string, unknown>).recommended_actions) {
-          setRecommendedActions((extractedMetadataForParts as Record<string, unknown>).recommended_actions as string);
-        }
+      } else if (isManualModel) {
+        // If no metadata at all in manual mode, ensure fields are empty
+        setDescription('');
+        setAnalysis('');
+        setRecommendedActions('');
       }
       
       if (capJson.generated) {
         setDraft(capJson.generated as string);
+      } else if (isManualModel) {
+        // For manual mode, ensure draft is empty if no generated content
+        setDraft('');
       }
+      
+      // For manual mode, set rating to confirmed by default
+      if (isManualModel) {
+        setIsPerformanceConfirmed(true);
+      }
+      
       handleStepChange('2a');
   }
 
@@ -1011,9 +1088,7 @@ export default function UploadPage() {
       setImageTypes(imageTypesData);
       setCountriesOptions(countriesData);
       
-      if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
-      setEventType('OTHER');
-      setEpsg('OTHER');
+       if (sourcesData.length > 0) setSource(sourcesData[0].s_code);
       if (imageTypesData.length > 0 && !searchParams.get('imageType') && !imageType) {
         setImageType(imageTypesData[0].image_type);
       }
@@ -1113,10 +1188,12 @@ export default function UploadPage() {
                 file={file}
                 preview={preview}
                 imageType={imageType}
+                isManualMode={isManualMode}
                 onFileChange={onFileChange}
                 onRemoveImage={removeImage}
                 onAddImage={addImage}
                 onImageTypeChange={handleImageTypeChange}
+                onManualModeChange={setIsManualMode}
                 onChangeFile={onChangeFile}
               />
             )}
@@ -1128,10 +1205,12 @@ export default function UploadPage() {
                 file={file}
                 preview={preview}
                 imageType={imageType}
+                isManualMode={isManualMode}
                 onFileChange={onFileChange}
                 onRemoveImage={removeImage}
                 onAddImage={addImage}
                 onImageTypeChange={handleImageTypeChange}
+                onManualModeChange={setIsManualMode}
                 onChangeFile={onChangeFile}
               />
             )}
@@ -1303,6 +1382,7 @@ export default function UploadPage() {
                     description={description}
                     analysis={analysis}
                     recommendedActions={recommendedActions}
+                    isManualMode={isManualMode}
                     onDescriptionChange={(value) => setDescription(value || '')}
                     onAnalysisChange={(value) => setAnalysis(value || '')}
                     onRecommendedActionsChange={(value) => setRecommendedActions(value || '')}

@@ -9,11 +9,12 @@ interface FileUploadSectionProps {
   file: File | null;
   preview: string | null;
   imageType: string;
+  isManualMode: boolean;
   onFileChange: (file: File | undefined) => void;
   onRemoveImage: (index: number) => void;
   onAddImage: () => void;
   onImageTypeChange: (value: string | undefined) => void;
-
+  onManualModeChange: (value: boolean) => void;
   onChangeFile?: (file: File | undefined) => void;
 }
 
@@ -22,11 +23,12 @@ export default function FileUploadSection({
   file,
   preview,
   imageType,
+  isManualMode,
   onFileChange,
   onRemoveImage,
   onAddImage,
   onImageTypeChange,
-
+  onManualModeChange,
   onChangeFile,
 }: FileUploadSectionProps) {
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -65,6 +67,23 @@ export default function FileUploadSection({
             options={[
               { key: 'crisis_map', label: 'Crisis Maps' },
               { key: 'drone_image', label: 'Drone Imagery' }
+            ]}
+            keySelector={(o) => o.key}
+            labelSelector={(o) => o.label}
+          />
+        </Container>
+      </div>
+
+      {/* Manual / Generate Mode Selection */}
+      <div className="flex justify-center">
+        <Container withInternalPadding className="bg-transparent border-none shadow-none">
+          <SegmentInput
+            name="mode"
+            value={isManualMode ? 'manual' : 'generate'}
+            onChange={(value) => onManualModeChange(value === 'manual')}
+            options={[
+              { key: 'manual', label: 'Manual' },
+              { key: 'generate', label: 'Generate' }
             ]}
             keySelector={(o) => o.key}
             labelSelector={(o) => o.label}

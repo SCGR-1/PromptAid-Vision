@@ -7,6 +7,7 @@ interface GeneratedTextSectionProps {
   description: string;
   analysis: string;
   recommendedActions: string;
+  isManualMode?: boolean;
   onDescriptionChange: (value: string | undefined) => void;
   onAnalysisChange: (value: string | undefined) => void;
   onRecommendedActionsChange: (value: string | undefined) => void;
@@ -22,6 +23,7 @@ export default function GeneratedTextSection({
   description,
   analysis,
   recommendedActions,
+  isManualMode = false,
   onDescriptionChange,
   onAnalysisChange,
   onRecommendedActionsChange,
@@ -37,9 +39,15 @@ export default function GeneratedTextSection({
   
   // Update local state when props change (e.g., when AI generates new content)
   useEffect(() => {
-    const formattedText = `Description:\n${description || 'AI-generated description will appear here...'}\n\nAnalysis:\n${analysis || 'AI-generated analysis will appear here...'}\n\nRecommended Actions:\n${recommendedActions || 'AI-generated recommended actions will appear here...'}`;
-    setTextareaValue(formattedText);
-  }, [description, analysis, recommendedActions]);
+    // For manual mode, don't show placeholders - use empty strings
+    if (isManualMode) {
+      const formattedText = `Description:\n${description}\n\nAnalysis:\n${analysis}\n\nRecommended Actions:\n${recommendedActions}`;
+      setTextareaValue(formattedText);
+    } else {
+      const formattedText = `Description:\n${description || 'AI-generated description will appear here...'}\n\nAnalysis:\n${analysis || 'AI-generated analysis will appear here...'}\n\nRecommended Actions:\n${recommendedActions || 'AI-generated recommended actions will appear here...'}`;
+      setTextareaValue(formattedText);
+    }
+  }, [description, analysis, recommendedActions, isManualMode]);
 
   const handleTextChange = (value: string | undefined) => {
     if (value !== undefined) {
@@ -84,7 +92,7 @@ export default function GeneratedTextSection({
             value={textareaValue}
             onChange={handleTextChange}
             rows={12}
-            placeholder="AI-generated content will appear here..."
+            placeholder={isManualMode ? "" : "AI-generated content will appear here..."}
           />
         </div>
       </div>
