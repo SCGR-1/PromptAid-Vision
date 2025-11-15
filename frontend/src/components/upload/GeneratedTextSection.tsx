@@ -106,7 +106,7 @@ export default function GeneratedTextSection({
         >
           Back
         </Button>
-        {isPerformanceConfirmed && onEditRatings && (
+        {isPerformanceConfirmed && onEditRatings && !isManualMode && (
           <Button
             name="edit-ratings"
             variant="secondary"

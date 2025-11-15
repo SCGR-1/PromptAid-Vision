@@ -85,7 +85,7 @@ export default function FileUploadSection({
               { key: 'manual', label: 'Manual' },
               { key: 'generate', label: 'Generate' }
             ]}
-            keySelector={(o) => o.key}
+            keySelector={(o) => o.key as 'manual' | 'generate'}
             labelSelector={(o) => o.label}
           />
         </Container>

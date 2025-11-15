@@ -463,7 +463,7 @@ export default function AnalyticsPage() {
     if (!data) return [];
     
     return Object.entries(data.models)
-      .filter(([, model]) => model.count > 0)
+      .filter(([modelCode, model]) => model.count > 0 && modelCode !== 'manual')
       .map(([modelCode, model], index) => {
         // Calculate consistency based on how close accuracy, context, and usability are
         const scores = [model.avgAccuracy, model.avgContext, model.avgUsability];
@@ -1067,10 +1067,13 @@ export default function AnalyticsPage() {
      // Get the appropriate image set based on type
      const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
      
+     // Filter out manual model items
+     const filteredImages = images.filter((map: MapData) => map.model !== 'manual');
+     
      // Calculate models for this specific image type
      const modelStats: { [key: string]: { count: number; totalAccuracy: number; totalContext: number; totalUsability: number } } = {};
      
-     images.forEach((map: MapData) => {
+     filteredImages.forEach((map: MapData) => {
        if (map.model) {
          if (!modelStats[map.model]) {
            modelStats[map.model] = { count: 0, totalAccuracy: 0, totalContext: 0, totalUsability: 0 };
@@ -1102,10 +1105,13 @@ export default function AnalyticsPage() {
      // Get the appropriate image set based on type
      const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
      
+     // Filter out manual model items
+     const filteredImages = images.filter((map: MapData) => map.model !== 'manual');
+     
      // Calculate quality by source for this specific image type
      const sourceQuality: { [key: string]: { total: number; count: number; totalImages: number } } = {};
      
-     images.forEach((map: MapData) => {
+     filteredImages.forEach((map: MapData) => {
        if (map.source) {
          if (!sourceQuality[map.source]) {
            sourceQuality[map.source] = { total: 0, count: 0, totalImages: 0 };
@@ -1133,10 +1139,13 @@ export default function AnalyticsPage() {
     // Get the appropriate image set based on type
     const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
 
+    // Filter out manual model items
+    const filteredImages = images.filter((map: MapData) => map.model !== 'manual');
+
     // Calculate quality by event type for this specific image type
     const eventTypeQuality: { [key: string]: { total: number; count: number; totalImages: number } } = {};
 
-    images.forEach((map: MapData) => {
+    filteredImages.forEach((map: MapData) => {
       if (map.event_type) {
         if (!eventTypeQuality[map.event_type]) {
           eventTypeQuality[map.event_type] = { total: 0, count: 0, totalImages: 0 };
@@ -1164,19 +1173,23 @@ export default function AnalyticsPage() {
     // Get the appropriate image set based on type
     const images = imageType === 'crisis_map' ? data.crisisMaps : data.droneImages;
     
-    // Get the models actually used by images of this type
+    // Filter out manual model items
+    const filteredImages = images.filter((map: MapData) => map.model !== 'manual');
+    
+    // Get the models actually used by images of this type (excluding manual)
     const usedModels = new Set<string>();
-    images.forEach((map: MapData) => {
+    filteredImages.forEach((map: MapData) => {
       if (map.model) {
         usedModels.add(map.model);
       }
     });
     
     // Filter model consistency table data by models actually used by this image type
+    // Also exclude manual model from the consistency data
     const filteredData = modelConsistencyData.filter(d => {
       // Find the model code that matches this display name
       const modelCode = modelsLookup.find(m => m.label === d.name)?.m_code;
-      return modelCode && usedModels.has(modelCode);
+      return modelCode && modelCode !== 'manual' && usedModels.has(modelCode);
     });
     
     return filteredData;
