@@ -800,7 +800,7 @@ Model "${newModelData.label}" added successfully!
                    options={[
                      { value: 'random', label: 'Random' },
                      ...(availableModels || [])
-                    .filter(model => model.is_available)
+                    .filter(model => model.is_available && model.m_code !== 'manual')
                        .map(model => ({
                          value: model.m_code,
                          label: model.label
@@ -816,7 +816,7 @@ Model "${newModelData.label}" added successfully!
                    value={selectedFallbackModel}
                    onChange={(newValue) => handleFallbackModelChange(newValue || 'STUB_MODEL')}
                    options={(availableModels || [])
-                    .filter(model => model.is_available)
+                    .filter(model => model.is_available && model.m_code !== 'manual')
                        .map(model => ({
                          value: model.m_code,
                          label: model.label
@@ -856,7 +856,7 @@ Model "${newModelData.label}" added successfully!
                     </tr>
                   </thead>
                   <tbody>
-                    {(availableModels || []).map(model => (
+                    {(availableModels || []).filter(model => model.m_code !== 'manual').map(model => (
                       <tr key={model.m_code}>
                         <td className={styles.modelCode}>{model.m_code}</td>
                         <td>{model.label}</td>
