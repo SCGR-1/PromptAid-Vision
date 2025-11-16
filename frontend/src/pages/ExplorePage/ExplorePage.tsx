@@ -53,6 +53,7 @@ export default function ExplorePage() {
     countryFilter, 
     imageTypeFilter, 
     uploadTypeFilter,
+    generatedMethodFilter,
     showReferenceExamples,
     setShowReferenceExamples
   } = useFilterContext();
@@ -89,10 +90,15 @@ export default function ExplorePage() {
     setIsLoadingContent(true);
     setFetchError(null);
     
+    // Always fetch max items (100 is backend limit) and do client-side pagination for consistency
+    // This ensures consistent page sizes regardless of backend grouping behavior
+    const fetchLimit = 100; // Backend max limit is 100
+    const fetchPage = 1; // Always fetch page 1, then paginate client-side
+    
     // Build query parameters for server-side filtering and pagination
     const params = new URLSearchParams({
-      page: currentPage.toString(),
-      limit: itemsPerPage.toString(),
+      page: fetchPage.toString(),
+      limit: fetchLimit.toString(),
       include_count: 'true'
     });
     
@@ -113,16 +119,76 @@ export default function ExplorePage() {
         return r.json();
       })
       .then(data => {
-        console.log('ExplorePage: Fetched captions:', data);
+        console.log('ExplorePage: Fetched captions:', {
+          data,
+          fetchPage,
+          fetchLimit,
+          currentPage,
+          itemsPerPage,
+          generatedMethodFilter
+        });
+        let items: ImageWithCaptionOut[] = [];
+        let totalCount = 0;
+        
         if (data.items && typeof data.total_count === 'number') {
-          setCaptions(data.items);
-          setTotalItems(data.total_count);
-          setTotalPages(Math.ceil(data.total_count / itemsPerPage));
+          items = data.items;
+          // When doing client-side pagination, use the actual fetched items count, not the backend's total_count
+          // This prevents empty pages when we only have 100 items but backend says there are more
+          totalCount = items.length; // Use fetched items count for client-side pagination
         } else if (Array.isArray(data)) {
-          setCaptions(data);
+          items = data;
+          totalCount = data.length;
         } else {
           throw new Error('Unexpected response format');
         }
+        
+        console.log('ExplorePage: After parsing response:', {
+          itemsCount: items.length,
+          totalCount,
+          generatedMethodFilter,
+          backendTotalCount: data.items ? data.total_count : 'N/A'
+        });
+        
+        // Always apply client-side filtering if generatedMethodFilter is active
+        if (generatedMethodFilter) {
+          // Filter items by model
+          const beforeFilterCount = items.length;
+          items = items.filter(item => {
+            if (generatedMethodFilter === 'manual') {
+              return item.model === 'manual';
+            } else if (generatedMethodFilter === 'generated') {
+              return item.model !== 'manual';
+            }
+            return true;
+          });
+          // Update total count for client-side filtered results
+          totalCount = items.length;
+          
+          console.log('ExplorePage: After client-side filtering:', {
+            beforeFilterCount,
+            afterFilterCount: items.length
+          });
+        }
+        
+        // Always apply client-side pagination for consistent page sizes
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        items = items.slice(startIndex, endIndex);
+        
+        console.log('ExplorePage: After client-side pagination:', {
+          startIndex,
+          endIndex,
+          finalItemsCount: items.length,
+          currentPage,
+          itemsPerPage,
+          totalCount,
+          totalPages: Math.ceil(totalCount / itemsPerPage)
+        });
+        
+        // Set the paginated results
+        setCaptions(items);
+        setTotalItems(totalCount);
+        setTotalPages(Math.ceil(totalCount / itemsPerPage));
         setFetchError(null);
       })
       .catch(error => {
@@ -135,7 +201,7 @@ export default function ExplorePage() {
       .finally(() => {
         setIsLoadingContent(false);
       });
-  }, [currentPage, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples, itemsPerPage]);
+  }, [currentPage, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, generatedMethodFilter, showReferenceExamples, itemsPerPage]);
 
 
   // Fetch data when component mounts or filters change
@@ -146,7 +212,7 @@ export default function ExplorePage() {
   // Reset to first page when filters change (but not when currentPage changes)
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, showReferenceExamples]);
+  }, [search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, uploadTypeFilter, generatedMethodFilter, showReferenceExamples]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -167,7 +233,7 @@ export default function ExplorePage() {
 
     if (exportParam === 'true') {
       setShowExportModal(true);
-      if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || showReferenceExamples) {
+      if (search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || generatedMethodFilter || showReferenceExamples) {
         // Export with filters
       } else {
         // Export without filters
@@ -175,7 +241,7 @@ export default function ExplorePage() {
       // Clean up the URL
       navigate('/explore', { replace: true });
     }
-  }, [location.search, navigate, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, showReferenceExamples]);
+  }, [location.search, navigate, search, srcFilter, catFilter, regionFilter, countryFilter, imageTypeFilter, generatedMethodFilter, showReferenceExamples]);
 
   useEffect(() => {
 
@@ -214,7 +280,7 @@ export default function ExplorePage() {
     });
   }, []);
 
-  // Server-side pagination
+  // Results are already paginated (either server-side or client-side)
   const paginatedResults = captions;
 
   const exportDataset = async (images: ImageWithCaptionOut[], mode: 'standard' | 'fine-tuning' = 'fine-tuning') => {
@@ -751,6 +817,9 @@ export default function ExplorePage() {
                               <span className={styles.metadataTag}>
                                 {imageTypes.find(it => it.image_type === c.image_type)?.label || c.image_type}
                               </span>
+                              <span className={styles.metadataTag}>
+                                {c.model === 'manual' ? 'Manual' : 'Generated'}
+                              </span>
                               {c.image_count && c.image_count > 1 && (
                                 <span className={styles.metadataTag} title={`Multi-upload with ${c.image_count} images`}>
                                   📷 {c.image_count}
@@ -802,7 +871,7 @@ export default function ExplorePage() {
                   )}
                   
                   {/* Enhanced Paginator Component */}
-                  {!isLoadingContent && paginatedResults.length > 0 && (
+                  {!isLoadingContent && totalItems > 0 && (
                     <Paginator
                       currentPage={currentPage}
                       totalPages={totalPages}
@@ -872,7 +941,7 @@ export default function ExplorePage() {
         }}
         filteredCount={paginatedResults.length}
         totalCount={totalItems}
-        hasFilters={!!(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || uploadTypeFilter || showReferenceExamples)}
+        hasFilters={!!(search || srcFilter || catFilter || regionFilter || countryFilter || imageTypeFilter || uploadTypeFilter || generatedMethodFilter || showReferenceExamples)}
         crisisMapsCount={paginatedResults.filter((img: ImageWithCaptionOut) => img.image_type === 'crisis_map').length}
         droneImagesCount={paginatedResults.filter((img: ImageWithCaptionOut) => img.image_type === 'drone_image').length}
         isLoading={isExporting}

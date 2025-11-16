@@ -116,7 +116,6 @@ export default function MetadataFormSection({
             value={title}
             onChange={onTitleChange}
             placeholder="Enter a title for all images..."
-            required
           />
         </div>
         {files.map((file, index) => (
@@ -137,7 +136,7 @@ export default function MetadataFormSection({
                     options={sources}
                     keySelector={(o) => o.s_code}
                     labelSelector={(o) => o.label}
-                    required
+                    placeholder="Please select"
                   />
                 )}
                 <SelectInput
@@ -148,7 +147,7 @@ export default function MetadataFormSection({
                   options={types}
                   keySelector={(o) => o.t_code}
                   labelSelector={(o) => o.label}
-                  required={imageType !== 'drone_image'}
+                  placeholder="Please select"
                 />
                 <SelectInput
                   label="EPSG"
@@ -158,8 +157,7 @@ export default function MetadataFormSection({
                   options={spatialReferences}
                   keySelector={(o) => o.epsg}
                   labelSelector={(o) => `${o.srid} (EPSG:${o.epsg})`}
-                  placeholder="EPSG"
-                  required={imageType !== 'drone_image'}
+                  placeholder="Please select"
                 />
                 <MultiSelectInput
                   label="Countries (optional)"
@@ -289,7 +287,6 @@ export default function MetadataFormSection({
           value={title}
           onChange={onTitleChange}
           placeholder="Enter a title for this map..."
-          required
         />
       </div>
       {imageType !== 'drone_image' && (
@@ -301,7 +298,7 @@ export default function MetadataFormSection({
           options={sources}
           keySelector={(o) => o.s_code}
           labelSelector={(o) => o.label}
-          required
+          placeholder="Please select"
         />
       )}
       <SelectInput
@@ -312,7 +309,7 @@ export default function MetadataFormSection({
         options={types}
         keySelector={(o) => o.t_code}
         labelSelector={(o) => o.label}
-        required={imageType !== 'drone_image'}
+        placeholder="Please select"
       />
       <SelectInput
         label="EPSG"
@@ -322,8 +319,7 @@ export default function MetadataFormSection({
         options={spatialReferences}
         keySelector={(o) => o.epsg}
         labelSelector={(o) => `${o.srid} (EPSG:${o.epsg})`}
-        placeholder="EPSG"
-        required={imageType !== 'drone_image'}
+        placeholder="Please select"
       />
       <SelectInput
         label="Image Type"
@@ -333,7 +329,6 @@ export default function MetadataFormSection({
         options={imageTypes}
         keySelector={(o) => o.image_type}
         labelSelector={(o) => o.label}
-        required
       />
       <MultiSelectInput
         label="Countries (optional)"

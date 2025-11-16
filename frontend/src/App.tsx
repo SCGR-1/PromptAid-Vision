@@ -81,53 +81,52 @@ const prefetchAllPages = () => {
   }
 };
 
-const router = createBrowserRouter([
-  {
-    element: <RootLayout />,
-    children: [
-      { path: '/',          element: <UploadPage /> },
-      { path: '/upload',    element: <UploadPage /> },
-      { 
-        path: '/analytics', 
-        element: (
-          <Suspense fallback={<div>Loading Analytics...</div>}>
-            <AnalyticsPage />
-          </Suspense>
-        ) 
-      },
-      { 
-        path: '/explore', 
-        element: (
-          <Suspense fallback={<div>Loading Explore...</div>}>
-            <ExplorePage />
-          </Suspense>
-        ) 
-      },
-      { path: '/help',      element: <HelpPage /> },
-      
-      { 
-        path: '/admin', 
-        element: (
-          <Suspense fallback={<div>Loading Admin...</div>}>
-            <AdminPage />
-          </Suspense>
-        ) 
-      },
-      { 
-        path: '/map/:mapId', 
-        element: (
-          <Suspense fallback={<div>Loading Map Details...</div>}>
-            <MapDetailPage />
-          </Suspense>
-        ) 
-      },
-    ],
-  },
-], {
-  basename: import.meta.env.BASE_URL, // This will be '/' from Vite
-});
-
 function Application() {
+  const router = useMemo(() => createBrowserRouter([
+    {
+      element: <RootLayout />,
+      children: [
+        { path: '/',          element: <UploadPage /> },
+        { path: '/upload',    element: <UploadPage /> },
+        { 
+          path: '/analytics', 
+          element: (
+            <Suspense fallback={<div>Loading Analytics...</div>}>
+              <AnalyticsPage />
+            </Suspense>
+          ) 
+        },
+        { 
+          path: '/explore', 
+          element: (
+            <Suspense fallback={<div>Loading Explore...</div>}>
+              <ExplorePage />
+            </Suspense>
+          ) 
+        },
+        { path: '/help',      element: <HelpPage /> },
+        
+        { 
+          path: '/admin', 
+          element: (
+            <Suspense fallback={<div>Loading Admin...</div>}>
+              <AdminPage />
+            </Suspense>
+          ) 
+        },
+        { 
+          path: '/map/:mapId', 
+          element: (
+            <Suspense fallback={<div>Loading Map Details...</div>}>
+              <MapDetailPage />
+            </Suspense>
+          ) 
+        },
+      ],
+    },
+  ], {
+    basename: import.meta.env.BASE_URL, // This will be '/' from Vite
+  }), []);
   const [alerts, setAlerts] = useState<AlertParams[]>([]);
 
   // Prefetch pages on mount

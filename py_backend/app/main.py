@@ -378,6 +378,7 @@ from app.services.vlm_service import vlm_manager
 
 # Providers
 from app.services.stub_vlm_service import StubVLMService
+from app.services.manual_vlm_service import ManualVLMService
 from app.services.gpt4v_service import GPT4VService
 from app.services.gemini_service import GeminiService
 from app.services.huggingface_service import ProvidersGenericVLMService
@@ -409,6 +410,13 @@ async def startup_tasks() -> None:
         logger.info("✓ STUB_MODEL registered")
     except Exception as e:
         logger.error(f"✗ Failed to register STUB_MODEL: {e}")
+
+    # Register manual service for manual entry mode
+    try:
+        vlm_manager.register_service(ManualVLMService())
+        logger.info("✓ manual model registered")
+    except Exception as e:
+        logger.error(f"✗ Failed to register manual model: {e}")
 
     # OpenAI GPT-4V (if configured)
     if settings.OPENAI_API_KEY:
