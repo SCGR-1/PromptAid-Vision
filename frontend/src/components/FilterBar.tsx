@@ -31,6 +31,7 @@ export default function FilterBar({
     countryFilter, setCountryFilter,
     imageTypeFilter, setImageTypeFilter,
     uploadTypeFilter, setUploadTypeFilter,
+    generatedMethodFilter, setGeneratedMethodFilter,
     clearAllFilters
   } = useFilterContext();
 
@@ -163,6 +164,23 @@ export default function FilterBar({
             ]}
             value={uploadTypeFilter || null}
             onChange={(v) => setUploadTypeFilter(v as string || '')}
+            keySelector={(o) => o.key}
+            labelSelector={(o) => o.label}
+            required={false}
+            disabled={false}
+          />
+        </Container>
+
+        <Container withInternalPadding className="p-2">
+          <SelectInput
+            name="generatedMethod"
+            placeholder="All Generated Methods"
+            options={[
+              { key: 'manual', label: 'Manual' },
+              { key: 'generated', label: 'Generated' }
+            ]}
+            value={generatedMethodFilter || null}
+            onChange={(v) => setGeneratedMethodFilter(v as string || '')}
             keySelector={(o) => o.key}
             labelSelector={(o) => o.label}
             required={false}
