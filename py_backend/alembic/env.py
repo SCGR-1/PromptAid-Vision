@@ -27,10 +27,31 @@ config = context.config
 def _get_db_url() -> str:
     url = os.getenv("ALEMBIC_DATABASE_URL") or os.getenv("DATABASE_URL")
     if not url:
-        raise RuntimeError("Set ALEMBIC_DATABASE_URL or DATABASE_URL for Alembic migrations.")
+        # Try to get it from app.config.settings as fallback
+        try:
+            from app.config import settings
+            url = settings.DATABASE_URL
+        except Exception:
+            pass
+    
+    if not url:
+        raise RuntimeError(
+            "Set ALEMBIC_DATABASE_URL or DATABASE_URL for Alembic migrations. "
+            "Neither environment variable nor app.config.settings.DATABASE_URL is set."
+        )
+    
+    # Strip psql wrapper if present (e.g., "psql 'postgresql://...'")
+    if url.startswith("psql '") and url.endswith("'"):
+        url = url[6:-1]
+    
     # Replace postgresql:// with postgresql+psycopg:// for psycopg3
-    if url.startswith("postgresql://"):
+    if url.startswith("postgresql://") and not url.startswith("postgresql+psycopg://"):
         url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    
+    # Add sslmode=require for non-localhost connections (production)
+    if "sslmode=" not in url and "localhost" not in url and "127.0.0.1" not in url:
+        url = f"{url}{'&' if '?' in url else '?'}sslmode=require"
+    
     return url
 
 def run_migrations_offline() -> None:

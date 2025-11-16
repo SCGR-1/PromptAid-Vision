@@ -364,10 +364,19 @@ def create_caption(db: Session, image_id, title, prompt, model_code, raw_json, t
     if img.image_type == "drone_image":
         schema_id = "drone_caption@1.0.0"
     
+    # Handle "manual" model: if it doesn't exist in the database, set model to NULL
+    # This can happen if migrations didn't run (e.g., in production with fallback table creation)
+    model_value = model_code
+    if model_code == "manual":
+        manual_model = db.query(models.Models).filter(models.Models.m_code == 'manual').first()
+        if not manual_model:
+            logger.warning("'manual' model not found in database, setting caption.model to NULL")
+            model_value = None
+    
     caption = models.Captions(
         title=title,
         prompt=prompt,
-        model=model_code,
+        model=model_value,
         schema_id=schema_id,
         raw_json=raw_json,
         generated=text,
