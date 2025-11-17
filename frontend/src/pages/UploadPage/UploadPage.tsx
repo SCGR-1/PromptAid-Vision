@@ -545,7 +545,7 @@ export default function UploadPage() {
       // Check if this is manual mode (model is "manual")
       const isManualModel = (capJson.model as string) === 'manual';
       
-      const extractedMetadata = (capJson.raw_json as Record<string, unknown>)?.metadata;
+      const extractedMetadata = rawJson?.metadata;
       if (extractedMetadata) {
         const metadata = (extractedMetadata as Record<string, unknown>).metadata || extractedMetadata;
        
@@ -707,31 +707,46 @@ export default function UploadPage() {
        }
      }
 
-      // Extract the three parts from the metadata
-      const extractedMetadataForParts = (capJson.raw_json as Record<string, unknown>)?.metadata;
-      if (extractedMetadataForParts) {
-        // For manual mode, explicitly set empty strings (don't skip if empty)
-        if (isManualModel) {
-          setDescription((extractedMetadataForParts as Record<string, unknown>).description as string || '');
-          setAnalysis((extractedMetadataForParts as Record<string, unknown>).analysis as string || '');
-          setRecommendedActions((extractedMetadataForParts as Record<string, unknown>).recommended_actions as string || '');
-        } else {
-          // For other modes, only set if value exists
-          if ((extractedMetadataForParts as Record<string, unknown>).description) {
-            setDescription((extractedMetadataForParts as Record<string, unknown>).description as string);
-          }
-          if ((extractedMetadataForParts as Record<string, unknown>).analysis) {
-            setAnalysis((extractedMetadataForParts as Record<string, unknown>).analysis as string);
-          }
-          if ((extractedMetadataForParts as Record<string, unknown>).recommended_actions) {
-            setRecommendedActions((extractedMetadataForParts as Record<string, unknown>).recommended_actions as string);
-          }
+      // Extract the three parts from parsed or metadata
+      // GPT-4 uses: raw_json.metadata.{description, analysis, recommended_actions}
+      // Qwen uses: raw_json.parsed.{description, analysis, recommended_actions}
+      const parsedData = rawJson?.parsed as Record<string, unknown> | undefined;
+      const metadataData = rawJson?.metadata as Record<string, unknown> | undefined;
+      
+      // Try parsed first (Qwen), then metadata (GPT-4)
+      let desc: string | undefined = undefined;
+      let anal: string | undefined = undefined;
+      let recActions: string | undefined = undefined;
+      
+      if (parsedData) {
+        desc = parsedData.description as string | undefined;
+        anal = parsedData.analysis as string | undefined;
+        recActions = parsedData.recommended_actions as string | undefined;
+      }
+      
+      // Fallback to metadata if parsed didn't have the fields (GPT-4 format)
+      if (!desc && !anal && !recActions && metadataData) {
+        desc = metadataData.description as string | undefined;
+        anal = metadataData.analysis as string | undefined;
+        recActions = metadataData.recommended_actions as string | undefined;
+      }
+      
+      // For manual mode, explicitly set empty strings (don't skip if empty)
+      if (isManualModel) {
+        setDescription(desc || '');
+        setAnalysis(anal || '');
+        setRecommendedActions(recActions || '');
+      } else {
+        // For other modes, set values if they exist
+        if (desc !== undefined && desc !== null) {
+          setDescription(desc);
         }
-      } else if (isManualModel) {
-        // If no metadata at all in manual mode, ensure fields are empty
-        setDescription('');
-        setAnalysis('');
-        setRecommendedActions('');
+        if (anal !== undefined && anal !== null) {
+          setAnalysis(anal);
+        }
+        if (recActions !== undefined && recActions !== null) {
+          setRecommendedActions(recActions);
+        }
       }
       
       if (capJson.generated) {
@@ -1466,7 +1481,6 @@ export default function UploadPage() {
 
       <PreprocessingModal
         isOpen={showPreprocessingModal}
-        preprocessingFile={preprocessingFile}
         isPreprocessing={isPreprocessing}
         preprocessingProgress={preprocessingProgress}
         onConfirm={handlePreprocessingConfirm}
