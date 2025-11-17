@@ -6,6 +6,7 @@ import { unique } from '@togglecorp/fujs';
 import RootLayout from './layouts/RootLayout';
 import UploadPage from './pages/UploadPage';
 import HelpPage from './pages/HelpPage';
+import DemoPage from './pages/DemoPage';
 
 // Lazy load heavy pages with prefetching
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
@@ -105,6 +106,7 @@ function Application() {
           ) 
         },
         { path: '/help',      element: <HelpPage /> },
+        { path: '/demo',      element: <DemoPage /> },
         
         { 
           path: '/admin', 

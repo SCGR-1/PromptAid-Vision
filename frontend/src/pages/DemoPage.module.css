@@ -1,0 +1,130 @@
+.demoContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.section {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.pageTitle {
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+}
+
+.description {
+  font-size: 1.1rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.sectionHeader {
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.sectionDescription {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.switchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.switchItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.switchLabel {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.switchWrapper {
+  background: transparent;
+  border: none;
+  shadow: none;
+  padding: 0.5rem;
+}
+
+.stateDisplay {
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
+
+.nativeCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.nativeCheckbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #d32f2f;
+  cursor: pointer;
+}
+
+.buttonToggle {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.buttonToggleOff {
+  background-color: #fff;
+  color: #666;
+  border-color: #ccc;
+}
+
+.buttonToggleOn {
+  background-color: #d32f2f;
+  color: #fff;
+  border-color: #d32f2f;
+}
+
+.buttonToggle:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.buttonToggleText {
+  display: block;
+}
+
