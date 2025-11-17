@@ -1238,7 +1238,7 @@ export default function UploadPage() {
                 name="generate-from-url"
                     onClick={handleGenerate}
               >
-                Generate Caption
+                {isManualMode ? 'Start' : 'Generate Caption'}
               </Button>
             ) : (
               <Button
@@ -1246,7 +1246,7 @@ export default function UploadPage() {
                     disabled={files.length === 0}
                 onClick={handleGenerate}
               >
-                Generate
+                {isManualMode ? 'Start' : 'Generate'}
               </Button>
             )}
           </div>

@@ -1487,7 +1487,7 @@ export default function MapDetailPage() {
                     {(filteredMap.edited && filteredMap.edited.includes('Description:')) || 
                      (filteredMap.generated && filteredMap.generated.includes('Description:')) ? (
                             <Container
-                        heading="AI Generated Content"
+                        heading="Interpretation"
                               headingLevel={3}
                               withHeaderBorder
                               withInternalPadding

@@ -2,6 +2,7 @@ import type { DragEvent } from 'react';
 import { Button, Container, SegmentInput, IconButton } from '@ifrc-go/ui';
 import { UploadCloudLineIcon, ArrowRightLineIcon, DeleteBinLineIcon } from '@ifrc-go/icons';
 import { Link } from 'react-router-dom';
+import CustomSwitch from '../CustomSwitch';
 import styles from '../../pages/UploadPage/UploadPage.module.css';
 
 interface FileUploadSectionProps {
@@ -57,37 +58,33 @@ export default function FileUploadSection({
         </Link>
       </div>
       
-      {/* Image Type Selection */}
-      <div className="flex justify-center">
+      {/* VLM Toggle and Image Type Selection */}
+      <div className="flex justify-center items-center gap-6 flex-wrap">
         <Container withInternalPadding className="bg-transparent border-none shadow-none">
-          <SegmentInput
-            name="image-type"
-            value={imageType}
-            onChange={(value) => onImageTypeChange(value as string)}
-            options={[
-              { key: 'crisis_map', label: 'Crisis Maps' },
-              { key: 'drone_image', label: 'Drone Imagery' }
-            ]}
-            keySelector={(o) => o.key}
-            labelSelector={(o) => o.label}
+          <CustomSwitch
+            name="vlm-generation"
+            checked={!isManualMode}
+            onChange={(checked) => onManualModeChange(!checked)}
+            label="VLM:"
           />
         </Container>
-      </div>
-
-      {/* Manual / Generate Mode Selection */}
-      <div className="flex justify-center">
         <Container withInternalPadding className="bg-transparent border-none shadow-none">
-          <SegmentInput
-            name="mode"
-            value={isManualMode ? 'manual' : 'generate'}
-            onChange={(value) => onManualModeChange(value === 'manual')}
-            options={[
-              { key: 'manual', label: 'Manual' },
-              { key: 'generate', label: 'Generate' }
-            ]}
-            keySelector={(o) => o.key as 'manual' | 'generate'}
-            labelSelector={(o) => o.label}
-          />
+          <div className="flex justify-center">
+            <SegmentInput
+              name="image-type"
+              value={imageType}
+              onChange={(value) => onImageTypeChange(value as string)}
+              options={[
+                { key: 'crisis_map', label: 'Crisis Maps' },
+                { key: 'drone_image', label: 'Drone Imagery' }
+              ]}
+              keySelector={(o) => o.key}
+              labelSelector={(o) => o.label}
+            />
+          </div>
+        </Container>
+        <Container withInternalPadding className="bg-transparent border-none shadow-none" style={{ width: '80px', visibility: 'hidden' }}>
+          <div style={{ width: '80px' }}></div>
         </Container>
       </div>
       
