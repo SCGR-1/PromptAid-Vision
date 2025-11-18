@@ -740,19 +740,28 @@ async def upload_multiple_images(
                 "fallback_reason": result.get("fallback_reason")
             })
         
-        # Update individual image metadata if VLM provided it
-        metadata_images = metadata.get("metadata_images", {})
-        if metadata_images and isinstance(metadata_images, dict):
-            for i, img in enumerate(uploaded_images):
-                image_key = f"image{i+1}"
-                if image_key in metadata_images:
-                    img_metadata = metadata_images[image_key]
-                    if isinstance(img_metadata, dict):
-                        # Update image with individual metadata
-                        img.source = img_metadata.get("source", img.source)
-                        img.event_type = img_metadata.get("type", img.event_type)
-                        img.epsg = img_metadata.get("epsg", img.epsg)
-                        img.countries = img_metadata.get("countries", img.countries)
+        # Update individual image metadata if VLM provided it (skip for manual mode)
+        if actual_model and actual_model.lower() != "manual":
+            metadata_images = metadata.get("metadata_images", {})
+            if metadata_images and isinstance(metadata_images, dict):
+                for i, img in enumerate(uploaded_images):
+                    image_key = f"image{i+1}"
+                    if image_key in metadata_images:
+                        img_metadata = metadata_images[image_key]
+                        if isinstance(img_metadata, dict):
+                            # Update image with individual metadata only if values are not empty
+                            vlm_source = img_metadata.get("source", "")
+                            if vlm_source and vlm_source.strip():
+                                img.source = vlm_source
+                            vlm_event_type = img_metadata.get("type", "")
+                            if vlm_event_type and vlm_event_type.strip():
+                                img.event_type = vlm_event_type
+                            vlm_epsg = img_metadata.get("epsg", "")
+                            if vlm_epsg and vlm_epsg.strip():
+                                img.epsg = vlm_epsg
+                            vlm_countries = img_metadata.get("countries", [])
+                            if vlm_countries:
+                                img.countries = vlm_countries
         
         # Ensure we never use 'random' as the model name in the database
         final_model_name = actual_model if actual_model != "random" else "STUB_MODEL"
@@ -778,6 +787,8 @@ async def upload_multiple_images(
         
     except Exception as e:
         logger.debug(f"VLM error: {e}")
+        # Rollback any pending changes before creating fallback caption
+        db.rollback()
         # Create fallback caption
         fallback_text = f"Analysis of {len(image_bytes_list)} images"
         caption = crud.create_caption(

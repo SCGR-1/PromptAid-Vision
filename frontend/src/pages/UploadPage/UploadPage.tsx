@@ -481,10 +481,15 @@ export default function UploadPage() {
        }
      });
 
-    const modelName = localStorage.getItem(SELECTED_MODEL_KEY);
-    if (modelName) {
-      fd.append('model_name', modelName);
-    }
+     // Use manual mode if selected, otherwise use the selected model from localStorage
+     if (isManualMode) {
+       fd.append('model_name', 'manual');
+     } else {
+       const modelName = localStorage.getItem(SELECTED_MODEL_KEY);
+       if (modelName) {
+         fd.append('model_name', modelName);
+       }
+     }
 
      const mapRes = await fetch('/api/images/multi', { method: 'POST', body: fd });
       const mapJson = await readJsonSafely(mapRes);
