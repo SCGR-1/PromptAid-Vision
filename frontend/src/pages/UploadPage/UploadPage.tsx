@@ -53,7 +53,7 @@ export default function UploadPage() {
   const [imageType, setImageType] = useState('crisis_map');
   const [countries, setCountries] = useState<string[]>([]);
   const [title, setTitle] = useState('');
-  const [isManualMode, setIsManualMode] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(true);
 
   // Drone metadata fields
   const [centerLon, setCenterLon] = useState<string>('');
