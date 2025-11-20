@@ -11,7 +11,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import styles from './HeaderNav.module.css';
 // 导入 logo 图片
-import logoImage from '../assets/logo.jpg';
+import logoImage from '../assets/logo.png';
 
 
 declare global {
