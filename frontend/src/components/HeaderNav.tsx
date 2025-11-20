@@ -5,12 +5,13 @@ import {
   AnalysisIcon,
   SearchLineIcon,
   QuestionLineIcon,
-  GoMainIcon,
   SettingsIcon,
   MenuLineIcon,
 } from "@ifrc-go/icons";
 import { useState, useEffect, useRef } from "react";
 import styles from './HeaderNav.module.css';
+// 导入 logo 图片
+import logoImage from '../assets/logo.jpg';
 
 
 declare global {
@@ -72,10 +73,12 @@ export default function HeaderNav() {
           }}
         >
           <div className="p-2 rounded-lg bg-gradient-to-br from-ifrcRed/10 to-ifrcRed/20 group-hover:from-ifrcRed/20 group-hover:to-ifrcRed/30 transition-all duration-200">
-            <GoMainIcon className="h-8 w-8 flex-shrink-0 text-ifrcRed" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-xl text-gray-900 leading-tight">PromptAid Vision</span>
+            <img 
+              src={logoImage} 
+              alt="PromptAid Vision Logo" 
+              className="flex-shrink-0 object-contain"
+              style={{ width: '144px', height: '50px' }}
+            />
           </div>
         </div>
 
